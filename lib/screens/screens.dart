@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_strings.dart';
+import '../models/lyrics.dart';
 import '../models/playlist.dart';
 import '../models/track.dart';
 import '../models/video_result.dart';
@@ -107,7 +108,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 }
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({
     required this.state,
     required this.strings,
@@ -122,18 +123,110 @@ class HomeScreen extends StatelessWidget {
   final VoidCallback onOpenNowPlaying;
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  List<dynamic> chart = <dynamic>[];
+  bool chartLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadChart();
+  }
+
+  Future<void> _loadChart() async {
+    try {
+      final items = await widget.state.chartService.topTracks(limit: 10);
+      if (!mounted) return;
+      setState(() {
+        chart = items;
+        chartLoaded = true;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        chartLoaded = true;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final state = widget.state;
+    final strings = widget.strings;
     final recent = state.recentTracks();
     final downloads = state.downloadedTracks();
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         FilledButton.icon(
-          onPressed: onImport,
+          onPressed: widget.onImport,
           icon: Icon(Icons.folder_open),
           label: Text(strings.addMusic),
         ),
         SizedBox(height: 16),
+        if (chart.isNotEmpty) ...[
+          Text(strings.topToday, style: Theme.of(context).textTheme.titleLarge),
+          SizedBox(height: 8),
+          SizedBox(
+            height: 180,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: chart.length,
+              itemBuilder: (context, index) {
+                final item = chart[index];
+                final title = item.title as String;
+                final artist = item.artist as String;
+                final cover = item.coverUrl as String?;
+                return GestureDetector(
+                  onTap: () async {
+                    final query = '$title $artist'.trim();
+                    final results = await state.streamService.search(query);
+                    if (results.isNotEmpty) {
+                      state.playVideo(results.first);
+                    }
+                  },
+                  child: Container(
+                    width: 140,
+                    margin: EdgeInsets.only(right: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (cover != null &&
+                            Uri.tryParse(cover)?.scheme == 'https')
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              cover,
+                              height: 110,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Icon(Icons.album, size: 110),
+                            ),
+                          )
+                        else
+                          Icon(Icons.album, size: 110),
+                        Text(
+                          title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          artist,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          SizedBox(height: 16),
+        ],
         if (recent.isEmpty)
           Text(strings.emptyLibrary)
         else ...[
@@ -150,7 +243,7 @@ class HomeScreen extends StatelessWidget {
                     if (index >= 0) {
                       state.playAt(index);
                     }
-                    onOpenNowPlaying();
+                    widget.onOpenNowPlaying();
                   },
                 ),
               ),
@@ -171,7 +264,7 @@ class HomeScreen extends StatelessWidget {
                 tooltip: strings.deleteDownload,
                 onPressed: () => state.deleteDownload(track),
               ),
-              onTap: () => onOpenNowPlaying(),
+              onTap: () => widget.onOpenNowPlaying(),
             ),
           ),
         SizedBox(height: 16),
@@ -656,6 +749,84 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 }
 
+class LyricsScreen extends StatefulWidget {
+  const LyricsScreen({required this.state, required this.strings, super.key});
+
+  final AppState state;
+  final AppStrings strings;
+
+  @override
+  State<LyricsScreen> createState() => _LyricsScreenState();
+}
+
+class _LyricsScreenState extends State<LyricsScreen> {
+  LyricsResult? result;
+  bool loading = true;
+  bool failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final track = widget.state.current;
+    if (track == null) {
+      setState(() {
+        loading = false;
+      });
+      return;
+    }
+    try {
+      final r = await widget.state.lyricsService.fetch(
+        track.title,
+        track.subtitle ?? '',
+      );
+      if (!mounted) return;
+      setState(() {
+        result = r;
+        loading = false;
+        failed = r == null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        loading = false;
+        failed = true;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = widget.strings;
+    return Scaffold(
+      appBar: AppBar(title: Text(strings.lyricsTitle)),
+      body: loading
+          ? Center(child: CircularProgressIndicator())
+          : failed || result == null || !result!.hasLyrics
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  failed ? strings.lyricsError : strings.noLyrics,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                result!.plainLyrics ?? result!.syncedLyrics ?? '',
+                style: Theme.of(context).textTheme.bodyLarge,
+                textAlign: TextAlign.center,
+              ),
+            ),
+    );
+  }
+}
+
 class NowPlayingScreen extends StatelessWidget {
   const NowPlayingScreen({
     required this.state,
@@ -677,6 +848,63 @@ class NowPlayingScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(strings.nowPlaying),
         actions: [
+          IconButton(
+            icon: Icon(Icons.lyrics),
+            tooltip: strings.lyrics,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (context) {
+                    return LyricsScreen(state: state, strings: strings);
+                  },
+                ),
+              );
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.radio),
+            tooltip: strings.radio,
+            onPressed: () async {
+              final track = state.current;
+              if (track != null) {
+                await state.playRadioFor(track);
+              }
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.timer),
+            tooltip: strings.sleepTimer,
+            onPressed: () async {
+              final minutes = await showDialog<int>(
+                context: context,
+                builder: (context) {
+                  return SimpleDialog(
+                    title: Text(strings.sleepTimer),
+                    children: [
+                      SimpleDialogOption(
+                        onPressed: () => Navigator.pop(context, 15),
+                        child: Text(strings.minutes15),
+                      ),
+                      SimpleDialogOption(
+                        onPressed: () => Navigator.pop(context, 30),
+                        child: Text(strings.minutes30),
+                      ),
+                      SimpleDialogOption(
+                        onPressed: () => Navigator.pop(context, 60),
+                        child: Text(strings.minutes60),
+                      ),
+                      SimpleDialogOption(
+                        onPressed: () => Navigator.pop(context, 0),
+                        child: Text(strings.sleepOff),
+                      ),
+                    ],
+                  );
+                },
+              );
+              state.setSleepTimer(minutes == 0 ? null : minutes);
+            },
+          ),
           IconButton(
             icon: Icon(Icons.queue_music),
             tooltip: strings.queue,

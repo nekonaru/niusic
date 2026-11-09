@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.5.0
+
+Adds lyrics, daily chart, radio, and a sleep timer.
+
+### New features
+
+- **Lyrics.** A lyrics button in Now Playing loads plain lyrics from LRCLIB for the current track.
+- **Daily chart.** Home shows the Deezer top tracks. Tap a tile to play it on YouTube.
+- **Radio.** A radio button adds related YouTube tracks for the current song to the queue.
+- **Sleep timer.** Pause playback after 15, 30, or 60 minutes, or turn it off.
+
 ## v0.4.0
 
 Adds offline downloads, an audio quality choice, and a queue screen you can reorder and trim.

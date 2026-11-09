@@ -33,6 +33,23 @@ class AppStrings {
   String get audioQuality => isId ? 'Kualitas audio' : 'Audio quality';
   String get qualityHigh => isId ? 'Tinggi' : 'High';
   String get qualityLow => isId ? 'Rendah' : 'Low';
+  String get lyrics => isId ? 'Lirik' : 'Lyrics';
+  String get noLyrics => isId
+      ? 'Lirik tidak ditemukan untuk lagu ini.'
+      : 'No lyrics found for this track.';
+  String get lyricsError => isId
+      ? 'Lirik gagal dimuat. Periksa koneksi.'
+      : 'Failed to load lyrics. Check your connection.';
+  String get dailyChart => isId ? 'Chart harian' : 'Daily Chart';
+  String get topToday => isId ? 'Top hari ini' : 'Top today';
+  String get radio => isId ? 'Radio' : 'Radio';
+  String get playRadio => isId ? 'Putar radio' : 'Play radio';
+  String get sleepTimer => isId ? 'Timer tidur' : 'Sleep timer';
+  String get sleepOff => isId ? 'Mati' : 'Off';
+  String get minutes15 => '15 min';
+  String get minutes30 => '30 min';
+  String get minutes60 => '60 min';
+  String get lyricsTitle => isId ? 'Lirik' : 'Lyrics';
   String get nowPlaying => isId ? 'Sedang diputar' : 'Now Playing';
   String get addMusic => isId ? 'Tambah musik' : 'Add music';
   String get emptyLibrary => isId

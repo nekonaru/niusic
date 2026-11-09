@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.5.0
+
+Menambahkan lirik, chart harian, radio, dan timer tidur.
+
+### Fitur baru
+
+- **Lirik.** Tombol lirik di Sedang diputar memuat lirik polos dari LRCLIB untuk lagu saat ini.
+- **Chart harian.** Beranda menampilkan lagu teratas Deezer. Ketuk tile untuk memutarnya di YouTube.
+- **Radio.** Tombol radio menambahkan lagu YouTube terkait untuk lagu saat ini ke antrian.
+- **Timer tidur.** Jeda pemutaran setelah 15, 30, atau 60 menit, atau matikan.
+
 ## v0.4.0
 
 Menambahkan unduhan offline, pilihan kualitas audio, dan layar antrean yang bisa diatur ulang dan dipangkas.

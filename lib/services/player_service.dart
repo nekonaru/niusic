@@ -8,7 +8,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/playlist.dart';
 import '../models/track.dart';
 import '../models/video_result.dart';
+import 'chart_service.dart';
 import 'download_service.dart';
+import 'lyrics_service.dart';
 import 'stream_service.dart';
 
 enum NiRepeatMode { off, all, one }
@@ -27,7 +29,9 @@ const int _maxHistory = 100;
 class AppState extends ChangeNotifier {
   AppState({StreamService? stream, DownloadService? downloads})
     : streamService = stream ?? StreamService(),
-      downloadService = downloads ?? DownloadService() {
+      downloadService = downloads ?? DownloadService(),
+      lyricsService = LyricsService(),
+      chartService = ChartService() {
     _completion = player.onPlayerComplete.listen((_) => next(auto: true));
     _stateSub = player.onPlayerStateChanged.listen((s) {
       final playing = s == PlayerState.playing;
@@ -54,6 +58,8 @@ class AppState extends ChangeNotifier {
   final AudioPlayer player = AudioPlayer();
   final StreamService streamService;
   final DownloadService downloadService;
+  final LyricsService lyricsService;
+  final ChartService chartService;
   final List<Track> library = <Track>[];
   final List<Playlist> playlists = <Playlist>[];
   final List<String> historyIds = <String>[];
@@ -68,6 +74,8 @@ class AppState extends ChangeNotifier {
   Duration position = Duration.zero;
   Duration duration = Duration.zero;
   String? lastError;
+  Timer? _sleepTimer;
+  int? sleepMinutes;
 
   StreamSubscription<void>? _completion;
   StreamSubscription<PlayerState>? _stateSub;
@@ -335,6 +343,39 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setSleepTimer(int? minutes) {
+    _sleepTimer?.cancel();
+    sleepMinutes = minutes;
+    if (minutes != null && minutes > 0) {
+      _sleepTimer = Timer(Duration(minutes: minutes), () {
+        if (isPlaying) {
+          unawaited(player.pause());
+        }
+        notifyListeners();
+      });
+    }
+    notifyListeners();
+  }
+
+  Future<void> playRadioFor(Track track) async {
+    final query = '${track.title} ${track.author ?? ''}'.trim();
+    final results = await streamService.search(query);
+    final seen = <String>{track.id};
+    var added = 0;
+    for (final v in results) {
+      if (added >= 5) {
+        break;
+      }
+      final id = 'yt:${v.videoId}';
+      if (seen.contains(id)) {
+        continue;
+      }
+      seen.add(id);
+      addToQueue(v);
+      added++;
+    }
+  }
+
   Future<void> toggle() async {
     if (isPlaying) {
       await player.pause();
@@ -532,6 +573,9 @@ class AppState extends ChangeNotifier {
     unawaited(player.dispose());
     streamService.dispose();
     downloadService.dispose();
+    lyricsService.dispose();
+    chartService.dispose();
+    _sleepTimer?.cancel();
     super.dispose();
   }
 }

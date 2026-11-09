@@ -78,6 +78,10 @@ Niusic adalah pemutar musik local-first untuk Android dan Windows. Satu codebase
 | **Antrian dan playlist** | Tambah lagu online ke antrian atau ke playlist mana pun. |
 | **Unduhan offline** | Unduh audio ke perangkat dan putar tanpa internet. |
 | **Kualitas audio** | Pilih bitrate rendah atau tinggi di Pengaturan. |
+| **Lirik** | Lihat lirik polos dari LRCLIB di Sedang diputar. |
+| **Chart harian** | Lihat lagu teratas Deezer di Beranda dan putar di YouTube. |
+| **Radio** | Tambah lagu terkait untuk lagu saat ini ke antrian. |
+| **Timer tidur** | Jeda setelah 15, 30, atau 60 menit. |
 
 ### Organisasi
 
