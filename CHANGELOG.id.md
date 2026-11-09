@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.2.1
+
+Menambahkan icon aplikasi Niusic Bars di Android dan Windows dan menampilkannya di header README.
+
+### Fitur baru
+
+- **Icon aplikasi.** Icon launcher Android dan `app_icon.ico` Windows kini memakai mark Bars baru.
+- **Logo README.** Header README menampilkan mark baru dalam kedua bahasa.
+
+### Peningkatan
+
+- **Aset brand.** Master SVG ada di `assets/niusic-mark.svg` dengan gambar PNG header di `assets/niusic-mark.png`.
+
 ## v0.2.0
 
 Menambahkan paket exe Windows ke rilis dan memangkas kerja rebuild, ukuran APK, dan penulisan disk saat pemutaran.

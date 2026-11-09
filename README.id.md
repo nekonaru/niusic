@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/niusic-mark.png" alt="Logo Niusic" width="120" />
+
 <h1>Niusic: Pemutar Musik Lokal</h1>
 <p><b>Putar musik lokal di Android dan Windows (Flutter) dengan perpustakaan, antrian, playlist, dan riwayat. Sepenuhnya offline, tanpa akun.</b></p>
 
@@ -191,6 +193,7 @@ flutter build apk --release --split-per-abi
 
 ```
 niusic
+├── assets     # Mark Niusic (master SVG dan PNG header)
 ├── lib
 │   ├── l10n     # String UI English dan Indonesia
 │   ├── models   # Model Track dan Playlist

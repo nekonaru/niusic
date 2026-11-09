@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/niusic-mark.png" alt="Niusic logo" width="120" />
+
 <h1>Niusic: Local Music Player</h1>
 <p><b>Play local music on Android and Windows (Flutter) with library, queue, playlists, and history. Fully offline, no account.</b></p>
 
@@ -191,6 +193,7 @@ flutter build apk --release --split-per-abi
 
 ```
 niusic
+├── assets     # Niusic mark (SVG master and PNG header)
 ├── lib
 │   ├── l10n     # English and Indonesian UI strings
 │   ├── models   # Track and Playlist models

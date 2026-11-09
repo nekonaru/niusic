@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.2.1
+
+Adds the Niusic Bars app icon on Android and Windows and shows it in the README header.
+
+### New features
+
+- **App icon.** Android launcher icons and Windows `app_icon.ico` now use the new Bars mark.
+- **README logo.** The README header shows the new mark in both languages.
+
+### Improvements
+
+- **Brand asset.** The SVG master lives in `assets/niusic-mark.svg` with a PNG header image in `assets/niusic-mark.png`.
+
 ## v0.2.0
 
 Adds a Windows exe package to the release and trims rebuild work, APK size, and disk writes during playback.
