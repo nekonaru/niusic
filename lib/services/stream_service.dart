@@ -14,13 +14,20 @@ class _CachedUrl {
 /// Hybrid provider: Piped instances for search, YouTube manifest for audio.
 /// Piped endpoints carry no key and are served over HTTPS.
 class StreamService {
-  StreamService({YoutubeExplode? client, http.Client? httpClient})
-    : _client = client ?? YoutubeExplode(),
-      _http = httpClient ?? http.Client();
+  StreamService({
+    YoutubeExplode? client,
+    http.Client? httpClient,
+    String? quality,
+  }) : _client = client ?? YoutubeExplode(),
+       _http = httpClient ?? http.Client(),
+       audioQuality = quality ?? 'high';
 
   final YoutubeExplode _client;
   final http.Client _http;
   final Map<String, _CachedUrl> _urlCache = <String, _CachedUrl>{};
+
+  /// 'low' picks the lowest bitrate audio, 'high' picks the highest.
+  String audioQuality;
 
   static const List<String> _instances = <String>[
     'https://api.piped.private.coffee',
@@ -99,7 +106,8 @@ class StreamService {
     if (audio.isEmpty) {
       throw StateError('No audio streams for video $videoId');
     }
-    final url = audio.first.url.toString();
+    final picked = audioQuality == 'low' ? audio.last : audio.first;
+    final url = picked.url.toString();
     // Googlevideo URLs expire. Cache in memory for 1 hour.
     _urlCache[videoId] = _CachedUrl(
       url,

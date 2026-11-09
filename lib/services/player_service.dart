@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/playlist.dart';
 import '../models/track.dart';
 import '../models/video_result.dart';
+import 'download_service.dart';
 import 'stream_service.dart';
 
 enum NiRepeatMode { off, all, one }
@@ -20,11 +21,13 @@ const String _keyHistory = 'history_v1';
 const String _keyLanguage = 'language';
 const String _keyTheme = 'theme';
 const String _keyVolume = 'volume';
+const String _keyQuality = 'audio_quality';
 const int _maxHistory = 100;
 
 class AppState extends ChangeNotifier {
-  AppState({StreamService? stream})
-    : streamService = stream ?? StreamService() {
+  AppState({StreamService? stream, DownloadService? downloads})
+    : streamService = stream ?? StreamService(),
+      downloadService = downloads ?? DownloadService() {
     _completion = player.onPlayerComplete.listen((_) => next(auto: true));
     _stateSub = player.onPlayerStateChanged.listen((s) {
       final playing = s == PlayerState.playing;
@@ -50,6 +53,7 @@ class AppState extends ChangeNotifier {
 
   final AudioPlayer player = AudioPlayer();
   final StreamService streamService;
+  final DownloadService downloadService;
   final List<Track> library = <Track>[];
   final List<Playlist> playlists = <Playlist>[];
   final List<String> historyIds = <String>[];
@@ -134,6 +138,7 @@ class AppState extends ChangeNotifier {
         ThemeChoice.values.asNameMap()[prefs.getString(_keyTheme)] ??
         ThemeChoice.system;
     volume = prefs.getDouble(_keyVolume) ?? 1;
+    streamService.audioQuality = prefs.getString(_keyQuality) ?? 'high';
     await player.setVolume(volume);
     queue = List<Track>.of(library);
     notifyListeners();
@@ -180,6 +185,10 @@ class AppState extends ChangeNotifier {
         return;
       }
       await player.play(DeviceFileSource(path));
+      return;
+    }
+    if (track.isDownloaded) {
+      await player.play(DeviceFileSource(track.downloadPath!));
       return;
     }
     // Remote: resolve a fresh audio URL (cache lives in StreamService).
@@ -237,6 +246,92 @@ class AppState extends ChangeNotifier {
     _libraryIndex[track.id] = library.length - 1;
     _lowerTitles[track.id] = track.title.toLowerCase();
     unawaited(_saveLibrary());
+    notifyListeners();
+  }
+
+  List<Track> downloadedTracks() {
+    return library.where((t) => t.isDownloaded).toList();
+  }
+
+  Future<void> downloadVideo(VideoResult video) async {
+    final videoId = video.videoId;
+    final url = await streamService.resolveAudioUrl(videoId);
+    final path = await downloadService.downloadTo(url, videoId);
+    final existing = library.indexWhere((t) => t.id == 'yt:$videoId');
+    if (existing >= 0) {
+      library[existing] = library[existing].copyWithDownload(path);
+      final q = queue.indexWhere((t) => t.id == 'yt:$videoId');
+      if (q >= 0) {
+        queue[q] = queue[q].copyWithDownload(path);
+      }
+    } else {
+      final track = Track.remote(
+        videoId: videoId,
+        title: video.title,
+        author: video.author,
+        thumbnailUrl: video.thumbnailUrl,
+        durationSeconds: video.durationSeconds,
+      ).copyWithDownload(path);
+      library.add(track);
+      _libraryIndex[track.id] = library.length - 1;
+      _lowerTitles[track.id] = track.title.toLowerCase();
+    }
+    await _saveLibrary();
+    notifyListeners();
+  }
+
+  Future<void> deleteDownload(Track track) async {
+    await downloadService.deleteFile(track.downloadPath);
+    final li = library.indexWhere((t) => t.id == track.id);
+    if (li >= 0) {
+      final cleared = library[li].copyWithDownload(null);
+      library[li] = cleared;
+      final q = queue.indexWhere((t) => t.id == track.id);
+      if (q >= 0) {
+        queue[q] = cleared;
+      }
+    }
+    await _saveLibrary();
+    notifyListeners();
+  }
+
+  Future<void> setAudioQuality(String value) async {
+    streamService.audioQuality = value;
+    final prefs = await _getPrefs();
+    await prefs.setString(_keyQuality, value);
+    notifyListeners();
+  }
+
+  void moveQueueItem(int oldIndex, int newIndex) {
+    if (oldIndex < 0 || oldIndex >= queue.length || newIndex < 0) {
+      return;
+    }
+    var target = newIndex;
+    if (oldIndex < newIndex) {
+      target = newIndex - 1;
+    }
+    final item = queue.removeAt(oldIndex);
+    queue.insert(target, item);
+    if (queueIndex == oldIndex) {
+      queueIndex = target;
+    } else if (oldIndex < queueIndex && target >= queueIndex) {
+      queueIndex--;
+    } else if (oldIndex > queueIndex && target <= queueIndex) {
+      queueIndex++;
+    }
+    notifyListeners();
+  }
+
+  void removeQueueItem(int index) {
+    if (index < 0 || index >= queue.length) {
+      return;
+    }
+    queue.removeAt(index);
+    if (queueIndex >= queue.length) {
+      queueIndex = queue.isEmpty ? -1 : queue.length - 1;
+    } else if (index < queueIndex) {
+      queueIndex--;
+    }
     notifyListeners();
   }
 
@@ -436,6 +531,7 @@ class AppState extends ChangeNotifier {
     unawaited(_durationSub?.cancel());
     unawaited(player.dispose());
     streamService.dispose();
+    downloadService.dispose();
     super.dispose();
   }
 }

@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.4.0
+
+Menambahkan unduhan offline, pilihan kualitas audio, dan layar antrean yang bisa diatur ulang dan dipangkas.
+
+### Fitur baru
+
+- **Unduhan offline.** Unduh audio YouTube ke perangkat dan putar tanpa internet. Kelola unduhan dari Beranda.
+- **Daftar terunduh dan hapus.** Beranda menampilkan lagu terunduh. Ketuk untuk putar atau pakai ikon hapus untuk bebas ruang.
+- **Kualitas audio.** Pilih bitrate rendah atau tinggi di Pengaturan. Pilihan tersimpan di perangkat.
+- **Layar antrean.** Tombol antrean di Sedang diputar membuka daftar yang bisa digeser untuk diurutkan ulang dan diketuk untuk dihapus.
+
+### Peningkatan
+
+- **Prioritas offline.** Lagu terunduh diputar dari disk, bukan dari jaringan.
+
 ## v0.3.0
 
 Menambahkan pencarian dan pemutaran online, sehingga Niusic kini memutar musik YouTube seperti Auralys selain file lokal.

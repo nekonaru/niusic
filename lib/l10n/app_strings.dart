@@ -22,6 +22,17 @@ class AppStrings {
   String get enqueue => isId ? 'Tambah ke antrian' : 'Add to queue';
   String get needsInternet =>
       isId ? 'Streaming butuh internet.' : 'Streaming needs internet.';
+  String get downloads => isId ? 'Unduhan' : 'Downloads';
+  String get download => isId ? 'Unduh untuk offline' : 'Download for offline';
+  String get downloading => isId ? 'Mengunduh...' : 'Downloading...';
+  String get downloaded => isId ? 'Terunduh' : 'Downloaded';
+  String get deleteDownload => isId ? 'Hapus unduhan' : 'Delete download';
+  String get noDownloads => isId
+      ? 'Belum ada unduhan. Unduh lagu dari tab Streaming.'
+      : 'No downloads yet. Download songs from the Stream tab.';
+  String get audioQuality => isId ? 'Kualitas audio' : 'Audio quality';
+  String get qualityHigh => isId ? 'Tinggi' : 'High';
+  String get qualityLow => isId ? 'Rendah' : 'Low';
   String get nowPlaying => isId ? 'Sedang diputar' : 'Now Playing';
   String get addMusic => isId ? 'Tambah musik' : 'Add music';
   String get emptyLibrary => isId

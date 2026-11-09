@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.4.0
+
+Adds offline downloads, an audio quality choice, and a queue screen you can reorder and trim.
+
+### New features
+
+- **Offline downloads.** Download YouTube audio to the device and play it without internet. Manage downloads from Home.
+- **Downloaded list and delete.** Home shows downloaded tracks. Tap to play or use the delete icon to free space.
+- **Audio quality.** Choose low or high bitrate in Settings. The choice is saved on the device.
+- **Queue screen.** A queue button in Now Playing opens a list you can drag to reorder and tap to remove.
+
+### Improvements
+
+- **Offline playback priority.** Downloaded tracks play from disk instead of the network.
+
 ## v0.3.0
 
 Adds online search and playback, so Niusic now streams YouTube music like Auralys in addition to local files.

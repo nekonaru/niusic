@@ -124,6 +124,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final recent = state.recentTracks();
+    final downloads = state.downloadedTracks();
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -155,11 +156,69 @@ class HomeScreen extends StatelessWidget {
               ),
         ],
         SizedBox(height: 16),
+        Text(strings.downloads, style: Theme.of(context).textTheme.titleLarge),
+        SizedBox(height: 8),
+        if (downloads.isEmpty)
+          Text(strings.noDownloads)
+        else
+          ...downloads.map(
+            (track) => ListTile(
+              leading: Icon(Icons.download_done),
+              title: Text(track.title),
+              subtitle: Text(strings.downloaded),
+              trailing: IconButton(
+                icon: Icon(Icons.delete_outline),
+                tooltip: strings.deleteDownload,
+                onPressed: () => state.deleteDownload(track),
+              ),
+              onTap: () => onOpenNowPlaying(),
+            ),
+          ),
+        SizedBox(height: 16),
         Text(
           '${state.library.length} ${strings.tracksCount}',
           style: Theme.of(context).textTheme.titleLarge,
         ),
       ],
+    );
+  }
+}
+
+class QueueScreen extends StatelessWidget {
+  const QueueScreen({required this.state, required this.strings, super.key});
+
+  final AppState state;
+  final AppStrings strings;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(strings.queue)),
+      body: state.queue.isEmpty
+          ? Center(child: Text(strings.noTrack))
+          : ReorderableListView.builder(
+              itemCount: state.queue.length,
+              onReorderItem: (oldIndex, newIndex) {
+                state.moveQueueItem(oldIndex, newIndex);
+              },
+              itemBuilder: (context, index) {
+                final track = state.queue[index];
+                final isCurrent = index == state.queueIndex;
+                return ListTile(
+                  key: ValueKey<String>(track.id),
+                  leading: Icon(
+                    isCurrent ? Icons.graphic_eq : Icons.audiotrack,
+                  ),
+                  title: Text(track.title),
+                  subtitle: Text(track.subtitle ?? ''),
+                  trailing: IconButton(
+                    icon: Icon(Icons.remove_circle_outline),
+                    onPressed: () => state.removeQueueItem(index),
+                  ),
+                  onTap: () => state.playAt(index),
+                );
+              },
+            ),
     );
   }
 }
@@ -345,6 +404,19 @@ class SettingsScreen extends StatelessWidget {
           onChanged: (value) => state.setVolume(value),
         ),
         SizedBox(height: 16),
+        Text(
+          strings.audioQuality,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        SegmentedButton<String>(
+          segments: [
+            ButtonSegment(value: 'low', label: Text(strings.qualityLow)),
+            ButtonSegment(value: 'high', label: Text(strings.qualityHigh)),
+          ],
+          selected: {state.streamService.audioQuality},
+          onSelectionChanged: (value) => state.setAudioQuality(value.first),
+        ),
+        SizedBox(height: 16),
         OutlinedButton.icon(
           onPressed: () async {
             final ok = await showDialog<bool>(
@@ -488,6 +560,21 @@ class _SearchScreenState extends State<SearchScreen> {
                         widget.state.addToQueue(video);
                       } else if (value == 'playlist') {
                         await _addToPlaylist(video);
+                      } else if (value == 'download') {
+                        setState(() => loading = true);
+                        try {
+                          await widget.state.downloadVideo(video);
+                        } catch (_) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              SnackBar(content: Text(strings.searchError)),
+                            );
+                          }
+                        } finally {
+                          if (mounted) {
+                            setState(() => loading = false);
+                          }
+                        }
                       }
                     },
                     itemBuilder: (context) => [
@@ -498,6 +585,10 @@ class _SearchScreenState extends State<SearchScreen> {
                       PopupMenuItem(
                         value: 'playlist',
                         child: Text(strings.addToPlaylist),
+                      ),
+                      PopupMenuItem(
+                        value: 'download',
+                        child: Text(strings.download),
                       ),
                     ],
                   ),
@@ -583,7 +674,25 @@ class NowPlayingScreen extends StatelessWidget {
         : 1.0;
     final value = state.position.inSeconds.toDouble().clamp(0.0, max);
     return Scaffold(
-      appBar: AppBar(title: Text(strings.nowPlaying)),
+      appBar: AppBar(
+        title: Text(strings.nowPlaying),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.queue_music),
+            tooltip: strings.queue,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (context) {
+                    return QueueScreen(state: state, strings: strings);
+                  },
+                ),
+              );
+            },
+          ),
+        ],
+      ),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),

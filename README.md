@@ -76,6 +76,8 @@ Niusic is a local-first music player for Android and Windows. One Flutter codeba
 | **YouTube search** | Search YouTube videos from Piped instances with titles, channels, and thumbnails. |
 | **Online playback** | Stream audio from YouTube, mixed in the same queue as local tracks. |
 | **Queue and playlists** | Add online tracks to the queue or to any playlist. |
+| **Offline downloads** | Download audio to the device and play it without internet. |
+| **Audio quality** | Pick low or high bitrate in Settings. |
 
 ### Organization
 

@@ -11,6 +11,7 @@ class Track {
     this.thumbnailUrl,
     this.videoId,
     this.durationSeconds,
+    this.downloadPath,
   });
 
   final String id;
@@ -22,9 +23,11 @@ class Track {
   final String? thumbnailUrl;
   final String? videoId;
   final int? durationSeconds;
+  final String? downloadPath;
 
   bool get isLocal => kind == TrackKind.local;
   bool get isRemote => kind == TrackKind.remote;
+  bool get isDownloaded => downloadPath != null && downloadPath!.isNotEmpty;
 
   String get fileName {
     if (path != null) {
@@ -90,6 +93,22 @@ class Track {
       thumbnailUrl: thumbnailUrl,
       videoId: videoId,
       durationSeconds: durationSeconds,
+      downloadPath: downloadPath,
+    );
+  }
+
+  Track copyWithDownload(String? newPath) {
+    return Track(
+      id: id,
+      title: title,
+      kind: kind,
+      path: path,
+      url: url,
+      author: author,
+      thumbnailUrl: thumbnailUrl,
+      videoId: videoId,
+      durationSeconds: durationSeconds,
+      downloadPath: newPath,
     );
   }
 
@@ -108,6 +127,8 @@ class Track {
     if (v != null) map['vid'] = v;
     final d = durationSeconds;
     if (d != null) map['dur'] = d.toString();
+    final dp = downloadPath;
+    if (dp != null && dp.isNotEmpty) map['dpath'] = dp;
     return map;
   }
 
@@ -142,6 +163,7 @@ class Track {
       thumbnailUrl: json['thumb'] as String?,
       videoId: json['vid'] as String?,
       durationSeconds: dur,
+      downloadPath: json['dpath'] as String?,
     );
   }
 
