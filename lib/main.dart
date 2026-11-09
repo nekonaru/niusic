@@ -156,9 +156,24 @@ class _NiusicAppState extends State<NiusicApp> {
     );
   }
 
+  Color _seedColor(AppState state) {
+    switch (state.accent) {
+      case 'teal':
+        return Colors.teal;
+      case 'purple':
+        return Colors.purple;
+      case 'orange':
+        return Colors.orange;
+      case 'indigo':
+      default:
+        return Colors.indigo;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = _strings;
+    final seed = _seedColor(state);
     final pages = <Widget>[
       HomeScreen(
         state: state,
@@ -180,12 +195,12 @@ class _NiusicAppState extends State<NiusicApp> {
       title: 'Niusic',
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        colorScheme: ColorScheme.fromSeed(seedColor: seed),
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.indigo,
+          seedColor: seed,
           brightness: Brightness.dark,
         ),
       ),

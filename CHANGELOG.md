@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.7.0
+
+Adds channel browse, search suggestions, playback speed, and accent themes. Also fixes related radio and documents remaining gaps.
+
+### New features
+
+- **Channel browse.** Open any channel from search and see banner, avatar, subscribers, and uploads.
+- **Search suggestions.** Tap a suggestion chip to search again instantly.
+- **Playback speed.** Adjust 0.5x to 2.0x in Settings. The rate is saved.
+- **Accent themes.** Pick indigo, teal, purple, or orange accent in Settings.
+- **True radio.** Radio now prefers related streams for the current video, then falls back to search.
+
+### Improvements
+
+- **Gap analysis.** `docs/GAPS.md` lists which Auralys features are implemented and which need accounts or native code.
+
 ## v0.6.0
 
 Makes the UI native to each device: a sidebar and two-pane now playing on desktop, and a bottom bar on mobile. Also fixes a queue lookup bug and tightens audio focus.

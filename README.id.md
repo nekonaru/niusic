@@ -83,6 +83,10 @@ Niusic adalah pemutar musik local-first untuk Android dan Windows. Satu codebase
 | **Radio** | Tambah lagu terkait untuk lagu saat ini ke antrian. |
 | **Timer tidur** | Jeda setelah 15, 30, atau 60 menit. |
 | **UI adaptif** | Sidebar dan pemutar dua pane di desktop, bar bawah di mobile. |
+| **Browse kanal** | Buka kanal mana pun dari pencarian dan putar unggahannya. |
+| **Saran** | Lihat saran pencarian YouTube sebagai chip. |
+| **Kecepatan putar** | Atur 0,5x hingga 2,0x di Pengaturan. |
+| **Tema aksen** | Pilih aksen indigo, teal, ungu, atau oranye. |
 
 ### Organisasi
 

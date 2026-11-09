@@ -526,6 +526,31 @@ class SettingsScreen extends StatelessWidget {
           onSelectionChanged: (value) => state.setAudioQuality(value.first),
         ),
         SizedBox(height: 16),
+        Text(
+          strings.playbackSpeed,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        Text('${state.playbackRate.toStringAsFixed(2)}x'),
+        Slider(
+          min: 0.5,
+          max: 2.0,
+          divisions: 6,
+          value: state.playbackRate,
+          onChanged: (value) => state.setPlaybackRate(value),
+        ),
+        SizedBox(height: 16),
+        Text(strings.accent, style: Theme.of(context).textTheme.titleLarge),
+        SegmentedButton<String>(
+          segments: [
+            ButtonSegment(value: 'indigo', label: Text('Indigo')),
+            ButtonSegment(value: 'teal', label: Text('Teal')),
+            ButtonSegment(value: 'purple', label: Text('Purple')),
+            ButtonSegment(value: 'orange', label: Text('Orange')),
+          ],
+          selected: {state.accent},
+          onSelectionChanged: (value) => state.setAccent(value.first),
+        ),
+        SizedBox(height: 16),
         OutlinedButton.icon(
           onPressed: () async {
             final ok = await showDialog<bool>(
@@ -572,6 +597,8 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _controller = TextEditingController();
   List<VideoResult> results = <VideoResult>[];
+  List<ChannelResult> channels = <ChannelResult>[];
+  List<String> suggestions = <String>[];
   bool loading = false;
   bool failed = false;
   bool searched = false;
@@ -586,11 +613,13 @@ class _SearchScreenState extends State<SearchScreen> {
 
   void _onChanged(String value) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 600), () async {
+    _debounce = Timer(const Duration(milliseconds: 400), () async {
       final query = value.trim();
       if (query.isEmpty) {
         setState(() {
           results = <VideoResult>[];
+          channels = <ChannelResult>[];
+          suggestions = <String>[];
           searched = false;
           failed = false;
           loading = false;
@@ -603,9 +632,25 @@ class _SearchScreenState extends State<SearchScreen> {
       });
       try {
         final found = await widget.state.streamService.search(query);
+        List<ChannelResult> foundChannels = <ChannelResult>[];
+        try {
+          foundChannels = await widget.state.streamService.searchChannels(
+            query,
+          );
+        } catch (_) {
+          foundChannels = <ChannelResult>[];
+        }
+        List<String> foundHints = <String>[];
+        try {
+          foundHints = await widget.state.suggestionsService.fetch(query);
+        } catch (_) {
+          foundHints = <String>[];
+        }
         if (!mounted) return;
         setState(() {
           results = found;
+          channels = foundChannels;
+          suggestions = foundHints;
           loading = false;
           searched = true;
         });
@@ -652,6 +697,61 @@ class _SearchScreenState extends State<SearchScreen> {
         if (!loading && failed) Center(child: Text(strings.searchError)),
         if (!loading && !failed && searched && results.isEmpty)
           Center(child: Text(strings.noResults)),
+        if (!loading && suggestions.isNotEmpty)
+          SizedBox(
+            height: 40,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: suggestions.length,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ActionChip(
+                    label: Text(suggestions[index]),
+                    onPressed: () {
+                      _controller.text = suggestions[index];
+                      _onChanged(suggestions[index]);
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+        if (!loading && channels.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: SizedBox(
+              height: 48,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: channels.length,
+                itemBuilder: (context, index) {
+                  final ch = channels[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ActionChip(
+                      avatar: Icon(Icons.person),
+                      label: Text(ch.name),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute<void>(
+                            builder: (context) {
+                              return ChannelScreen(
+                                state: widget.state,
+                                strings: strings,
+                                channelId: ch.channelId,
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
         if (!loading && !failed && results.isNotEmpty)
           Expanded(
             child: GridView.builder(
@@ -691,6 +791,22 @@ class _SearchScreenState extends State<SearchScreen> {
                               setState(() => loading = false);
                             }
                           }
+                        } else if (value == 'channel') {
+                          final id = video.channelId;
+                          if (id != null) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute<void>(
+                                builder: (context) {
+                                  return ChannelScreen(
+                                    state: widget.state,
+                                    strings: strings,
+                                    channelId: id,
+                                  );
+                                },
+                              ),
+                            );
+                          }
                         }
                       },
                       itemBuilder: (context) => [
@@ -706,6 +822,11 @@ class _SearchScreenState extends State<SearchScreen> {
                           value: 'download',
                           child: Text(strings.download),
                         ),
+                        if (video.channelId != null)
+                          PopupMenuItem(
+                            value: 'channel',
+                            child: Text(strings.channel),
+                          ),
                       ],
                     ),
                     onTap: () => widget.state.playVideo(video),
@@ -770,6 +891,126 @@ class _SearchScreenState extends State<SearchScreen> {
     if (picked != null) {
       await state.addToPlaylist(picked, track);
     }
+  }
+}
+
+class ChannelScreen extends StatefulWidget {
+  const ChannelScreen({
+    required this.state,
+    required this.strings,
+    required this.channelId,
+    super.key,
+  });
+
+  final AppState state;
+  final AppStrings strings;
+  final String channelId;
+
+  @override
+  State<ChannelScreen> createState() => _ChannelScreenState();
+}
+
+class _ChannelScreenState extends State<ChannelScreen> {
+  ChannelDetail? detail;
+  bool loading = true;
+  bool failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final d = await widget.state.streamService.fetchChannel(widget.channelId);
+      if (!mounted) return;
+      setState(() {
+        detail = d;
+        loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        loading = false;
+        failed = true;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = widget.strings;
+    return Scaffold(
+      appBar: AppBar(title: Text(detail?.name ?? strings.channel)),
+      body: loading
+          ? Center(child: CircularProgressIndicator())
+          : failed || detail == null
+          ? Center(child: Text(strings.searchError))
+          : ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                if (detail!.bannerUrl != null &&
+                    Uri.tryParse(detail!.bannerUrl!)?.scheme == 'https')
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.network(
+                      detail!.bannerUrl!,
+                      height: 120,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                SizedBox(height: 16),
+                Row(
+                  children: [
+                    if (detail!.avatarUrl != null &&
+                        Uri.tryParse(detail!.avatarUrl!)?.scheme == 'https')
+                      CircleAvatar(
+                        radius: 24,
+                        backgroundImage: NetworkImage(detail!.avatarUrl!),
+                      ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            detail!.name,
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
+                          if (detail!.subscriberCount != null)
+                            Text(
+                              '${detail!.subscriberCount} ${strings.subscribers}',
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                if (detail!.description != null &&
+                    detail!.description!.isNotEmpty) ...[
+                  SizedBox(height: 12),
+                  Text(detail!.description!),
+                ],
+                SizedBox(height: 16),
+                Text(
+                  strings.uploads,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                SizedBox(height: 8),
+                if (detail!.uploads.isEmpty)
+                  Text(strings.noResults)
+                else
+                  ...detail!.uploads.map(
+                    (video) => ListTile(
+                      title: Text(video.title),
+                      subtitle: Text(video.author),
+                      onTap: () => widget.state.playVideo(video),
+                    ),
+                  ),
+              ],
+            ),
+    );
   }
 }
 

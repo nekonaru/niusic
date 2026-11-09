@@ -50,6 +50,12 @@ class AppStrings {
   String get minutes30 => '30 min';
   String get minutes60 => '60 min';
   String get lyricsTitle => isId ? 'Lirik' : 'Lyrics';
+  String get channel => isId ? 'Kanal' : 'Channel';
+  String get subscribers => isId ? 'pelanggan' : 'subscribers';
+  String get uploads => isId ? 'Unggahan' : 'Uploads';
+  String get playbackSpeed => isId ? 'Kecepatan putar' : 'Playback speed';
+  String get accent => isId ? 'Warna aksen' : 'Accent color';
+  String get suggestions => isId ? 'Saran pencarian' : 'Search suggestions';
   String get nowPlaying => isId ? 'Sedang diputar' : 'Now Playing';
   String get addMusic => isId ? 'Tambah musik' : 'Add music';
   String get emptyLibrary => isId

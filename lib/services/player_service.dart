@@ -12,6 +12,7 @@ import 'chart_service.dart';
 import 'download_service.dart';
 import 'lyrics_service.dart';
 import 'stream_service.dart';
+import 'suggestions_service.dart';
 
 enum NiRepeatMode { off, all, one }
 
@@ -24,14 +25,17 @@ const String _keyLanguage = 'language';
 const String _keyTheme = 'theme';
 const String _keyVolume = 'volume';
 const String _keyQuality = 'audio_quality';
+const String _keyRate = 'playback_rate';
+const String _keyAccent = 'accent';
 const int _maxHistory = 100;
 
 class AppState extends ChangeNotifier {
   AppState({StreamService? stream, DownloadService? downloads})
-    : streamService = stream ?? StreamService(),
-      downloadService = downloads ?? DownloadService(),
-      lyricsService = LyricsService(),
-      chartService = ChartService() {
+      : streamService = stream ?? StreamService(),
+        downloadService = downloads ?? DownloadService(),
+        lyricsService = LyricsService(),
+        chartService = ChartService(),
+        suggestionsService = SuggestionsService() {
     _completion = player.onPlayerComplete.listen((_) => next(auto: true));
     _stateSub = player.onPlayerStateChanged.listen((s) {
       final playing = s == PlayerState.playing;
@@ -60,6 +64,7 @@ class AppState extends ChangeNotifier {
   final DownloadService downloadService;
   final LyricsService lyricsService;
   final ChartService chartService;
+  final SuggestionsService suggestionsService;
   final List<Track> library = <Track>[];
   final List<Playlist> playlists = <Playlist>[];
   final List<String> historyIds = <String>[];
@@ -74,6 +79,8 @@ class AppState extends ChangeNotifier {
   Duration position = Duration.zero;
   Duration duration = Duration.zero;
   String? lastError;
+  double playbackRate = 1;
+  String accent = 'indigo';
   Timer? _sleepTimer;
   int? sleepMinutes;
 
@@ -147,6 +154,9 @@ class AppState extends ChangeNotifier {
         ThemeChoice.system;
     volume = prefs.getDouble(_keyVolume) ?? 1;
     streamService.audioQuality = prefs.getString(_keyQuality) ?? 'high';
+    playbackRate = prefs.getDouble(_keyRate) ?? 1;
+    accent = prefs.getString(_keyAccent) ?? 'indigo';
+    await player.setPlaybackRate(playbackRate);
     await player.setAudioContext(
       AudioContext(
         android: AudioContextAndroid(
@@ -352,6 +362,11 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setSleepTimerTestOnly(int? minutes) {
+    setSleepTimer(minutes);
+    return Future.value();
+  }
+
   void setSleepTimer(int? minutes) {
     _sleepTimer?.cancel();
     sleepMinutes = minutes;
@@ -367,11 +382,19 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> playRadioFor(Track track) async {
-    final query = '${track.title} ${track.author ?? ''}'.trim();
-    final results = await streamService.search(query);
+    // Prefer true related streams for remote tracks, fall back to search.
+    final videoId = track.videoId;
+    final relatedResults = videoId != null
+        ? await streamService.related(videoId)
+        : <VideoResult>[];
+    final candidates = relatedResults.isNotEmpty
+        ? relatedResults
+        : await streamService.search(
+            '${track.title} ${track.author ?? ''}'.trim(),
+          );
     final seen = <String>{track.id};
     var added = 0;
-    for (final v in results) {
+    for (final v in candidates) {
       if (added >= 5) {
         break;
       }
@@ -383,6 +406,21 @@ class AppState extends ChangeNotifier {
       addToQueue(v);
       added++;
     }
+  }
+
+  Future<void> setPlaybackRate(double value) async {
+    playbackRate = value.clamp(0.5, 2.0);
+    await player.setPlaybackRate(playbackRate);
+    final prefs = await _getPrefs();
+    await prefs.setDouble(_keyRate, playbackRate);
+    notifyListeners();
+  }
+
+  Future<void> setAccent(String value) async {
+    accent = value;
+    final prefs = await _getPrefs();
+    await prefs.setString(_keyAccent, value);
+    notifyListeners();
   }
 
   Future<void> toggle() async {
@@ -584,6 +622,7 @@ class AppState extends ChangeNotifier {
     downloadService.dispose();
     lyricsService.dispose();
     chartService.dispose();
+    suggestionsService.dispose();
     _sleepTimer?.cancel();
     super.dispose();
   }

@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.7.0
+
+Menambahkan browse kanal, saran pencarian, kecepatan putar, dan tema aksen. Juga memperbaiki radio terkait dan mendokumentasikan kesenjangan yang tersisa.
+
+### Fitur baru
+
+- **Browse kanal.** Buka kanal mana pun dari pencarian dan lihat banner, avatar, pelanggan, dan unggahan.
+- **Saran pencarian.** Ketuk chip saran untuk mencari lagi secara instan.
+- **Kecepatan putar.** Atur 0,5x hingga 2,0x di Pengaturan. Kecepatan tersimpan.
+- **Tema aksen.** Pilih aksen indigo, teal, ungu, atau oranye di Pengaturan.
+- **Radio asli.** Radio kini mengutamakan stream terkait untuk video saat ini, lalu fallback ke pencarian.
+
+### Peningkatan
+
+- **Analisis kesenjangan.** `docs/GAPS.md` mencantumkan fitur Auralys mana yang sudah dibuat dan mana yang butuh akun atau kode native.
+
 ## v0.6.0
 
 Membuat UI native untuk setiap perangkat: sidebar dan sekarang diputar dua pane di desktop, dan bar bawah di mobile. Juga memperbaiki bug pencarian antrean dan memperketat fokus audio.

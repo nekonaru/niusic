@@ -83,6 +83,10 @@ Niusic is a local-first music player for Android and Windows. One Flutter codeba
 | **Radio** | Add related tracks for the current song to the queue. |
 | **Sleep timer** | Pause after 15, 30, or 60 minutes. |
 | **Adaptive UI** | Sidebar and two-pane player on desktop, bottom bar on mobile. |
+| **Channel browse** | Open any channel from search and play its uploads. |
+| **Suggestions** | See YouTube search suggestions as chips. |
+| **Playback speed** | Set 0.5x to 2.0x in Settings. |
+| **Accent themes** | Pick indigo, teal, purple, or orange accent. |
 
 ### Organization
 
