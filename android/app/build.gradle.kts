@@ -30,6 +30,11 @@ android {
         release {
             // Debug signing keys are used so the release APK is installable in CI.
             signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro")
         }
     }
 }

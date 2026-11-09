@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.2.0
+
+Adds a Windows exe package to the release and trims rebuild work, APK size, and disk writes during playback.
+
+### New features
+
+- **Windows exe package.** The release now ships `niusic-windows-x64.zip` with `niusic.exe` plus DLLs, alongside the Android APKs.
+- **Two Android APKs.** The release now includes arm64-v8a and armeabi-v7a builds.
+
+### Improvements
+
+- **Faster playback UI.** Position updates notify the UI once per second instead of several times per second.
+- **Faster library.** Library search and queue lookup use precomputed indexes instead of repeated linear scans.
+- **Smaller APK.** Release builds enable minification and resource shrinking.
+- **Fewer disk writes.** Settings are cached and volume changes are debounced for 300 ms.
+- **Stable tabs.** Tabs use IndexedStack so switching tabs does not rebuild progress.
+
 ## v0.1.0
 
 Local-first release with one Flutter codebase for Android and Windows. Plays music files on your device with library, queue, playlists, and history.

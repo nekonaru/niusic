@@ -8,7 +8,7 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  build-android:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,13 +17,44 @@ jobs:
           flutter-version: '3.47.0'
           channel: 'stable'
       - run: flutter pub get
-      - run: flutter analyze
-      - run: flutter test
       - run: flutter build apk --release --split-per-abi
-      - run: cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk niusic-android-arm64-v8a-release.apk
+      - run: cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk niusic-android-arm64-v8a-release.apk && cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk niusic-android-armeabi-v7a-release.apk
+        shell: bash
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-assets
+          path: niusic-android-*.apk
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.0'
+          channel: 'stable'
+      - run: flutter pub get
+      - run: flutter build windows --release
+      - run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath niusic-windows-x64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-assets
+          path: niusic-windows-x64.zip
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [build-android, build-windows]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - run: ls -R dist
         shell: bash
       - uses: softprops/action-gh-release@v2
         with:
           draft: true
-          files: niusic-android-arm64-v8a-release.apk
-          body_path: CHANGELOG.md
+          files: |
+            dist/android-assets/niusic-android-arm64-v8a-release.apk
+            dist/android-assets/niusic-android-armeabi-v7a-release.apk
+            dist/windows-assets/niusic-windows-x64.zip

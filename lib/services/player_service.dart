@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/playlist.dart';
@@ -17,10 +18,33 @@ const String _keyHistory = 'history_v1';
 const String _keyLanguage = 'language';
 const String _keyTheme = 'theme';
 const String _keyVolume = 'volume';
+const int _maxHistory = 100;
 
-class AppState {
+class AppState extends ChangeNotifier {
   AppState() {
-    player.onPlayerComplete.listen((_) => next(auto: true));
+    _completion = player.onPlayerComplete.listen((_) => next(auto: true));
+    _stateSub = player.onPlayerStateChanged.listen((s) {
+      final playing = s == PlayerState.playing;
+      if (playing != isPlaying) {
+        isPlaying = playing;
+        notifyListeners();
+      }
+    });
+    _positionSub = player.onPositionChanged.listen((d) {
+      // Position events fire several times per second. Notifying on every
+      // tick rebuilds the whole app. Only notify once per second.
+      final nextSecond = d.inSeconds;
+      if (nextSecond != position.inSeconds || duration == Duration.zero) {
+        position = d;
+        notifyListeners();
+      } else {
+        position = d;
+      }
+    });
+    _durationSub = player.onDurationChanged.listen((d) {
+      duration = d;
+      notifyListeners();
+    });
   }
 
   final AudioPlayer player = AudioPlayer();
@@ -37,30 +61,17 @@ class AppState {
   bool isPlaying = false;
   Duration position = Duration.zero;
   Duration duration = Duration.zero;
-  String? lastError;
-  final List<void Function()> _listeners = <void Function()>[];
 
-  void addListener(void Function() listener) {
-    _listeners.add(listener);
-    player.onPlayerStateChanged.listen((s) {
-      isPlaying = s == PlayerState.playing;
-      notify();
-    });
-    player.onPositionChanged.listen((d) {
-      position = d;
-      notify();
-    });
-    player.onDurationChanged.listen((d) {
-      duration = d;
-      notify();
-    });
-  }
+  StreamSubscription<void>? _completion;
+  StreamSubscription<PlayerState>? _stateSub;
+  StreamSubscription<Duration>? _positionSub;
+  StreamSubscription<Duration>? _durationSub;
+  SharedPreferences? _prefs;
+  Timer? _volumeTimer;
 
-  void notify() {
-    for (final listener in List.of(_listeners)) {
-      listener();
-    }
-  }
+  // Index maps avoid O(n) scans per list tile.
+  final Map<String, int> _libraryIndex = <String, int>{};
+  final Map<String, String> _lowerTitles = <String, String>{};
 
   Track? get current {
     if (queueIndex < 0 || queueIndex >= queue.length) {
@@ -69,8 +80,25 @@ class AppState {
     return queue[queueIndex];
   }
 
+  int queueIndexOf(Track track) => _libraryIndex[track.path] ?? -1;
+
+  List<Track> searchLibrary(String query) {
+    final needle = query.trim().toLowerCase();
+    if (needle.isEmpty) {
+      return library;
+    }
+    return library
+        .where((t) => (_lowerTitles[t.path] ?? '').contains(needle))
+        .toList();
+  }
+
+  Future<SharedPreferences> _getPrefs() async {
+    _prefs ??= await SharedPreferences.getInstance();
+    return _prefs!;
+  }
+
   Future<void> load() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     final libRaw = prefs.getString(_keyLibrary);
     if (libRaw != null) {
       final decoded = jsonDecode(libRaw) as List<dynamic>;
@@ -79,6 +107,7 @@ class AppState {
           library.add(Track.fromJson(item));
         }
       }
+      _rebuildIndexes();
     }
     final plRaw = prefs.getString(_keyPlaylists);
     if (plRaw != null) {
@@ -105,19 +134,26 @@ class AppState {
     volume = prefs.getDouble(_keyVolume) ?? 1;
     await player.setVolume(volume);
     queue = List<Track>.of(library);
-    notify();
+    notifyListeners();
   }
 
   Future<void> addPaths(List<String> paths) async {
     final existing = library.map((t) => t.path).toSet();
+    var added = false;
     for (final path in paths) {
       if (!existing.contains(path)) {
-        library.add(Track.fromPath(path));
+        final track = Track.fromPath(path);
+        library.add(track);
+        _libraryIndex[track.path] = library.length - 1;
+        _lowerTitles[track.path] = track.title.toLowerCase();
+        added = true;
       }
     }
-    await _saveLibrary();
-    queue = List<Track>.of(library);
-    notify();
+    if (added) {
+      await _saveLibrary();
+      queue = List<Track>.of(library);
+      notifyListeners();
+    }
   }
 
   Future<void> playAt(int index) async {
@@ -130,7 +166,7 @@ class AppState {
     historyPaths.insert(0, track.path);
     await _saveHistory();
     await player.play(DeviceFileSource(track.path));
-    notify();
+    notifyListeners();
   }
 
   Future<void> toggle() async {
@@ -156,7 +192,8 @@ class AppState {
     }
     int nextIndex;
     if (shuffle) {
-      nextIndex = (queueIndex + 1 + _pseudoRandom(queue.length)) % queue.length;
+      nextIndex =
+          (queueIndex + 1 + _nextInt(queue.length)) % queue.length;
     } else {
       nextIndex = queueIndex + 1;
       if (nextIndex >= queue.length) {
@@ -182,35 +219,40 @@ class AppState {
   }
 
   Future<void> setVolume(double value) async {
-    volume = value.clamp(0, 1);
+    volume = value.clamp(0, 1).toDouble();
     await player.setVolume(volume);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble(_keyVolume, volume);
-    notify();
+    // Debounce disk writes while dragging the slider.
+    _volumeTimer?.cancel();
+    _volumeTimer = Timer(const Duration(milliseconds: 300), () async {
+      final prefs = await _getPrefs();
+      await prefs.setDouble(_keyVolume, volume);
+    });
+    notifyListeners();
   }
 
   void toggleShuffle() {
     shuffle = !shuffle;
-    notify();
+    notifyListeners();
   }
 
   void cycleRepeat() {
-    repeat = NiRepeatMode.values[(repeat.index + 1) % NiRepeatMode.values.length];
-    notify();
+    repeat =
+        NiRepeatMode.values[(repeat.index + 1) % NiRepeatMode.values.length];
+    notifyListeners();
   }
 
   Future<void> setLanguage(String value) async {
     language = value;
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     await prefs.setString(_keyLanguage, value);
-    notify();
+    notifyListeners();
   }
 
   Future<void> setTheme(ThemeChoice value) async {
     theme = value;
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     await prefs.setString(_keyTheme, value.name);
-    notify();
+    notifyListeners();
   }
 
   Future<Playlist> createPlaylist(String name) async {
@@ -220,45 +262,48 @@ class AppState {
     );
     playlists.add(playlist);
     await _savePlaylists();
-    notify();
+    notifyListeners();
     return playlist;
   }
 
   Future<void> renamePlaylist(Playlist playlist, String name) async {
     playlist.name = name.trim();
     await _savePlaylists();
-    notify();
+    notifyListeners();
   }
 
   Future<void> deletePlaylist(Playlist playlist) async {
     playlists.remove(playlist);
     await _savePlaylists();
-    notify();
+    notifyListeners();
   }
 
   Future<void> addToPlaylist(Playlist playlist, Track track) async {
     playlist.add(track);
     await _savePlaylists();
-    notify();
+    notifyListeners();
   }
 
   Future<void> removeFromPlaylist(Playlist playlist, String path) async {
     playlist.removePath(path);
     await _savePlaylists();
-    notify();
+    notifyListeners();
   }
 
   Future<void> clearAll() async {
     await player.stop();
     library.clear();
+    _libraryIndex.clear();
+    _lowerTitles.clear();
     queue = <Track>[];
     playlists.clear();
     historyPaths.clear();
     queueIndex = -1;
+    _volumeTimer?.cancel();
     await _saveLibrary();
     await _savePlaylists();
     await _saveHistory();
-    notify();
+    notifyListeners();
   }
 
   List<Track> recentTracks() {
@@ -274,7 +319,7 @@ class AppState {
   }
 
   Future<void> _saveLibrary() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     await prefs.setString(
       _keyLibrary,
       jsonEncode(library.map((t) => t.toJson()).toList()),
@@ -282,7 +327,7 @@ class AppState {
   }
 
   Future<void> _savePlaylists() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     await prefs.setString(
       _keyPlaylists,
       jsonEncode(playlists.map((p) => p.toJson()).toList()),
@@ -290,17 +335,37 @@ class AppState {
   }
 
   Future<void> _saveHistory() async {
-    if (historyPaths.length > 100) {
-      historyPaths.length = 100;
+    if (historyPaths.length > _maxHistory) {
+      historyPaths.length = _maxHistory;
     }
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     await prefs.setString(_keyHistory, jsonEncode(historyPaths));
   }
 
-  int _pseudoRandom(int max) {
+  void _rebuildIndexes() {
+    _libraryIndex.clear();
+    _lowerTitles.clear();
+    for (var i = 0; i < library.length; i++) {
+      _libraryIndex[library[i].path] = i;
+      _lowerTitles[library[i].path] = library[i].title.toLowerCase();
+    }
+  }
+
+  int _nextInt(int max) {
     if (max <= 0) {
       return 0;
     }
     return (DateTime.now().microsecondsSinceEpoch % max).abs();
+  }
+
+  @override
+  void dispose() {
+    _volumeTimer?.cancel();
+    unawaited(_completion?.cancel());
+    unawaited(_stateSub?.cancel());
+    unawaited(_positionSub?.cancel());
+    unawaited(_durationSub?.cancel());
+    unawaited(player.dispose());
+    super.dispose();
   }
 }

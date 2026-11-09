@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.2.0
+
+Menambahkan paket exe Windows ke rilis dan memangkas kerja rebuild, ukuran APK, dan penulisan disk saat pemutaran.
+
+### Fitur baru
+
+- **Paket exe Windows.** Rilis kini menyertakan `niusic-windows-x64.zip` berisi `niusic.exe` dan DLL, bersama APK Android.
+- **Dua APK Android.** Rilis kini menyertakan build arm64-v8a dan armeabi-v7a.
+
+### Peningkatan
+
+- **UI pemutaran lebih cepat.** Pembaruan posisi memberi tahu UI satu kali per detik, bukan beberapa kali per detik.
+- **Perpustakaan lebih cepat.** Pencarian perpustakaan dan pencarian antrian memakai indeks yang dihitung di awal, bukan pemindaian linear berulang.
+- **APK lebih kecil.** Build rilis mengaktifkan minifikasi dan penyusutan sumber daya.
+- **Penulisan disk lebih sedikit.** Pengaturan disimpan di cache dan perubahan volume diberi debounce 300 ms.
+- **Tab stabil.** Tab memakai IndexedStack sehingga berpindah tab tidak membangun ulang progres.
+
 ## v0.1.0
 
 Rilis local-first dengan satu codebase Flutter untuk Android dan Windows. Memutar file musik di perangkat kamu dengan perpustakaan, antrian, playlist, dan riwayat.

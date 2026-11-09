@@ -16,8 +16,7 @@ class NiusicApp extends StatefulWidget {
   State<NiusicApp> createState() => _NiusicAppState();
 }
 
-class _NiusicAppState extends State<NiusicApp>
-    with SingleTickerProviderStateMixin {
+class _NiusicAppState extends State<NiusicApp> {
   final AppState state = AppState();
   int index = 0;
   bool loaded = false;
@@ -31,6 +30,13 @@ class _NiusicAppState extends State<NiusicApp>
         setState(() => loaded = true);
       }
     });
+  }
+
+  @override
+  void dispose() {
+    state.removeListener(_onStateChanged);
+    state.dispose();
+    super.dispose();
   }
 
   void _onStateChanged() {
@@ -109,7 +115,7 @@ class _NiusicAppState extends State<NiusicApp>
       home: Scaffold(
         appBar: AppBar(title: Text('Niusic')),
         body: loaded
-            ? pages[index]
+            ? IndexedStack(index: index, children: pages)
             : Center(child: CircularProgressIndicator()),
         bottomNavigationBar: Column(
           mainAxisSize: MainAxisSize.min,

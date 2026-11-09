@@ -42,7 +42,7 @@
 
 ## About
 
-Niusic is a local-first music player for Android and Windows. One Flutter codebase builds both apps. The app reads audio files from your device, keeps the library on the device, and plays them offline.
+Niusic is a local-first music player for Android and Windows. One Flutter codebase builds both apps. The app reads audio files from your device, keeps the library on the device, and plays them offline. Release builds use minified APKs and a zipped Windows exe.
 
 > _"Your music stays on your device."_
 
@@ -102,16 +102,16 @@ Niusic is a local-first music player for Android and Windows. One Flutter codeba
 
 ## Installation
 
-### Option A: Download the APK (easiest)
+### Option A: Download the app (easiest)
 
 1. Open the latest Release on GitHub.
-2. Download `niusic-android-arm64-v8a-release.apk` or `niusic-windows.zip`.
+2. Download `niusic-android-arm64-v8a-release.apk` for most modern phones, `niusic-android-armeabi-v7a-release.apk` for older 32-bit phones, or `niusic-windows-x64.zip` for Windows.
 3. On Android, open the APK and allow installs from your browser if asked.
 4. On Windows, extract the zip and open `niusic.exe`.
-5. Open Niusic and pick your music folder or files.
+5. Open Niusic and pick your music files.
 
 > [!IMPORTANT]
-> On Android, allow the file picker to read the audio files you choose. Niusic needs no other permission for v0.1.0.
+> On Android, allow the file picker to read the audio files you choose. Niusic needs no other permission.
 
 ### Option B: Build from source (for development / to read or change the code)
 
@@ -241,7 +241,7 @@ Lint config lives in `analysis_options.yaml` with `prefer_single_quotes` and `so
 
 ## Security
 
-Niusic stores only local data on the device: file paths, playlists, history, language, theme, and volume. It has no backend, no account, no analytics, and no network calls in v0.1.0. Keep dependencies updated in `pubspec.yaml` and `pubspec.lock`.
+Niusic stores only local data on the device: file paths, playlists, history, language, theme, and volume. It has no backend, no account, no analytics, and no network calls. Keep dependencies updated in `pubspec.yaml` and `pubspec.lock`.
 
 > [!NOTE]
 > Report a vulnerability through GitHub Issues. See [`SECURITY.md`](SECURITY.md). Do not include secrets or personal data.

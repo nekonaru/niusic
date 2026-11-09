@@ -28,9 +28,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   Widget build(BuildContext context) {
     final state = widget.state;
     final strings = widget.strings;
-    final filtered = state.library
-        .where((t) => t.title.toLowerCase().contains(query.toLowerCase()))
-        .toList();
+    final filtered = state.searchLibrary(query);
     return Column(
       children: [
         Padding(
@@ -50,10 +48,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
           child: filtered.isEmpty
               ? Center(child: Text(strings.emptyLibrary))
               : ListView.builder(
+                  addRepaintBoundaries: true,
                   itemCount: filtered.length,
                   itemBuilder: (context, index) {
                     final track = filtered[index];
-                    final queueIndex = state.queue.indexOf(track);
+                    final queueIndex = state.queueIndexOf(track);
                     return ListTile(
                       leading: Icon(Icons.audiotrack),
                       title: Text(track.title),
@@ -143,7 +142,7 @@ class HomeScreen extends StatelessWidget {
                   leading: Icon(Icons.history),
                   title: Text(track.title),
                   onTap: () {
-                    final index = state.queue.indexOf(track);
+                    final index = state.queueIndexOf(track);
                     if (index >= 0) {
                       state.playAt(index);
                     }
@@ -272,7 +271,7 @@ class PlaylistsScreen extends StatelessWidget {
                           },
                         ),
                         onTap: () {
-                          final queueIndex = state.queue.indexOf(track);
+                          final queueIndex = state.queueIndexOf(track);
                           if (queueIndex >= 0) {
                             state.playAt(queueIndex);
                           }

@@ -42,7 +42,7 @@
 
 ## Tentang
 
-Niusic adalah pemutar musik local-first untuk Android dan Windows. Satu codebase Flutter membangun kedua aplikasi. Aplikasi membaca file audio dari perangkat kamu, menyimpan perpustakaan di perangkat, dan memutarnya secara offline.
+Niusic adalah pemutar musik local-first untuk Android dan Windows. Satu codebase Flutter membangun kedua aplikasi. Aplikasi membaca file audio dari perangkat kamu, menyimpan perpustakaan di perangkat, dan memutarnya secara offline. Build rilis memakai APK terminfikasi dan exe Windows yang dikemas zip.
 
 > _"Musik kamu tetap ada di perangkat kamu."_
 
@@ -102,16 +102,16 @@ Niusic adalah pemutar musik local-first untuk Android dan Windows. Satu codebase
 
 ## Instalasi
 
-### Opsi A: Unduh APK (paling mudah)
+### Opsi A: Unduh aplikasi (paling mudah)
 
 1. Buka Release terbaru di GitHub.
-2. Unduh `niusic-android-arm64-v8a-release.apk` atau `niusic-windows.zip`.
+2. Unduh `niusic-android-arm64-v8a-release.apk` untuk kebanyakan ponsel modern, `niusic-android-armeabi-v7a-release.apk` untuk ponsel 32-bit lama, atau `niusic-windows-x64.zip` untuk Windows.
 3. Pada Android, buka APK dan izinkan pemasangan dari browser jika diminta.
 4. Pada Windows, ekstrak zip dan buka `niusic.exe`.
-5. Buka Niusic dan pilih folder atau file musik kamu.
+5. Buka Niusic dan pilih file musik kamu.
 
 > [!IMPORTANT]
-> Pada Android, izinkan pemilih file membaca file audio yang kamu pilih. Niusic tidak butuh izin lain untuk v0.1.0.
+> Pada Android, izinkan pemilih file membaca file audio yang kamu pilih. Niusic tidak butuh izin lain.
 
 ### Opsi B: Build dari sumber (untuk pengembangan / membaca atau mengubah kode)
 
@@ -241,7 +241,7 @@ Konfigurasi lint ada di `analysis_options.yaml` dengan `prefer_single_quotes` da
 
 ## Keamanan
 
-Niusic hanya menyimpan data lokal di perangkat: path file, playlist, riwayat, bahasa, tema, dan volume. Aplikasi ini tidak punya backend, akun, analitik, dan panggilan jaringan pada v0.1.0. Jaga dependensi tetap terbaru di `pubspec.yaml` dan `pubspec.lock`.
+Niusic hanya menyimpan data lokal di perangkat: path file, playlist, riwayat, bahasa, tema, dan volume. Aplikasi ini tidak punya backend, akun, analitik, dan panggilan jaringan. Jaga dependensi tetap terbaru di `pubspec.yaml` dan `pubspec.lock`.
 
 > [!NOTE]
 > Laporkan kerentanan lewat GitHub Issues. Lihat [`SECURITY.md`](SECURITY.md). Jangan sertakan secret atau data pribadi.
