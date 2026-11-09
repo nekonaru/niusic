@@ -3,7 +3,7 @@
 <img src="assets/niusic-mark.png" alt="Niusic logo" width="120" />
 
 <h1>Niusic: Local and Online Music Player</h1>
-<p><b>Play local and online music on Android and Windows (Flutter) with library, queue, playlists, history, and YouTube search. No account.</b></p>
+<p><b>Play local and online music on Android and Windows (Flutter) with library, queue, playlists, YouTube search, downloads, lyrics, and radio. No account.</b></p>
 
 <a href="https://github.com/nekonaru/niusic/releases"><img src="https://img.shields.io/github/v/nekonaru/niusic?style=flat-square" alt="Release" /></a>
 <a href="https://github.com/nekonaru/niusic/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/nekonaru/niusic/ci.yml?style=flat-square" alt="CI" /></a>
@@ -82,6 +82,7 @@ Niusic is a local-first music player for Android and Windows. One Flutter codeba
 | **Daily chart** | See Deezer top tracks on Home and play them on YouTube. |
 | **Radio** | Add related tracks for the current song to the queue. |
 | **Sleep timer** | Pause after 15, 30, or 60 minutes. |
+| **Adaptive UI** | Sidebar and two-pane player on desktop, bottom bar on mobile. |
 
 ### Organization
 

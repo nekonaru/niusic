@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.6.0
+
+Membuat UI native untuk setiap perangkat: sidebar dan sekarang diputar dua pane di desktop, dan bar bawah di mobile. Juga memperbaiki bug pencarian antrean dan memperketat fokus audio.
+
+### Fitur baru
+
+- **Sidebar desktop.** Pada lebar tablet dan desktop, aplikasi menampilkan NavigationRail dengan label, bukan bar bawah.
+- **Sedang diputar dua pane.** Di desktop, artwork ada di samping kontrol. Di mobile, mereka ditumpuk vertikal.
+- **Grid adaptif.** Perpustakaan, hasil pencarian, dan chart Beranda beralih dari 1 kolom di mobile ke 2 atau 3 kolom di layar lebar.
+
+### Peningkatan
+
+- **Perbaikan bug antrean.** Ketuk item perpustakaan kini memutar lagu pada posisi antreannya, bahkan setelah antrean diurut ulang.
+- **Fokus audio.** Android meminta fokus audio musik sebelum pemutaran.
+- **Tes responsif.** Tes widget ditambah untuk tata letak bar bawah sempit dan rail lebar.
+
 ## v0.5.0
 
 Menambahkan lirik, chart harian, radio, dan timer tidur.

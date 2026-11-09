@@ -8,6 +8,7 @@ import '../models/playlist.dart';
 import '../models/track.dart';
 import '../models/video_result.dart';
 import '../services/player_service.dart';
+import '../ui/responsive.dart';
 
 String fmt(Duration d) {
   final m = d.inMinutes;
@@ -51,23 +52,33 @@ class _LibraryScreenState extends State<LibraryScreen> {
         Expanded(
           child: filtered.isEmpty
               ? Center(child: Text(strings.emptyLibrary))
-              : ListView.builder(
+              : GridView.builder(
                   addRepaintBoundaries: true,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: searchColumns(context),
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                    childAspectRatio: searchColumns(context) == 1 ? 6.5 : 1.2,
+                  ),
                   itemCount: filtered.length,
                   itemBuilder: (context, index) {
                     final track = filtered[index];
                     final queueIndex = state.queueIndexOf(track);
-                    return ListTile(
-                      leading: Icon(Icons.audiotrack),
-                      title: Text(track.title),
-                      subtitle: Text(track.fileName),
-                      trailing: PopupMenuButton<Track>(
-                        onSelected: (value) => _addToPlaylist(value),
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(child: Text('Add to playlist')),
-                        ],
+                    return Card(
+                      child: ListTile(
+                        leading: Icon(Icons.audiotrack),
+                        title: Text(track.title),
+                        subtitle: Text(track.fileName),
+                        trailing: PopupMenuButton<Track>(
+                          onSelected: (value) => _addToPlaylist(value),
+                          itemBuilder: (context) => [
+                            PopupMenuItem(
+                              child: Text(widget.strings.addToPlaylist),
+                            ),
+                          ],
+                        ),
+                        onTap: () => state.playAt(queueIndex),
                       ),
-                      onTap: () => state.playAt(queueIndex),
                     );
                   },
                 ),
@@ -172,8 +183,13 @@ class _HomeScreenState extends State<HomeScreen> {
           SizedBox(height: 8),
           SizedBox(
             height: 180,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
+            child: GridView.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: isDesktop(context) ? 5 : 3,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+                childAspectRatio: 0.85,
+              ),
               itemCount: chart.length,
               itemBuilder: (context, index) {
                 final item = chart[index];
@@ -638,54 +654,62 @@ class _SearchScreenState extends State<SearchScreen> {
           Center(child: Text(strings.noResults)),
         if (!loading && !failed && results.isNotEmpty)
           Expanded(
-            child: ListView.builder(
+            child: GridView.builder(
               addRepaintBoundaries: true,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: searchColumns(context),
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+                childAspectRatio: searchColumns(context) == 1 ? 6.5 : 1.1,
+              ),
               itemCount: results.length,
               itemBuilder: (context, index) {
                 final video = results[index];
-                return ListTile(
-                  leading: _thumb(video.thumbnailUrl),
-                  title: Text(video.title),
-                  subtitle: Text(video.author),
-                  trailing: PopupMenuButton<String>(
-                    onSelected: (value) async {
-                      if (value == 'queue') {
-                        widget.state.addToQueue(video);
-                      } else if (value == 'playlist') {
-                        await _addToPlaylist(video);
-                      } else if (value == 'download') {
-                        setState(() => loading = true);
-                        try {
-                          await widget.state.downloadVideo(video);
-                        } catch (_) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(this.context).showSnackBar(
-                              SnackBar(content: Text(strings.searchError)),
-                            );
-                          }
-                        } finally {
-                          if (mounted) {
-                            setState(() => loading = false);
+                return Card(
+                  child: ListTile(
+                    leading: _thumb(video.thumbnailUrl),
+                    title: Text(video.title),
+                    subtitle: Text(video.author),
+                    trailing: PopupMenuButton<String>(
+                      onSelected: (value) async {
+                        if (value == 'queue') {
+                          widget.state.addToQueue(video);
+                        } else if (value == 'playlist') {
+                          await _addToPlaylist(video);
+                        } else if (value == 'download') {
+                          setState(() => loading = true);
+                          try {
+                            await widget.state.downloadVideo(video);
+                          } catch (_) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(this.context).showSnackBar(
+                                SnackBar(content: Text(strings.searchError)),
+                              );
+                            }
+                          } finally {
+                            if (mounted) {
+                              setState(() => loading = false);
+                            }
                           }
                         }
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'queue',
-                        child: Text(strings.enqueue),
-                      ),
-                      PopupMenuItem(
-                        value: 'playlist',
-                        child: Text(strings.addToPlaylist),
-                      ),
-                      PopupMenuItem(
-                        value: 'download',
-                        child: Text(strings.download),
-                      ),
-                    ],
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'queue',
+                          child: Text(strings.enqueue),
+                        ),
+                        PopupMenuItem(
+                          value: 'playlist',
+                          child: Text(strings.addToPlaylist),
+                        ),
+                        PopupMenuItem(
+                          value: 'download',
+                          child: Text(strings.download),
+                        ),
+                      ],
+                    ),
+                    onTap: () => widget.state.playVideo(video),
                   ),
-                  onTap: () => widget.state.playVideo(video),
                 );
               },
             ),
@@ -922,106 +946,141 @@ class NowPlayingScreen extends StatelessWidget {
         ],
       ),
       body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (track?.thumbnailUrl != null &&
-                  Uri.tryParse(track!.thumbnailUrl!)?.scheme == 'https')
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image.network(
-                    track.thumbnailUrl!,
-                    height: 200,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        Icon(Icons.album, size: 120),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 1100),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: isDesktop(context)
+                ? Row(
+                    children: [
+                      Expanded(child: _artwork(track)),
+                      SizedBox(width: 32),
+                      Expanded(child: _controls(context, track, value, max)),
+                    ],
+                  )
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _artwork(track),
+                      SizedBox(height: 16),
+                      ..._controlRows(context, track, value, max),
+                    ],
                   ),
-                )
-              else
-                Icon(Icons.album, size: 120),
-              SizedBox(height: 16),
-              Text(
-                track?.title ?? strings.noTrack,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              SizedBox(height: 8),
-              Text(track?.subtitle ?? ''),
-              if (state.lastError != null) ...[
-                SizedBox(height: 12),
-                Text(
-                  state.lastError!,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.red),
-                ),
-              ],
-              SizedBox(height: 16),
-              Slider(
-                value: value,
-                max: max,
-                onChanged: (v) => state.seek(Duration(seconds: v.toInt())),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(fmt(state.position)),
-                  Text(fmt(state.duration)),
-                ],
-              ),
-              SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      Icons.shuffle,
-                      color: state.shuffle ? Colors.indigo : null,
-                    ),
-                    tooltip: strings.shuffle,
-                    onPressed: state.toggleShuffle,
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.skip_previous),
-                    tooltip: strings.previous,
-                    onPressed: state.previous,
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      state.isPlaying ? Icons.pause_circle : Icons.play_circle,
-                    ),
-                    iconSize: 56,
-                    tooltip: state.isPlaying ? strings.pause : strings.play,
-                    onPressed: state.toggle,
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.skip_next),
-                    tooltip: strings.next,
-                    onPressed: () => state.next(),
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.repeat,
-                      color: state.repeat != NiRepeatMode.off
-                          ? Colors.indigo
-                          : null,
-                    ),
-                    tooltip: strings.repeat,
-                    onPressed: state.cycleRepeat,
-                  ),
-                ],
-              ),
-              if (state.repeat != NiRepeatMode.off)
-                Text(
-                  state.repeat == NiRepeatMode.one
-                      ? strings.repeatOne
-                      : strings.repeatAll,
-                ),
-            ],
           ),
         ),
       ),
     );
+  }
+
+  Widget _artwork(Track? track) {
+    if (track?.thumbnailUrl != null &&
+        Uri.tryParse(track!.thumbnailUrl!)?.scheme == 'https') {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Image.network(
+          track.thumbnailUrl!,
+          height: 240,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) =>
+              Icon(Icons.album, size: 120),
+        ),
+      );
+    }
+    return Icon(Icons.album, size: 120);
+  }
+
+  Widget _controls(
+    BuildContext context,
+    Track? track,
+    double value,
+    double max,
+  ) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          track?.title ?? strings.noTrack,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
+        SizedBox(height: 8),
+        Text(track?.subtitle ?? ''),
+        if (state.lastError != null) ...[
+          SizedBox(height: 12),
+          Text(
+            state.lastError!,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.red),
+          ),
+        ],
+        SizedBox(height: 16),
+        Slider(
+          value: value,
+          max: max,
+          onChanged: (v) => state.seek(Duration(seconds: v.toInt())),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [Text(fmt(state.position)), Text(fmt(state.duration))],
+        ),
+        SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              icon: Icon(
+                Icons.shuffle,
+                color: state.shuffle ? Colors.indigo : null,
+              ),
+              tooltip: strings.shuffle,
+              onPressed: state.toggleShuffle,
+            ),
+            IconButton(
+              icon: Icon(Icons.skip_previous),
+              tooltip: strings.previous,
+              onPressed: state.previous,
+            ),
+            IconButton(
+              icon: Icon(
+                state.isPlaying ? Icons.pause_circle : Icons.play_circle,
+              ),
+              iconSize: 56,
+              tooltip: state.isPlaying ? strings.pause : strings.play,
+              onPressed: state.toggle,
+            ),
+            IconButton(
+              icon: Icon(Icons.skip_next),
+              tooltip: strings.next,
+              onPressed: () => state.next(),
+            ),
+            IconButton(
+              icon: Icon(
+                Icons.repeat,
+                color: state.repeat != NiRepeatMode.off ? Colors.indigo : null,
+              ),
+              tooltip: strings.repeat,
+              onPressed: state.cycleRepeat,
+            ),
+          ],
+        ),
+        if (state.repeat != NiRepeatMode.off)
+          Text(
+            state.repeat == NiRepeatMode.one
+                ? strings.repeatOne
+                : strings.repeatAll,
+          ),
+      ],
+    );
+  }
+
+  List<Widget> _controlRows(
+    BuildContext context,
+    Track? track,
+    double value,
+    double max,
+  ) {
+    final controls = _controls(context, track, value, max);
+    return [controls];
   }
 }

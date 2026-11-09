@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'l10n/app_strings.dart';
 import 'screens/screens.dart';
 import 'services/player_service.dart';
+import 'ui/responsive.dart';
 
 void main() {
   runApp(NiusicApp());
@@ -78,6 +79,83 @@ class _NiusicAppState extends State<NiusicApp> {
     );
   }
 
+  Widget _miniPlayer(AppStrings strings) {
+    final current = state.current;
+    if (current == null) {
+      return SizedBox.shrink();
+    }
+    return ListTile(
+      leading: Icon(state.isPlaying ? Icons.pause_circle : Icons.play_circle),
+      title: Text(current.title),
+      subtitle: Text(current.fileName),
+      trailing: IconButton(
+        icon: Icon(state.isPlaying ? Icons.pause : Icons.play_arrow),
+        onPressed: state.toggle,
+      ),
+      onTap: _openNowPlaying,
+    );
+  }
+
+  Widget _navBar(AppStrings strings) {
+    return NavigationBar(
+      selectedIndex: index,
+      onDestinationSelected: (value) => setState(() => index = value),
+      destinations: [
+        NavigationDestination(icon: Icon(Icons.home), label: strings.home),
+        NavigationDestination(
+          icon: Icon(Icons.library_music),
+          label: strings.library,
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.online_prediction),
+          label: strings.stream,
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.queue_music),
+          label: strings.playlists,
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.settings),
+          label: strings.settings,
+        ),
+      ],
+    );
+  }
+
+  Widget _rail(AppStrings strings) {
+    final wide = isDesktop(context);
+    return NavigationRail(
+      extended: wide,
+      selectedIndex: index,
+      onDestinationSelected: (value) => setState(() => index = value),
+      labelType: wide
+          ? NavigationRailLabelType.none
+          : NavigationRailLabelType.all,
+      destinations: [
+        NavigationRailDestination(
+          icon: Icon(Icons.home),
+          label: Text(strings.home),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.library_music),
+          label: Text(strings.library),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.online_prediction),
+          label: Text(strings.stream),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.queue_music),
+          label: Text(strings.playlists),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.settings),
+          label: Text(strings.settings),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = _strings;
@@ -97,7 +175,6 @@ class _NiusicAppState extends State<NiusicApp> {
         onChanged: () => setState(() {}),
       ),
     ];
-    final current = state.current;
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Niusic',
@@ -113,55 +190,34 @@ class _NiusicAppState extends State<NiusicApp> {
         ),
       ),
       themeMode: _themeMode,
-      home: Scaffold(
-        appBar: AppBar(title: Text('Niusic')),
-        body: loaded
-            ? IndexedStack(index: index, children: pages)
-            : Center(child: CircularProgressIndicator()),
-        bottomNavigationBar: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (current != null)
-              ListTile(
-                leading: Icon(
-                  state.isPlaying ? Icons.pause_circle : Icons.play_circle,
-                ),
-                title: Text(current.title),
-                subtitle: Text(current.fileName),
-                trailing: IconButton(
-                  icon: Icon(state.isPlaying ? Icons.pause : Icons.play_arrow),
-                  onPressed: state.toggle,
-                ),
-                onTap: _openNowPlaying,
+      home: Builder(
+        builder: (context) {
+          final desktop = isDesktop(context) || isTabletOrMore(context);
+          final body = loaded
+              ? IndexedStack(index: index, children: pages)
+              : Center(child: CircularProgressIndicator());
+          if (desktop) {
+            return Scaffold(
+              appBar: AppBar(title: Text('Niusic')),
+              body: Row(
+                children: [
+                  _rail(strings),
+                  VerticalDivider(width: 1),
+                  Expanded(child: body),
+                ],
               ),
-            NavigationBar(
-              selectedIndex: index,
-              onDestinationSelected: (value) => setState(() => index = value),
-              destinations: [
-                NavigationDestination(
-                  icon: Icon(Icons.home),
-                  label: strings.home,
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.library_music),
-                  label: strings.library,
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.online_prediction),
-                  label: strings.stream,
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.queue_music),
-                  label: strings.playlists,
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.settings),
-                  label: strings.settings,
-                ),
-              ],
+              bottomSheet: null,
+            );
+          }
+          return Scaffold(
+            appBar: AppBar(title: Text('Niusic')),
+            body: body,
+            bottomNavigationBar: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [_miniPlayer(strings), _navBar(strings)],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

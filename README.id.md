@@ -3,7 +3,7 @@
 <img src="assets/niusic-mark.png" alt="Logo Niusic" width="120" />
 
 <h1>Niusic: Pemutar Musik Lokal dan Online</h1>
-<p><b>Putar musik lokal dan online di Android dan Windows (Flutter) dengan perpustakaan, antrian, playlist, riwayat, dan pencarian YouTube. Tanpa akun.</b></p>
+<p><b>Putar musik lokal dan online di Android dan Windows (Flutter) dengan perpustakaan, antrian, playlist, pencarian YouTube, unduhan, lirik, dan radio. Tanpa akun.</b></p>
 
 <a href="https://github.com/nekonaru/niusic/releases"><img src="https://img.shields.io/github/v/nekonaru/niusic?style=flat-square" alt="Rilis" /></a>
 <a href="https://github.com/nekonaru/niusic/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/nekonaru/niusic/ci.yml?style=flat-square" alt="CI" /></a>
@@ -82,6 +82,7 @@ Niusic adalah pemutar musik local-first untuk Android dan Windows. Satu codebase
 | **Chart harian** | Lihat lagu teratas Deezer di Beranda dan putar di YouTube. |
 | **Radio** | Tambah lagu terkait untuk lagu saat ini ke antrian. |
 | **Timer tidur** | Jeda setelah 15, 30, atau 60 menit. |
+| **UI adaptif** | Sidebar dan pemutar dua pane di desktop, bar bawah di mobile. |
 
 ### Organisasi
 

@@ -94,7 +94,7 @@ class AppState extends ChangeNotifier {
     return queue[queueIndex];
   }
 
-  int queueIndexOf(Track track) => _libraryIndex[track.id] ?? -1;
+  int queueIndexOf(Track track) => queue.indexWhere((t) => t.id == track.id);
 
   List<Track> searchLibrary(String query) {
     final needle = query.trim().toLowerCase();
@@ -147,6 +147,15 @@ class AppState extends ChangeNotifier {
         ThemeChoice.system;
     volume = prefs.getDouble(_keyVolume) ?? 1;
     streamService.audioQuality = prefs.getString(_keyQuality) ?? 'high';
+    await player.setAudioContext(
+      AudioContext(
+        android: AudioContextAndroid(
+          audioFocus: AndroidAudioFocus.gain,
+          contentType: AndroidContentType.music,
+          usageType: AndroidUsageType.media,
+        ),
+      ),
+    );
     await player.setVolume(volume);
     queue = List<Track>.of(library);
     notifyListeners();

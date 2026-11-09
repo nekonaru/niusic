@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.6.0
+
+Makes the UI native to each device: a sidebar and two-pane now playing on desktop, and a bottom bar on mobile. Also fixes a queue lookup bug and tightens audio focus.
+
+### New features
+
+- **Desktop sidebar.** On tablet and desktop widths the app shows a NavigationRail with labels instead of a bottom bar.
+- **Two-pane now playing.** On desktop, artwork sits beside the controls. On mobile they stack vertically.
+- **Adaptive grids.** Library, search results, and Home chart switch from 1 column on mobile to 2 or 3 columns on wide screens.
+
+### Improvements
+
+- **Queue bug fix.** Tapping a library item now plays the track at its queue position, even after the queue is reordered.
+- **Audio focus.** Android requests music audio focus before playback.
+- **Responsive tests.** Added widget tests for narrow bottom-bar and wide rail layouts.
+
 ## v0.5.0
 
 Adds lyrics, daily chart, radio, and a sleep timer.
