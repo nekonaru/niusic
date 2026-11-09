@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../l10n/app_strings.dart';
 import '../models/playlist.dart';
 import '../models/track.dart';
+import '../models/video_result.dart';
 import '../services/player_service.dart';
 
 String fmt(Duration d) {
@@ -240,19 +243,19 @@ class PlaylistsScreen extends StatelessWidget {
   }
 
   void _openPlaylist(BuildContext context, Playlist playlist) {
-    final byPath = <String, Track>{for (final t in state.library) t.path: t};
+    final byId = <String, Track>{for (final t in state.library) t.id: t};
     Navigator.push(
       context,
       MaterialPageRoute<void>(
         builder: (context) {
           return Scaffold(
             appBar: AppBar(title: Text(playlist.name)),
-            body: playlist.trackPaths.isEmpty
+            body: playlist.trackIds.isEmpty
                 ? Center(child: Text(strings.emptyPlaylist))
                 : ListView.builder(
-                    itemCount: playlist.trackPaths.length,
+                    itemCount: playlist.trackIds.length,
                     itemBuilder: (context, index) {
-                      final track = byPath[playlist.trackPaths[index]];
+                      final track = byId[playlist.trackIds[index]];
                       if (track == null) {
                         return SizedBox.shrink();
                       }
@@ -261,10 +264,7 @@ class PlaylistsScreen extends StatelessWidget {
                         trailing: IconButton(
                           icon: Icon(Icons.remove_circle_outline),
                           onPressed: () async {
-                            await state.removeFromPlaylist(
-                              playlist,
-                              track.path,
-                            );
+                            await state.removeFromPlaylist(playlist, track.id);
                             if (context.mounted) {
                               Navigator.pop(context);
                             }
@@ -378,6 +378,193 @@ class SettingsScreen extends StatelessWidget {
   }
 }
 
+class SearchScreen extends StatefulWidget {
+  const SearchScreen({required this.state, required this.strings, super.key});
+
+  final AppState state;
+  final AppStrings strings;
+
+  @override
+  State<SearchScreen> createState() => _SearchScreenState();
+}
+
+class _SearchScreenState extends State<SearchScreen> {
+  final TextEditingController _controller = TextEditingController();
+  List<VideoResult> results = <VideoResult>[];
+  bool loading = false;
+  bool failed = false;
+  bool searched = false;
+  Timer? _debounce;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 600), () async {
+      final query = value.trim();
+      if (query.isEmpty) {
+        setState(() {
+          results = <VideoResult>[];
+          searched = false;
+          failed = false;
+          loading = false;
+        });
+        return;
+      }
+      setState(() {
+        loading = true;
+        failed = false;
+      });
+      try {
+        final found = await widget.state.streamService.search(query);
+        if (!mounted) return;
+        setState(() {
+          results = found;
+          loading = false;
+          searched = true;
+        });
+      } catch (_) {
+        if (!mounted) return;
+        setState(() {
+          loading = false;
+          searched = true;
+          failed = true;
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = widget.strings;
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: TextField(
+            controller: _controller,
+            decoration: InputDecoration(
+              hintText: strings.searchOnlineHint,
+              prefixIcon: Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onChanged: _onChanged,
+            textInputAction: TextInputAction.search,
+            onSubmitted: (v) => _onChanged(v),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Text(
+            strings.needsInternet,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+        if (loading) Center(child: CircularProgressIndicator()),
+        if (!loading && failed) Center(child: Text(strings.searchError)),
+        if (!loading && !failed && searched && results.isEmpty)
+          Center(child: Text(strings.noResults)),
+        if (!loading && !failed && results.isNotEmpty)
+          Expanded(
+            child: ListView.builder(
+              addRepaintBoundaries: true,
+              itemCount: results.length,
+              itemBuilder: (context, index) {
+                final video = results[index];
+                return ListTile(
+                  leading: _thumb(video.thumbnailUrl),
+                  title: Text(video.title),
+                  subtitle: Text(video.author),
+                  trailing: PopupMenuButton<String>(
+                    onSelected: (value) async {
+                      if (value == 'queue') {
+                        widget.state.addToQueue(video);
+                      } else if (value == 'playlist') {
+                        await _addToPlaylist(video);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'queue',
+                        child: Text(strings.enqueue),
+                      ),
+                      PopupMenuItem(
+                        value: 'playlist',
+                        child: Text(strings.addToPlaylist),
+                      ),
+                    ],
+                  ),
+                  onTap: () => widget.state.playVideo(video),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _thumb(String? url) {
+    if (url == null || url.isEmpty || Uri.tryParse(url)?.scheme != 'https') {
+      return Icon(Icons.audiotrack);
+    }
+    return SizedBox(
+      width: 72,
+      height: 40,
+      child: Image.network(
+        url,
+        fit: BoxFit.cover,
+        // ignore: unused_element_parameter
+        errorBuilder: (context, error, stackTrace) => Icon(Icons.audiotrack),
+      ),
+    );
+  }
+
+  Future<void> _addToPlaylist(VideoResult video) async {
+    final state = widget.state;
+    final track = Track.remote(
+      videoId: video.videoId,
+      title: video.title,
+      author: video.author,
+      thumbnailUrl: video.thumbnailUrl,
+      durationSeconds: video.durationSeconds,
+    );
+    if (state.playlists.isEmpty) {
+      final playlist = await state.createPlaylist('Favorites');
+      await state.addToPlaylist(playlist, track);
+      return;
+    }
+    final picked = await showModalBottomSheet<Playlist>(
+      context: context,
+      builder: (context) {
+        return ListView.builder(
+          shrinkWrap: true,
+          itemCount: state.playlists.length,
+          itemBuilder: (context, index) {
+            final playlist = state.playlists[index];
+            return ListTile(
+              title: Text(playlist.name),
+              subtitle: Text(
+                '${playlist.length} ${widget.strings.tracksCount}',
+              ),
+              onTap: () => Navigator.pop(context, playlist),
+            );
+          },
+        );
+      },
+    );
+    if (picked != null) {
+      await state.addToPlaylist(picked, track);
+    }
+  }
+}
+
 class NowPlayingScreen extends StatelessWidget {
   const NowPlayingScreen({
     required this.state,
@@ -403,7 +590,20 @@ class NowPlayingScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.album, size: 120),
+              if (track?.thumbnailUrl != null &&
+                  Uri.tryParse(track!.thumbnailUrl!)?.scheme == 'https')
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.network(
+                    track.thumbnailUrl!,
+                    height: 200,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        Icon(Icons.album, size: 120),
+                  ),
+                )
+              else
+                Icon(Icons.album, size: 120),
               SizedBox(height: 16),
               Text(
                 track?.title ?? strings.noTrack,
@@ -411,7 +611,15 @@ class NowPlayingScreen extends StatelessWidget {
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               SizedBox(height: 8),
-              Text(track?.fileName ?? ''),
+              Text(track?.subtitle ?? ''),
+              if (state.lastError != null) ...[
+                SizedBox(height: 12),
+                Text(
+                  state.lastError!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.red),
+                ),
+              ],
               SizedBox(height: 16),
               Slider(
                 value: value,

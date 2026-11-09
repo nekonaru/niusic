@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.3.0
+
+Adds online search and playback, so Niusic now streams YouTube music like Auralys in addition to local files.
+
+### New features
+
+- **Online search.** Search YouTube videos from the Stream tab and see title, channel, and thumbnail.
+- **Online playback.** Tap a result to stream its audio. Remote tracks join the queue, history, and playlists like local tracks.
+- **Thumbnail display.** The Now Playing screen shows the video thumbnail when available.
+
+### Improvements
+
+- **Resilient search.** Search tries two public Piped instances in order, so one outage does not break the tab.
+- **Cached audio URLs.** Resolved Googlevideo URLs are cached in memory for 1 hour.
+- **Better errors.** Search and playback failures show a friendly message and keep existing playback intact.
+
 ## v0.2.1
 
 Adds the Niusic Bars app icon on Android and Windows and shows it in the README header.

@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.3.0
+
+Menambahkan pencarian dan pemutaran online, sehingga Niusic kini memutar musik YouTube seperti Auralys selain file lokal.
+
+### Fitur baru
+
+- **Pencarian online.** Cari video YouTube dari tab Streaming dan lihat judul, kanal, dan thumbnail.
+- **Pemutaran online.** Ketuk hasil untuk memutar audio streaming. Lagu remote masuk antrian, riwayat, dan playlist seperti lagu lokal.
+- **Tampilan thumbnail.** Layar Sedang diputar menampilkan thumbnail video bila tersedia.
+
+### Peningkatan
+
+- **Pencarian tangguh.** Pencarian mencoba dua instance Piped publik berurutan, sehingga satu gangguan tidak merusak tab.
+- **URL audio ter-cache.** URL Googlevideo yang di-resolve disimpan di memori selama 1 jam.
+- **Error lebih baik.** Kegagalan pencarian dan pemutaran menampilkan pesan ramah dan menjaga pemutaran yang ada tetap utuh.
+
 ## v0.2.1
 
 Menambahkan icon aplikasi Niusic Bars di Android dan Windows dan menampilkannya di header README.

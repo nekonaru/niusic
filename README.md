@@ -2,8 +2,8 @@
 
 <img src="assets/niusic-mark.png" alt="Niusic logo" width="120" />
 
-<h1>Niusic: Local Music Player</h1>
-<p><b>Play local music on Android and Windows (Flutter) with library, queue, playlists, and history. Fully offline, no account.</b></p>
+<h1>Niusic: Local and Online Music Player</h1>
+<p><b>Play local and online music on Android and Windows (Flutter) with library, queue, playlists, history, and YouTube search. No account.</b></p>
 
 <a href="https://github.com/nekonaru/niusic/releases"><img src="https://img.shields.io/github/v/nekonaru/niusic?style=flat-square" alt="Release" /></a>
 <a href="https://github.com/nekonaru/niusic/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/nekonaru/niusic/ci.yml?style=flat-square" alt="CI" /></a>
@@ -18,7 +18,7 @@
 **English** | [Bahasa Indonesia](README.id.md)
 
 > [!NOTE]
-> Niusic plays audio files that already exist on your device. It does not stream or download music.
+> Niusic plays your local files offline and streams YouTube videos online when you use the Stream tab.
 
 ---
 
@@ -68,6 +68,14 @@ Niusic is a local-first music player for Android and Windows. One Flutter codeba
 | **Import audio** | Pick multiple audio files with the system file picker. |
 | **Search** | Filter the library by title text. |
 | **History** | Keep the last 100 played tracks on the device. |
+
+### Streaming
+
+| Feature | Description |
+|---------|-------------|
+| **YouTube search** | Search YouTube videos from Piped instances with titles, channels, and thumbnails. |
+| **Online playback** | Stream audio from YouTube, mixed in the same queue as local tracks. |
+| **Queue and playlists** | Add online tracks to the queue or to any playlist. |
 
 ### Organization
 
@@ -175,6 +183,7 @@ flutter build apk --release --split-per-abi
 
 - **Home:** See recent tracks and add more music.
 - **Library:** Search and play the full library.
+- **Stream:** Search online, tap to play, or add to queue or a playlist.
 - **Playlists:** Create a playlist, then add tracks from the Library menu.
 - **Settings:** Change language, theme, volume, or clear local data.
 - **Mini player:** Tap the bottom track bar to open the full player.
@@ -244,7 +253,7 @@ Lint config lives in `analysis_options.yaml` with `prefer_single_quotes` and `so
 
 ## Security
 
-Niusic stores only local data on the device: file paths, playlists, history, language, theme, and volume. It has no backend, no account, no analytics, and no network calls. Keep dependencies updated in `pubspec.yaml` and `pubspec.lock`.
+Niusic stores only local data on the device: file paths, playlist entries, history, language, theme, and volume. It has no backend, no account, and no analytics. Online search talks only to public Piped instances over HTTPS and online playback streams from Googlevideo over HTTPS. No API keys or tokens are stored.
 
 > [!NOTE]
 > Report a vulnerability through GitHub Issues. See [`SECURITY.md`](SECURITY.md). Do not include secrets or personal data.
@@ -266,7 +275,7 @@ CI runs on push to `main` and on `v*` tags. A release is created only after CI i
 
 <details><summary><b>Does Niusic need internet?</b></summary>
 
-No. v0.1.0 plays local files only. It makes no network calls.
+Local playback works offline. Online search and playback need internet.
 
 </details>
 
@@ -276,9 +285,9 @@ On your device, with SharedPreferences. There is no sync and no account.
 
 </details>
 
-<details><summary><b>Can I stream music yet?</b></summary>
+<details><summary><b>Can I stream music?</b></summary>
 
-No. Streaming is not in v0.1.0. It is planned for a later release.
+Yes. Open the Stream tab, search, and tap a result to play it online.
 
 </details>
 

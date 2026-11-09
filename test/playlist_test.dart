@@ -9,7 +9,7 @@ void main() {
     playlist.add(track);
     playlist.add(track);
     expect(playlist.length, 1);
-    playlist.removePath(track.path);
+    playlist.removeId(track.id);
     expect(playlist.length, 0);
   });
 
@@ -17,11 +17,20 @@ void main() {
     final playlist = Playlist(
       id: '7',
       name: 'Road',
-      trackPaths: ['/a.mp3', '/b.mp3'],
+      trackIds: ['/a.mp3', '/b.mp3'],
     );
     final restored = Playlist.fromJson(playlist.toJson());
     expect(restored.id, '7');
     expect(restored.name, 'Road');
-    expect(restored.trackPaths, ['/a.mp3', '/b.mp3']);
+    expect(restored.trackIds, ['/a.mp3', '/b.mp3']);
+  });
+
+  test('Playlist reads legacy trackPaths key', () {
+    final restored = Playlist.fromJson({
+      'id': '7',
+      'name': 'Road',
+      'trackPaths': ['/a.mp3'],
+    });
+    expect(restored.trackIds, ['/a.mp3']);
   });
 }

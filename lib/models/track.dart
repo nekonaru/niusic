@@ -1,15 +1,48 @@
+enum TrackKind { local, remote }
+
 class Track {
-  const Track({required this.path, required this.title});
+  const Track({
+    required this.id,
+    required this.title,
+    this.kind = TrackKind.local,
+    this.path,
+    this.url,
+    this.author,
+    this.thumbnailUrl,
+    this.videoId,
+    this.durationSeconds,
+  });
 
-  final String path;
+  final String id;
   final String title;
+  final TrackKind kind;
+  final String? path;
+  final String? url;
+  final String? author;
+  final String? thumbnailUrl;
+  final String? videoId;
+  final int? durationSeconds;
 
-  String get id => path;
+  bool get isLocal => kind == TrackKind.local;
+  bool get isRemote => kind == TrackKind.remote;
 
   String get fileName {
-    final normalized = path.replaceAll('\\', '/');
-    final parts = normalized.split('/');
-    return parts.isEmpty ? path : parts.last;
+    if (path != null) {
+      final normalized = path!.replaceAll('\\', '/');
+      final parts = normalized.split('/');
+      return parts.isEmpty ? path! : parts.last;
+    }
+    return author ?? title;
+  }
+
+  String? get subtitle {
+    if (isRemote) {
+      if (author != null && author!.isNotEmpty) {
+        return author;
+      }
+      return videoId;
+    }
+    return fileName;
   }
 
   static String titleFromPath(String path) {
@@ -23,24 +56,100 @@ class Track {
   }
 
   factory Track.fromPath(String path) {
-    return Track(path: path, title: titleFromPath(path));
+    return Track(id: path, title: titleFromPath(path), path: path);
+  }
+
+  factory Track.remote({
+    required String videoId,
+    required String title,
+    String? author,
+    String? thumbnailUrl,
+    int? durationSeconds,
+    String? url,
+  }) {
+    return Track(
+      id: 'yt:$videoId',
+      title: title,
+      kind: TrackKind.remote,
+      author: author,
+      thumbnailUrl: thumbnailUrl,
+      videoId: videoId,
+      durationSeconds: durationSeconds,
+      url: url,
+    );
+  }
+
+  Track copyWithUrl(String? newUrl) {
+    return Track(
+      id: id,
+      title: title,
+      kind: kind,
+      path: path,
+      url: newUrl,
+      author: author,
+      thumbnailUrl: thumbnailUrl,
+      videoId: videoId,
+      durationSeconds: durationSeconds,
+    );
   }
 
   Map<String, String> toJson() {
-    return <String, String>{'path': path, 'title': title};
+    final map = <String, String>{'id': id, 'title': title};
+    map['kind'] = kind.name;
+    final p = path;
+    if (p != null) map['path'] = p;
+    final u = url;
+    if (u != null) map['url'] = u;
+    final a = author;
+    if (a != null) map['author'] = a;
+    final t = thumbnailUrl;
+    if (t != null) map['thumb'] = t;
+    final v = videoId;
+    if (v != null) map['vid'] = v;
+    final d = durationSeconds;
+    if (d != null) map['dur'] = d.toString();
+    return map;
   }
 
   factory Track.fromJson(Map<String, dynamic> json) {
-    final path = json['path'] as String? ?? '';
-    final title = json['title'] as String? ?? titleFromPath(path);
-    return Track(path: path, title: title);
+    final title = json['title'] as String? ?? '';
+    final kindName = json['kind'] as String?;
+    final pathJson = json['path'] as String?;
+    final idJson = json['id'] as String?;
+    // Backward compat: old entries only have path and title.
+    if (kindName == null && idJson == null && pathJson != null) {
+      final t = title.isEmpty ? titleFromPath(pathJson) : title;
+      return Track(id: pathJson, title: t, path: pathJson);
+    }
+    final kind = kindName == 'remote' ? TrackKind.remote : TrackKind.local;
+    final id = idJson ?? pathJson ?? '';
+    final durRaw = json['dur'];
+    int? dur;
+    if (durRaw is String) {
+      dur = int.tryParse(durRaw);
+    } else if (durRaw is int) {
+      dur = durRaw;
+    }
+    return Track(
+      id: id,
+      title: title.isEmpty && pathJson != null
+          ? titleFromPath(pathJson)
+          : title,
+      kind: kind,
+      path: pathJson,
+      url: json['url'] as String?,
+      author: json['author'] as String?,
+      thumbnailUrl: json['thumb'] as String?,
+      videoId: json['vid'] as String?,
+      durationSeconds: dur,
+    );
   }
 
   @override
   bool operator ==(Object other) {
-    return other is Track && other.path == path;
+    return other is Track && other.id == id;
   }
 
   @override
-  int get hashCode => path.hashCode;
+  int get hashCode => id.hashCode;
 }

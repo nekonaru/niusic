@@ -10,6 +10,18 @@ class AppStrings {
   String get playlists => isId ? 'Playlist' : 'Playlists';
   String get settings => isId ? 'Pengaturan' : 'Settings';
   String get home => isId ? 'Beranda' : 'Home';
+  String get stream => isId ? 'Streaming' : 'Stream';
+  String get searchOnlineHint =>
+      isId ? 'Cari lagu online (YouTube)' : 'Search online (YouTube)';
+  String get searching => isId ? 'Mencari...' : 'Searching...';
+  String get noResults => isId ? 'Tidak ada hasil.' : 'No results.';
+  String get searchError => isId
+      ? 'Pencarian gagal. Periksa koneksi dan coba lagi.'
+      : 'Search failed. Check your connection and try again.';
+  String get playNow => isId ? 'Putar sekarang' : 'Play now';
+  String get enqueue => isId ? 'Tambah ke antrian' : 'Add to queue';
+  String get needsInternet =>
+      isId ? 'Streaming butuh internet.' : 'Streaming needs internet.';
   String get nowPlaying => isId ? 'Sedang diputar' : 'Now Playing';
   String get addMusic => isId ? 'Tambah musik' : 'Add music';
   String get emptyLibrary => isId

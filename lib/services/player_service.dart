@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/playlist.dart';
 import '../models/track.dart';
+import '../models/video_result.dart';
+import 'stream_service.dart';
 
 enum NiRepeatMode { off, all, one }
 
@@ -21,7 +23,8 @@ const String _keyVolume = 'volume';
 const int _maxHistory = 100;
 
 class AppState extends ChangeNotifier {
-  AppState() {
+  AppState({StreamService? stream})
+    : streamService = stream ?? StreamService() {
     _completion = player.onPlayerComplete.listen((_) => next(auto: true));
     _stateSub = player.onPlayerStateChanged.listen((s) {
       final playing = s == PlayerState.playing;
@@ -31,8 +34,6 @@ class AppState extends ChangeNotifier {
       }
     });
     _positionSub = player.onPositionChanged.listen((d) {
-      // Position events fire several times per second. Notifying on every
-      // tick rebuilds the whole app. Only notify once per second.
       final nextSecond = d.inSeconds;
       if (nextSecond != position.inSeconds || duration == Duration.zero) {
         position = d;
@@ -48,9 +49,10 @@ class AppState extends ChangeNotifier {
   }
 
   final AudioPlayer player = AudioPlayer();
+  final StreamService streamService;
   final List<Track> library = <Track>[];
   final List<Playlist> playlists = <Playlist>[];
-  final List<String> historyPaths = <String>[];
+  final List<String> historyIds = <String>[];
   List<Track> queue = <Track>[];
   int queueIndex = -1;
   bool shuffle = false;
@@ -61,6 +63,7 @@ class AppState extends ChangeNotifier {
   bool isPlaying = false;
   Duration position = Duration.zero;
   Duration duration = Duration.zero;
+  String? lastError;
 
   StreamSubscription<void>? _completion;
   StreamSubscription<PlayerState>? _stateSub;
@@ -69,7 +72,6 @@ class AppState extends ChangeNotifier {
   SharedPreferences? _prefs;
   Timer? _volumeTimer;
 
-  // Index maps avoid O(n) scans per list tile.
   final Map<String, int> _libraryIndex = <String, int>{};
   final Map<String, String> _lowerTitles = <String, String>{};
 
@@ -80,7 +82,7 @@ class AppState extends ChangeNotifier {
     return queue[queueIndex];
   }
 
-  int queueIndexOf(Track track) => _libraryIndex[track.path] ?? -1;
+  int queueIndexOf(Track track) => _libraryIndex[track.id] ?? -1;
 
   List<Track> searchLibrary(String query) {
     final needle = query.trim().toLowerCase();
@@ -88,7 +90,7 @@ class AppState extends ChangeNotifier {
       return library;
     }
     return library
-        .where((t) => (_lowerTitles[t.path] ?? '').contains(needle))
+        .where((t) => (_lowerTitles[t.id] ?? '').contains(needle))
         .toList();
   }
 
@@ -123,7 +125,7 @@ class AppState extends ChangeNotifier {
       final decoded = jsonDecode(histRaw) as List<dynamic>;
       for (final item in decoded) {
         if (item is String) {
-          historyPaths.add(item);
+          historyIds.add(item);
         }
       }
     }
@@ -138,14 +140,14 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> addPaths(List<String> paths) async {
-    final existing = library.map((t) => t.path).toSet();
+    final existing = library.map((t) => t.id).toSet();
     var added = false;
     for (final path in paths) {
       if (!existing.contains(path)) {
         final track = Track.fromPath(path);
         library.add(track);
-        _libraryIndex[track.path] = library.length - 1;
-        _lowerTitles[track.path] = track.title.toLowerCase();
+        _libraryIndex[track.id] = library.length - 1;
+        _lowerTitles[track.id] = track.title.toLowerCase();
         added = true;
       }
     }
@@ -162,10 +164,79 @@ class AppState extends ChangeNotifier {
     }
     queueIndex = index;
     final track = queue[index];
-    historyPaths.remove(track.path);
-    historyPaths.insert(0, track.path);
+    historyIds.remove(track.id);
+    historyIds.insert(0, track.id);
     await _saveHistory();
-    await player.play(DeviceFileSource(track.path));
+    await _playTrack(track);
+    notifyListeners();
+  }
+
+  Future<void> _playTrack(Track track) async {
+    if (track.isLocal) {
+      final path = track.path;
+      if (path == null) {
+        lastError = 'missing_path';
+        notifyListeners();
+        return;
+      }
+      await player.play(DeviceFileSource(path));
+      return;
+    }
+    // Remote: resolve a fresh audio URL (cache lives in StreamService).
+    final videoId = track.videoId;
+    if (videoId == null) {
+      lastError = 'missing_video_id';
+      notifyListeners();
+      return;
+    }
+    try {
+      final url = await streamService.resolveAudioUrl(videoId);
+      queue[queueIndex] = track.copyWithUrl(url);
+      await player.play(UrlSource(url));
+      lastError = null;
+    } catch (e) {
+      lastError = e.toString();
+      notifyListeners();
+    }
+  }
+
+  void playVideo(VideoResult video) {
+    final track = Track.remote(
+      videoId: video.videoId,
+      title: video.title,
+      author: video.author,
+      thumbnailUrl: video.thumbnailUrl,
+      durationSeconds: video.durationSeconds,
+    );
+    final existing = queue.indexWhere((t) => t.id == track.id);
+    if (existing >= 0) {
+      unawaited(playAt(existing));
+      return;
+    }
+    queue.add(track);
+    library.add(track);
+    _libraryIndex[track.id] = library.length - 1;
+    _lowerTitles[track.id] = track.title.toLowerCase();
+    unawaited(_saveLibrary());
+    unawaited(playAt(queue.length - 1));
+  }
+
+  void addToQueue(VideoResult video) {
+    final track = Track.remote(
+      videoId: video.videoId,
+      title: video.title,
+      author: video.author,
+      thumbnailUrl: video.thumbnailUrl,
+      durationSeconds: video.durationSeconds,
+    );
+    if (queue.any((t) => t.id == track.id)) {
+      return;
+    }
+    queue.add(track);
+    library.add(track);
+    _libraryIndex[track.id] = library.length - 1;
+    _lowerTitles[track.id] = track.title.toLowerCase();
+    unawaited(_saveLibrary());
     notifyListeners();
   }
 
@@ -192,8 +263,7 @@ class AppState extends ChangeNotifier {
     }
     int nextIndex;
     if (shuffle) {
-      nextIndex =
-          (queueIndex + 1 + _nextInt(queue.length)) % queue.length;
+      nextIndex = (queueIndex + 1 + _nextInt(queue.length)) % queue.length;
     } else {
       nextIndex = queueIndex + 1;
       if (nextIndex >= queue.length) {
@@ -221,7 +291,6 @@ class AppState extends ChangeNotifier {
   Future<void> setVolume(double value) async {
     volume = value.clamp(0, 1).toDouble();
     await player.setVolume(volume);
-    // Debounce disk writes while dragging the slider.
     _volumeTimer?.cancel();
     _volumeTimer = Timer(const Duration(milliseconds: 300), () async {
       final prefs = await _getPrefs();
@@ -284,8 +353,8 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> removeFromPlaylist(Playlist playlist, String path) async {
-    playlist.removePath(path);
+  Future<void> removeFromPlaylist(Playlist playlist, String id) async {
+    playlist.removeId(id);
     await _savePlaylists();
     notifyListeners();
   }
@@ -297,7 +366,7 @@ class AppState extends ChangeNotifier {
     _lowerTitles.clear();
     queue = <Track>[];
     playlists.clear();
-    historyPaths.clear();
+    historyIds.clear();
     queueIndex = -1;
     _volumeTimer?.cancel();
     await _saveLibrary();
@@ -307,10 +376,10 @@ class AppState extends ChangeNotifier {
   }
 
   List<Track> recentTracks() {
-    final byPath = <String, Track>{for (final t in library) t.path: t};
+    final byId = <String, Track>{for (final t in library) t.id: t};
     final result = <Track>[];
-    for (final path in historyPaths) {
-      final track = byPath[path];
+    for (final id in historyIds) {
+      final track = byId[id];
       if (track != null) {
         result.add(track);
       }
@@ -335,19 +404,19 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> _saveHistory() async {
-    if (historyPaths.length > _maxHistory) {
-      historyPaths.length = _maxHistory;
+    if (historyIds.length > _maxHistory) {
+      historyIds.length = _maxHistory;
     }
     final prefs = await _getPrefs();
-    await prefs.setString(_keyHistory, jsonEncode(historyPaths));
+    await prefs.setString(_keyHistory, jsonEncode(historyIds));
   }
 
   void _rebuildIndexes() {
     _libraryIndex.clear();
     _lowerTitles.clear();
     for (var i = 0; i < library.length; i++) {
-      _libraryIndex[library[i].path] = i;
-      _lowerTitles[library[i].path] = library[i].title.toLowerCase();
+      _libraryIndex[library[i].id] = i;
+      _lowerTitles[library[i].id] = library[i].title.toLowerCase();
     }
   }
 
@@ -366,6 +435,7 @@ class AppState extends ChangeNotifier {
     unawaited(_positionSub?.cancel());
     unawaited(_durationSub?.cancel());
     unawaited(player.dispose());
+    streamService.dispose();
     super.dispose();
   }
 }

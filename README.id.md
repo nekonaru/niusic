@@ -2,8 +2,8 @@
 
 <img src="assets/niusic-mark.png" alt="Logo Niusic" width="120" />
 
-<h1>Niusic: Pemutar Musik Lokal</h1>
-<p><b>Putar musik lokal di Android dan Windows (Flutter) dengan perpustakaan, antrian, playlist, dan riwayat. Sepenuhnya offline, tanpa akun.</b></p>
+<h1>Niusic: Pemutar Musik Lokal dan Online</h1>
+<p><b>Putar musik lokal dan online di Android dan Windows (Flutter) dengan perpustakaan, antrian, playlist, riwayat, dan pencarian YouTube. Tanpa akun.</b></p>
 
 <a href="https://github.com/nekonaru/niusic/releases"><img src="https://img.shields.io/github/v/nekonaru/niusic?style=flat-square" alt="Rilis" /></a>
 <a href="https://github.com/nekonaru/niusic/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/nekonaru/niusic/ci.yml?style=flat-square" alt="CI" /></a>
@@ -18,7 +18,7 @@
 [English](README.md) | **Bahasa Indonesia**
 
 > [!NOTE]
-> Niusic memutar file audio yang sudah ada di perangkat kamu. Aplikasi ini tidak melakukan streaming atau mengunduh musik.
+> Niusic memutar file lokal kamu secara offline dan memutar streaming video YouTube secara online saat kamu memakai tab Streaming.
 
 ---
 
@@ -68,6 +68,14 @@ Niusic adalah pemutar musik local-first untuk Android dan Windows. Satu codebase
 | **Impor audio** | Pilih banyak file audio lewat pemilih file sistem. |
 | **Cari** | Saring perpustakaan berdasarkan teks judul. |
 | **Riwayat** | Simpan 100 lagu terakhir yang diputar di perangkat. |
+
+### Streaming
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **Pencarian YouTube** | Cari video YouTube dari instance Piped dengan judul, kanal, dan thumbnail. |
+| **Pemutaran online** | Putar audio streaming dari YouTube, campur dalam antrian yang sama dengan lagu lokal. |
+| **Antrian dan playlist** | Tambah lagu online ke antrian atau ke playlist mana pun. |
 
 ### Organisasi
 
@@ -175,6 +183,7 @@ flutter build apk --release --split-per-abi
 
 - **Beranda:** Lihat lagu baru diputar dan tambah musik.
 - **Perpustakaan:** Cari dan putar seluruh perpustakaan.
+- **Streaming:** Cari online, ketuk untuk putar, atau tambah ke antrian atau playlist.
 - **Playlist:** Buat playlist, lalu tambah lagu dari menu Perpustakaan.
 - **Pengaturan:** Ubah bahasa, tema, volume, atau hapus data lokal.
 - **Pemutar mini:** Ketuk bar lagu di bawah untuk membuka pemutar penuh.
@@ -244,7 +253,7 @@ Konfigurasi lint ada di `analysis_options.yaml` dengan `prefer_single_quotes` da
 
 ## Keamanan
 
-Niusic hanya menyimpan data lokal di perangkat: path file, playlist, riwayat, bahasa, tema, dan volume. Aplikasi ini tidak punya backend, akun, analitik, dan panggilan jaringan. Jaga dependensi tetap terbaru di `pubspec.yaml` dan `pubspec.lock`.
+Niusic hanya menyimpan data lokal di perangkat: path file, entri playlist, riwayat, bahasa, tema, dan volume. Aplikasi ini tidak punya backend, akun, dan analitik. Pencarian online hanya berbicara dengan instance Piped publik lewat HTTPS dan pemutaran online memutar streaming dari Googlevideo lewat HTTPS. Tidak ada API key atau token yang disimpan.
 
 > [!NOTE]
 > Laporkan kerentanan lewat GitHub Issues. Lihat [`SECURITY.md`](SECURITY.md). Jangan sertakan secret atau data pribadi.
@@ -266,7 +275,7 @@ CI berjalan pada push ke `main` dan pada tag `v*`. Release dibuat hanya setelah 
 
 <details><summary><b>Apakah Niusic butuh internet?</b></summary>
 
-Tidak. v0.1.0 hanya memutar file lokal. Aplikasi ini tidak melakukan panggilan jaringan.
+Pemutaran lokal bekerja offline. Pencarian dan pemutaran online butuh internet.
 
 </details>
 
@@ -276,9 +285,9 @@ Di perangkat kamu, memakai SharedPreferences. Tidak ada sinkronisasi dan tidak a
 
 </details>
 
-<details><summary><b>Bisakah saya streaming musik sekarang?</b></summary>
+<details><summary><b>Bisakah saya streaming musik?</b></summary>
 
-Tidak. Streaming belum ada pada v0.1.0. Fitur ini direncanakan untuk rilis berikutnya.
+Ya. Buka tab Streaming, cari, dan ketuk hasil untuk memutarnya secara online.
 
 </details>
 

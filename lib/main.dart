@@ -89,6 +89,7 @@ class _NiusicAppState extends State<NiusicApp> {
         onOpenNowPlaying: _openNowPlaying,
       ),
       LibraryScreen(state: state, strings: strings),
+      SearchScreen(state: state, strings: strings),
       PlaylistsScreen(state: state, strings: strings),
       SettingsScreen(
         state: state,
@@ -144,6 +145,10 @@ class _NiusicAppState extends State<NiusicApp> {
                 NavigationDestination(
                   icon: Icon(Icons.library_music),
                   label: strings.library,
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.online_prediction),
+                  label: strings.stream,
                 ),
                 NavigationDestination(
                   icon: Icon(Icons.queue_music),
