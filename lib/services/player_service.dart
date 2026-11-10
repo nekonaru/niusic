@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:audio_service/audio_service.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/playlist.dart';
@@ -73,6 +74,11 @@ class AppState extends ChangeNotifier {
   /// Handler that mirrors playback into the OS media notification.
   /// Assigned by main() after AudioService.init; null on unsupported platforms.
   NiusicAudioHandler? audioHandler;
+
+  static const MethodChannel _widgetChannel = MethodChannel('niusic/widget');
+  String? _widgetTitle;
+  String? _widgetArtist;
+  String? _widgetPlaying;
   final List<Track> library = <Track>[];
   final List<Playlist> playlists = <Playlist>[];
   final List<String> historyIds = <String>[];
@@ -105,7 +111,32 @@ class AppState extends ChangeNotifier {
   @override
   void notifyListeners() {
     _syncNotification();
+    unawaited(_persistWidget());
     super.notifyListeners();
+  }
+
+  Future<void> _persistWidget() async {
+    final cur = current;
+    final title = cur?.title;
+    final artist = cur?.subtitle;
+    final playing = isPlaying.toString();
+    if (title == _widgetTitle &&
+        artist == _widgetArtist &&
+        playing == _widgetPlaying) {
+      return;
+    }
+    try {
+      final prefs = await _getPrefs();
+      await prefs.setString('widget_title', title ?? 'Niusic');
+      await prefs.setString('widget_artist', artist ?? 'Tap to open');
+      await prefs.setString('widget_playing', playing);
+      _widgetTitle = title;
+      _widgetArtist = artist;
+      _widgetPlaying = playing;
+      await _widgetChannel.invokeMethod<void>('update');
+    } catch (_) {
+      // Widget channel is only available on Android.
+    }
   }
 
   void _syncNotification() {

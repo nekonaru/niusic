@@ -77,6 +77,7 @@ Niusic adalah pemutar musik local-first untuk Android dan Windows. Satu codebase
 | **Pemutaran online** | Putar audio streaming dari YouTube, campur dalam antrian yang sama dengan lagu lokal. |
 | **Antrian dan playlist** | Tambah lagu online ke antrian atau ke playlist mana pun. |
 | **Pemutaran latar belakang** | Notifikasi media Android: putar/jeda, lewati, dan lompat saat aplikasi ditutup. |
+| **Widget Android** | Widget home screen menampilkan judul dan artis dengan tombol putar/jeda, sebelumnya, dan berikutnya. |
 | **Unduhan offline** | Unduh audio ke perangkat dan putar tanpa internet. |
 | **Kualitas audio** | Pilih bitrate rendah atau tinggi di Pengaturan. |
 | **Lirik** | Lihat lirik polos dari LRCLIB di Sedang diputar. |

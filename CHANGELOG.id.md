@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.2.0
+
+Menambahkan widget home screen Android untuk sedang diputar.
+
+### Fitur baru
+
+- **Widget home screen.** Menampilkan judul dan artis saat ini dengan tombol sebelumnya, putar/jeda, dan berikutnya. Ketuk cover art atau judul untuk membuka Niusic.
+- **Pembaruan widget.** Niusic menulis status widget ke SharedPreferences pada setiap perubahan pemutaran dan memberi tahu widget untuk mengikat ulang.
+
+### Peningkatan
+
+- **Manifest Android.** Mendaftarkan receiver widget dan mempertahankan media service dari v1.1.0.
+
 ## v1.1.0
 
 Menambahkan kontrol notifikasi media OS di Android sehingga Niusic bisa terus memutar di latar belakang.

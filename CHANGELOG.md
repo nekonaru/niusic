@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.2.0
+
+Adds an Android home screen widget for now playing.
+
+### New features
+
+- **Home screen widget.** Shows the current title and artist with previous, play/pause, and next buttons. Tapping the cover art or title opens Niusic.
+- **Widget updates.** Niusic writes the widget state to SharedPreferences on every playback change and notifies the widget to rebind.
+
+### Improvements
+
+- **Android manifest.** Registers the widget receiver and keeps the media service and button receiver from v1.1.0.
+
 ## v1.1.0
 
 Adds OS media notification controls on Android so Niusic can keep playing in the background.
