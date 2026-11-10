@@ -1,7 +1,21 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:niusic/models/lyrics.dart';
 import 'package:niusic/services/lyrics_service.dart';
 
 void main() {
+  test('activeLineIndex tracks position', () {
+    List<SyncedLine> mk() => [
+      SyncedLine(Duration(seconds: 10), 'a'),
+      SyncedLine(Duration(seconds: 20), 'b'),
+      SyncedLine(Duration(seconds: 30), 'c'),
+    ];
+    expect(LyricsService.activeLineIndex(mk(), Duration(seconds: 5)), -1);
+    expect(LyricsService.activeLineIndex(mk(), Duration(seconds: 10)), 0);
+    expect(LyricsService.activeLineIndex(mk(), Duration(seconds: 15)), 0);
+    expect(LyricsService.activeLineIndex(mk(), Duration(seconds: 25)), 1);
+    expect(LyricsService.activeLineIndex(mk(), Duration(seconds: 99)), 2);
+  });
+
   test('parseSynced parses LRC lines', () {
     final service = LyricsService();
     final lines = service.parseSynced(

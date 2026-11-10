@@ -37,6 +37,26 @@ class LyricsService {
     );
   }
 
+  /// Index of the line to highlight at [position], or -1 if none yet.
+  static int activeLineIndex(List<SyncedLine> lines, Duration position) {
+    if (lines.isEmpty) {
+      return -1;
+    }
+    int low = 0;
+    int high = lines.length - 1;
+    int answer = -1;
+    while (low <= high) {
+      final mid = (low + high) ~/ 2;
+      if (lines[mid].time <= position) {
+        answer = mid;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+    return answer;
+  }
+
   List<SyncedLine> parseSynced(String synced) {
     final lines = <SyncedLine>[];
     final pattern = RegExp(r'\[(\d+):(\d{2})(?:[.:](\d{2}))?\]\s*(.*)');

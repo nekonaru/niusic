@@ -10,7 +10,7 @@ Date: 2026-11-10. Comparison: Niusic v1.2.0 against Auralys (Android Kotlin/Metr
 - **Online search and playback.** YouTube search via Piped, audio via Googlevideo manifest.
 - **Queue, playlists, history.** Queue persists across restarts.
 - **Downloads.** Save YouTube audio to disk, play offline, delete, clear all.
-- **Lyrics.** LRCLIB plain lyrics.
+- **Lyrics.** LRCLIB lyrics, plain and timed. Timed lyrics highlight the active line and scroll with the song.
 - **Radio.** Related streams from Piped, fallback to search.
 - **Chart.** Deezer daily chart on Home.
 - **Sleep timer, volume, quality, speed, shuffle, repeat.**

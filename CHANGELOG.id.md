@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.2.1
+
+Layar lirik kini mengikuti lagu saat lirik bertanda waktu tersedia.
+
+### Fitur baru
+
+- **Lirik sinkron.** Jika LRCLIB memiliki lirik bertanda waktu, layar menyorot baris aktif dan menggulir otomatis ke baris itu. Lirik polos tetap tampil seperti biasa.
+
 ## v1.2.0
 
 Menambahkan widget home screen Android untuk sedang diputar.

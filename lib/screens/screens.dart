@@ -7,6 +7,7 @@ import '../models/lyrics.dart';
 import '../models/playlist.dart';
 import '../models/track.dart';
 import '../models/video_result.dart';
+import '../services/lyrics_service.dart';
 import '../services/player_service.dart';
 import '../ui/responsive.dart';
 
@@ -1219,11 +1220,46 @@ class _LyricsScreenState extends State<LyricsScreen> {
   LyricsResult? result;
   bool loading = true;
   bool failed = false;
+  List<SyncedLine> lines = <SyncedLine>[];
+  int activeLine = -1;
+  final ScrollController _scroll = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    widget.state.addListener(_onTick);
     _load();
+  }
+
+  @override
+  void dispose() {
+    widget.state.removeListener(_onTick);
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _onTick() {
+    if (lines.isEmpty || !mounted) {
+      return;
+    }
+    final next = LyricsService.activeLineIndex(lines, widget.state.position);
+    if (next != activeLine) {
+      setState(() => activeLine = next);
+      _scrollToActive();
+    }
+  }
+
+  void _scrollToActive() {
+    if (activeLine < 0 || !mounted) {
+      return;
+    }
+    final lineHeight = 44.0;
+    final target = activeLine * lineHeight;
+    _scroll.animateTo(
+      target - 80,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
   }
 
   Future<void> _load() async {
@@ -1240,11 +1276,15 @@ class _LyricsScreenState extends State<LyricsScreen> {
         track.subtitle ?? '',
       );
       if (!mounted) return;
+      lines = r?.syncedLyrics != null
+          ? widget.state.lyricsService.parseSynced(r!.syncedLyrics!)
+          : <SyncedLine>[];
       setState(() {
         result = r;
         loading = false;
         failed = r == null;
       });
+      _onTick();
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -1271,10 +1311,34 @@ class _LyricsScreenState extends State<LyricsScreen> {
                 ),
               ),
             )
+          : lines.isNotEmpty
+          ? ListView.builder(
+              controller: _scroll,
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 120),
+              itemCount: lines.length,
+              itemBuilder: (context, index) {
+                final isActive = index == activeLine;
+                return SizedBox(
+                  height: 44,
+                  child: Text(
+                    lines[index].text,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontWeight: isActive
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: isActive
+                          ? Theme.of(context).colorScheme.primary
+                          : null,
+                    ),
+                  ),
+                );
+              },
+            )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Text(
-                result!.plainLyrics ?? result!.syncedLyrics ?? '',
+                result!.plainLyrics ?? '',
                 style: Theme.of(context).textTheme.bodyLarge,
                 textAlign: TextAlign.center,
               ),

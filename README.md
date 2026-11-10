@@ -80,7 +80,7 @@ Niusic is a local-first music player for Android and Windows. One Flutter codeba
 | **Android widget** | Home screen widget shows title and artist with play/pause, previous, and next. |
 | **Offline downloads** | Download audio to the device and play it without internet. |
 | **Audio quality** | Pick low or high bitrate in Settings. |
-| **Lyrics** | View plain lyrics from LRCLIB in Now Playing. |
+| **Lyrics** | View plain lyrics from LRCLIB. When timed lyrics exist, the current line is highlighted and scrolls with the song. |
 | **Daily chart** | See Deezer top tracks on Home and play them on YouTube. |
 | **Radio** | Add related tracks for the current song to the queue. |
 | **Sleep timer** | Pause after 15, 30, or 60 minutes. |

@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.2.1
+
+Lyrics screen now follows the song when timed lyrics are available.
+
+### New features
+
+- **Synced lyrics.** When LRCLIB has timed lyrics, the screen highlights the current line and scrolls to it automatically. Plain lyrics still show as before.
+
 ## v1.2.0
 
 Adds an Android home screen widget for now playing.
