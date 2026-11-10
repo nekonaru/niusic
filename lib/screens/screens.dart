@@ -168,28 +168,110 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final state = widget.state;
     final strings = widget.strings;
+    final theme = Theme.of(context);
     final recent = state.recentTracks();
     final downloads = state.downloadedTracks();
+    final current = state.current;
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
       children: [
-        FilledButton.icon(
-          onPressed: widget.onImport,
-          icon: Icon(Icons.folder_open),
-          label: Text(strings.addMusic),
+        Row(
+          children: [
+            Text(
+              strings.appName,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.4,
+              ),
+            ),
+            const Spacer(),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+              ),
+              onPressed: widget.onImport,
+              icon: const Icon(Icons.add, size: 18),
+              label: Text(strings.addMusic),
+            ),
+          ],
         ),
-        SizedBox(height: 16),
+        const SizedBox(height: 20),
+        if (current != null) ...[
+          Card(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: widget.onOpenNowPlaying,
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: _heroArtwork(current, 92),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            strings.nowPlaying.toUpperCase(),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              letterSpacing: 1.4,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            current.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            current.subtitle ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      iconSize: 44,
+                      icon: Icon(
+                        state.isPlaying
+                            ? Icons.pause_circle_filled
+                            : Icons.play_circle_fill,
+                      ),
+                      onPressed: state.toggle,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
         if (chart.isNotEmpty) ...[
-          Text(strings.topToday, style: Theme.of(context).textTheme.titleLarge),
-          SizedBox(height: 8),
+          _sectionTitle(strings.topToday, Icons.show_chart),
+          const SizedBox(height: 12),
           SizedBox(
-            height: 180,
+            height: 200,
             child: GridView.builder(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: isDesktop(context) ? 5 : 3,
-                crossAxisSpacing: 8,
+              scrollDirection: Axis.horizontal,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 1,
                 mainAxisSpacing: 8,
-                childAspectRatio: 0.85,
+                childAspectRatio: 0.72,
               ),
               itemCount: chart.length,
               itemBuilder: (context, index) {
@@ -205,57 +287,69 @@ class _HomeScreenState extends State<HomeScreen> {
                       state.playVideo(results.first);
                     }
                   },
-                  child: Container(
-                    width: 140,
-                    margin: EdgeInsets.only(right: 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (cover != null &&
-                            Uri.tryParse(cover)?.scheme == 'https')
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              cover,
-                              height: 110,
-                              cacheWidth: 140,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Icon(Icons.album, size: 110),
-                            ),
-                          )
-                        else
-                          Icon(Icons.album, size: 110),
-                        Text(
-                          title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: _coverArt(cover, 140),
                         ),
-                        Text(
-                          artist,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
                         ),
-                      ],
-                    ),
+                      ),
+                      Text(
+                        artist,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
                 );
               },
             ),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 20),
         ],
-        if (recent.isEmpty)
-          Text(strings.emptyLibrary)
-        else ...[
-          Text(strings.recent, style: Theme.of(context).textTheme.titleLarge),
-          SizedBox(height: 8),
-          ...recent
-              .take(5)
-              .map(
-                (track) => ListTile(
-                  leading: Icon(Icons.history),
-                  title: Text(track.title),
+        if (recent.isNotEmpty) ...[
+          _sectionTitle(strings.recent, Icons.history),
+          const SizedBox(height: 12),
+          Card(
+            child: Column(
+              children: recent.take(5).map((track) {
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                    child: Icon(
+                      Icons.music_note,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                  title: Text(
+                    track.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    track.subtitle ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: Icon(
+                    Icons.play_arrow,
+                    color: theme.colorScheme.primary,
+                  ),
                   onTap: () {
                     final index = state.queueIndexOf(track);
                     if (index >= 0) {
@@ -263,34 +357,111 @@ class _HomeScreenState extends State<HomeScreen> {
                     }
                     widget.onOpenNowPlaying();
                   },
-                ),
-              ),
-        ],
-        SizedBox(height: 16),
-        Text(strings.downloads, style: Theme.of(context).textTheme.titleLarge),
-        SizedBox(height: 8),
-        if (downloads.isEmpty)
-          Text(strings.noDownloads)
-        else
-          ...downloads.map(
-            (track) => ListTile(
-              leading: Icon(Icons.download_done),
-              title: Text(track.title),
-              subtitle: Text(strings.downloaded),
-              trailing: IconButton(
-                icon: Icon(Icons.delete_outline),
-                tooltip: strings.deleteDownload,
-                onPressed: () => state.deleteDownload(track),
-              ),
-              onTap: () => widget.onOpenNowPlaying(),
+                );
+              }).toList(),
             ),
           ),
-        SizedBox(height: 16),
+          const SizedBox(height: 20),
+        ],
+        _sectionTitle(strings.downloads, Icons.download),
+        const SizedBox(height: 12),
+        if (downloads.isEmpty)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text(
+                strings.noDownloads,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          )
+        else
+          Card(
+            child: Column(
+              children: downloads.map((track) {
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: theme.colorScheme.primaryContainer,
+                    child: Icon(
+                      Icons.download_done,
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                  title: Text(
+                    track.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(strings.downloaded),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    tooltip: strings.deleteDownload,
+                    onPressed: () => state.deleteDownload(track),
+                  ),
+                  onTap: () => widget.onOpenNowPlaying(),
+                );
+              }).toList(),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _sectionTitle(String title, IconData icon) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
+        const SizedBox(width: 8),
         Text(
-          '${state.library.length} ${strings.tracksCount}',
-          style: Theme.of(context).textTheme.titleLarge,
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.2,
+          ),
         ),
       ],
+    );
+  }
+
+  Widget _heroArtwork(Track track, double size) {
+    final url = track.thumbnailUrl;
+    if (url != null && url.isNotEmpty && Uri.tryParse(url)?.scheme == 'https') {
+      return Image.network(
+        url,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        cacheWidth: 256,
+        errorBuilder: (context, error, stackTrace) =>
+            Icon(Icons.album, size: size * 0.6),
+      );
+    }
+    return Container(
+      width: size,
+      height: size,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Icon(Icons.album, size: size * 0.6),
+    );
+  }
+
+  Widget _coverArt(String? url, double width) {
+    if (url != null && url.isNotEmpty && Uri.tryParse(url)?.scheme == 'https') {
+      return Image.network(
+        url,
+        width: width,
+        fit: BoxFit.cover,
+        cacheWidth: 256,
+        errorBuilder: (context, error, stackTrace) =>
+            Icon(Icons.album, size: 56),
+      );
+    }
+    return Container(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Icon(Icons.album, size: 56),
     );
   }
 }
@@ -472,9 +643,9 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
       children: [
-        Text(strings.language, style: Theme.of(context).textTheme.titleLarge),
+        _section(context, strings.language),
         SegmentedButton<String>(
           segments: [
             ButtonSegment(value: 'en', label: Text(strings.english)),
@@ -486,8 +657,8 @@ class SettingsScreen extends StatelessWidget {
             onChanged();
           },
         ),
-        SizedBox(height: 16),
-        Text(strings.theme, style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 20),
+        _section(context, strings.theme),
         SegmentedButton<ThemeChoice>(
           segments: [
             ButtonSegment(
@@ -509,40 +680,8 @@ class SettingsScreen extends StatelessWidget {
             onChanged();
           },
         ),
-        SizedBox(height: 16),
-        Text(strings.volume, style: Theme.of(context).textTheme.titleLarge),
-        Slider(
-          value: state.volume,
-          onChanged: (value) => state.setVolume(value),
-        ),
-        SizedBox(height: 16),
-        Text(
-          strings.audioQuality,
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        SegmentedButton<String>(
-          segments: [
-            ButtonSegment(value: 'low', label: Text(strings.qualityLow)),
-            ButtonSegment(value: 'high', label: Text(strings.qualityHigh)),
-          ],
-          selected: {state.streamService.audioQuality},
-          onSelectionChanged: (value) => state.setAudioQuality(value.first),
-        ),
-        SizedBox(height: 16),
-        Text(
-          strings.playbackSpeed,
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        Text('${state.playbackRate.toStringAsFixed(2)}x'),
-        Slider(
-          min: 0.5,
-          max: 2.0,
-          divisions: 6,
-          value: state.playbackRate,
-          onChanged: (value) => state.setPlaybackRate(value),
-        ),
-        SizedBox(height: 16),
-        Text(strings.accent, style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 20),
+        _section(context, strings.accent),
         SegmentedButton<String>(
           segments: [
             ButtonSegment(value: 'indigo', label: Text('Indigo')),
@@ -553,8 +692,34 @@ class SettingsScreen extends StatelessWidget {
           selected: {state.accent},
           onSelectionChanged: (value) => state.setAccent(value.first),
         ),
-        SizedBox(height: 16),
-        Text(strings.storage, style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 20),
+        _section(context, strings.volume),
+        Slider(
+          value: state.volume,
+          onChanged: (value) => state.setVolume(value),
+        ),
+        const SizedBox(height: 20),
+        _section(context, strings.audioQuality),
+        SegmentedButton<String>(
+          segments: [
+            ButtonSegment(value: 'low', label: Text(strings.qualityLow)),
+            ButtonSegment(value: 'high', label: Text(strings.qualityHigh)),
+          ],
+          selected: {state.streamService.audioQuality},
+          onSelectionChanged: (value) => state.setAudioQuality(value.first),
+        ),
+        const SizedBox(height: 20),
+        _section(context, strings.playbackSpeed),
+        Text('${state.playbackRate.toStringAsFixed(2)}x'),
+        Slider(
+          min: 0.5,
+          max: 2.0,
+          divisions: 6,
+          value: state.playbackRate,
+          onChanged: (value) => state.setPlaybackRate(value),
+        ),
+        const SizedBox(height: 20),
+        _section(context, strings.storage),
         FutureBuilder<int>(
           future: state.totalDownloadBytes(),
           builder: (context, snap) {
@@ -562,10 +727,11 @@ class SettingsScreen extends StatelessWidget {
             final mb = bytes / (1024 * 1024);
             return Text(
               '${strings.downloadsSize}: ${mb.toStringAsFixed(1)} MB',
+              style: Theme.of(context).textTheme.bodyLarge,
             );
           },
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: 12),
         OutlinedButton.icon(
           onPressed: () async {
             final ok = await showDialog<bool>(
@@ -591,10 +757,11 @@ class SettingsScreen extends StatelessWidget {
               await state.clearDownloads();
             }
           },
-          icon: Icon(Icons.delete_sweep),
+          icon: const Icon(Icons.delete_sweep),
           label: Text(strings.clearDownloads),
         ),
-        SizedBox(height: 16),
+        const SizedBox(height: 20),
+        _section(context, strings.clearData),
         OutlinedButton.icon(
           onPressed: () async {
             final ok = await showDialog<bool>(
@@ -620,10 +787,24 @@ class SettingsScreen extends StatelessWidget {
               await state.clearAll();
             }
           },
-          icon: Icon(Icons.delete_forever),
+          icon: const Icon(Icons.delete_forever),
           label: Text(strings.clearData),
         ),
       ],
+    );
+  }
+
+  Widget _section(BuildContext context, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        title,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.2,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
     );
   }
 }
@@ -1444,49 +1625,93 @@ class NowPlayingScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: 1100),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: isDesktop(context)
-                ? Row(
-                    children: [
-                      Expanded(child: _artwork(track)),
-                      SizedBox(width: 32),
-                      Expanded(child: _controls(context, track, value, max)),
-                    ],
-                  )
-                : Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _artwork(track),
-                      SizedBox(height: 16),
-                      ..._controlRows(context, track, value, max),
-                    ],
-                  ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Theme.of(context).colorScheme.surfaceContainerHighest
+                  .withValues(alpha: 0.6),
+              Theme.of(context).scaffoldBackgroundColor,
+            ],
+          ),
+        ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1100),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: isDesktop(context)
+                  ? Row(
+                      children: [
+                        Expanded(child: Center(child: _artwork(track))),
+                        const SizedBox(width: 32),
+                        Expanded(child: _controls(context, track, value, max)),
+                      ],
+                    )
+                  : Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _artwork(track, size: 260),
+                        const SizedBox(height: 28),
+                        ..._controlRows(context, track, value, max),
+                      ],
+                    ),
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _artwork(Track? track) {
+  Widget _artwork(Track? track, {double size = 300}) {
+    final radius = 28.0;
     if (track?.thumbnailUrl != null &&
         Uri.tryParse(track!.thumbnailUrl!)?.scheme == 'https') {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Image.network(
-          track.thumbnailUrl!,
-          height: 240,
-          cacheWidth: 480,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) =>
-              Icon(Icons.album, size: 120),
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(radius),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.35),
+              blurRadius: 40,
+              offset: const Offset(0, 20),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(radius),
+          child: Image.network(
+            track.thumbnailUrl!,
+            fit: BoxFit.cover,
+            cacheWidth: 640,
+            errorBuilder: (context, error, stackTrace) =>
+                _placeholderArt(size, radius),
+          ),
         ),
       );
     }
-    return Icon(Icons.album, size: 120);
+    return _placeholderArt(size, radius);
+  }
+
+  Widget _placeholderArt(double size, double radius) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(radius),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF2E2E2E), Color(0xFF0D0D0D)],
+        ),
+      ),
+      child: Icon(Icons.album, size: size * 0.4, color: Colors.white54),
+    );
   }
 
   Widget _controls(
@@ -1502,10 +1727,17 @@ class NowPlayingScreen extends StatelessWidget {
         Text(
           track?.title ?? strings.noTrack,
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.headlineSmall,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.headlineSmall
+              ?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.3),
         ),
-        SizedBox(height: 8),
-        Text(track?.subtitle ?? ''),
+        const SizedBox(height: 6),
+        Text(
+          track?.subtitle ?? '',
+          style: Theme.of(context).textTheme.bodyLarge
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        ),
         if (state.lastError != null) ...[
           SizedBox(height: 12),
           Text(
@@ -1531,7 +1763,9 @@ class NowPlayingScreen extends StatelessWidget {
             IconButton(
               icon: Icon(
                 Icons.shuffle,
-                color: state.shuffle ? Colors.indigo : null,
+                color: state.shuffle
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               tooltip: strings.shuffle,
               onPressed: state.toggleShuffle,
@@ -1557,7 +1791,9 @@ class NowPlayingScreen extends StatelessWidget {
             IconButton(
               icon: Icon(
                 Icons.repeat,
-                color: state.repeat != NiRepeatMode.off ? Colors.indigo : null,
+                color: state.repeat != NiRepeatMode.off
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               tooltip: strings.repeat,
               onPressed: state.cycleRepeat,

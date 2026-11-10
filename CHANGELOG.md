@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.5.0
+
+Redesigns the app UI for a cleaner, more consistent feel on Android and Windows.
+
+### New features
+
+- **Refreshed theme.** Material 3 theme with rounded cards, calmer navigation, and a clearer accent seed.
+
+### Improvements
+
+- **Home screen.** Added a now playing hero card, section headers with icons, horizontal chart row, and grouped recent/downloads in cards.
+- **Now Playing.** Large artwork with drop shadow, centered gradient backdrop, calmer typography, accent-aware controls.
+- **Settings.** Clear section labels, same grouped layout as the rest of the app.
+- **Mini player.** Rounded floating mini player with tinted progress affordance feel.
+
 ## v1.4.0
 
 Implements the Android runtime fixes and hardens app startup.

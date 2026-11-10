@@ -6,6 +6,7 @@ import 'l10n/app_strings.dart';
 import 'screens/screens.dart';
 import 'services/audio_handler.dart';
 import 'services/player_service.dart';
+import 'ui/niusic_theme.dart';
 import 'ui/keyboard_shortcuts.dart';
 import 'ui/responsive.dart';
 
@@ -121,15 +122,37 @@ class _NiusicAppState extends State<NiusicApp> {
     if (current == null) {
       return SizedBox.shrink();
     }
-    return ListTile(
-      leading: Icon(state.isPlaying ? Icons.pause_circle : Icons.play_circle),
-      title: Text(current.title),
-      subtitle: Text(current.fileName),
-      trailing: IconButton(
-        icon: Icon(state.isPlaying ? Icons.pause : Icons.play_arrow),
-        onPressed: state.toggle,
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(18),
       ),
-      onTap: _openNowPlaying,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        visualDensity: VisualDensity.compact,
+        leading: Icon(
+          state.isPlaying ? Icons.pause_circle : Icons.play_circle,
+          color: Theme.of(context).colorScheme.primary,
+          size: 30,
+        ),
+        title: Text(
+          current.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Text(
+          current.fileName,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: IconButton(
+          icon: Icon(state.isPlaying ? Icons.pause : Icons.play_arrow),
+          onPressed: state.toggle,
+        ),
+        onTap: _openNowPlaying,
+      ),
     );
   }
 
@@ -196,14 +219,14 @@ class _NiusicAppState extends State<NiusicApp> {
   Color _seedColor(AppState state) {
     switch (state.accent) {
       case 'teal':
-        return Colors.teal;
+        return const Color(0xFF0F766E);
       case 'purple':
-        return Colors.purple;
+        return const Color(0xFF7E22CE);
       case 'orange':
-        return Colors.orange;
+        return const Color(0xFFEA580C);
       case 'indigo':
       default:
-        return Colors.indigo;
+        return const Color(0xFF4F46E5);
     }
   }
 
@@ -230,17 +253,8 @@ class _NiusicAppState extends State<NiusicApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Niusic',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: seed),
-      ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: seed,
-          brightness: Brightness.dark,
-        ),
-      ),
+      theme: niusicTheme(Brightness.light, seed: seed),
+      darkTheme: niusicTheme(Brightness.dark, seed: seed),
       themeMode: _themeMode,
       home: Builder(
         builder: (context) {

@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.5.0
+
+Mendesain ulang UI aplikasi agar lebih rapi dan konsisten di Android dan Windows.
+
+### Fitur baru
+
+- **Tema baru.** Tema Material 3 dengan kartu membulat, navigasi lebih tenang, dan warna aksen yang lebih jelas.
+
+### Peningkatan
+
+- **Layar Beranda.** Kartu hero sedang diputar, header bagian dengan ikon, baris chart horizontal, dan daftar terakhir/terunduh dalam kartu.
+- **Sedang diputar.** Artwork besar dengan bayangan, latar gradien, tipografi tenang, dan kontrol mengikuti aksen.
+- **Pengaturan.** Label bagian jelas, tata letak sama seperti sisa aplikasi.
+- **Pemutar mini.** Pemutar mini membulat mengambang dengan nuansa progres.
+
 ## v1.4.0
 
 Menambahkan perbaikan runtime Android dan memperkuat startup aplikasi.
