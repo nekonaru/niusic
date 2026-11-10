@@ -218,6 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Image.network(
                               cover,
                               height: 110,
+                              cacheWidth: 140,
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) =>
                                   Icon(Icons.album, size: 110),
@@ -938,6 +939,7 @@ class _SearchScreenState extends State<SearchScreen> {
       child: Image.network(
         url,
         fit: BoxFit.cover,
+        cacheWidth: 144,
         // ignore: unused_element_parameter
         errorBuilder: (context, error, stackTrace) => Icon(Icons.audiotrack),
       ),
@@ -1047,6 +1049,7 @@ class _ChannelScreenState extends State<ChannelScreen> {
                       detail!.bannerUrl!,
                       height: 120,
                       fit: BoxFit.cover,
+                      cacheWidth: 1024,
                     ),
                   ),
                 SizedBox(height: 16),
@@ -1476,6 +1479,7 @@ class NowPlayingScreen extends StatelessWidget {
         child: Image.network(
           track.thumbnailUrl!,
           height: 240,
+          cacheWidth: 480,
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) =>
               Icon(Icons.album, size: 120),

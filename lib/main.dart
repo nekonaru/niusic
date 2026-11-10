@@ -6,6 +6,7 @@ import 'l10n/app_strings.dart';
 import 'screens/screens.dart';
 import 'services/audio_handler.dart';
 import 'services/player_service.dart';
+import 'ui/keyboard_shortcuts.dart';
 import 'ui/responsive.dart';
 
 Future<void> main() async {
@@ -236,25 +237,55 @@ class _NiusicAppState extends State<NiusicApp> {
           final body = loaded
               ? IndexedStack(index: index, children: pages)
               : Center(child: CircularProgressIndicator());
-          if (desktop) {
-            return Scaffold(
-              appBar: AppBar(title: Text('Niusic')),
-              body: Row(
-                children: [
-                  _rail(strings),
-                  VerticalDivider(width: 1),
-                  Expanded(child: body),
-                ],
+          final scaffold = desktop
+              ? Scaffold(
+                  appBar: AppBar(title: Text('Niusic')),
+                  body: Row(
+                    children: [
+                      _rail(strings),
+                      VerticalDivider(width: 1),
+                      Expanded(child: body),
+                    ],
+                  ),
+                )
+              : Scaffold(
+                  appBar: AppBar(title: Text('Niusic')),
+                  body: body,
+                  bottomNavigationBar: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [_miniPlayer(strings), _navBar(strings)],
+                  ),
+                );
+          return Focus(
+            autofocus: true,
+            child: Shortcuts(
+              shortcuts: niusicShortcuts,
+              child: Actions(
+                actions: <Type, Action<Intent>>{
+                  TogglePlayIntent: CallbackAction<TogglePlayIntent>(
+                    onInvoke: (_) => state.toggle(),
+                  ),
+                  SeekForwardIntent: CallbackAction<SeekForwardIntent>(
+                    onInvoke: (i) => state.seekRelative(i.seconds),
+                  ),
+                  SeekBackwardIntent: CallbackAction<SeekBackwardIntent>(
+                    onInvoke: (i) => state.seekRelative(-i.seconds),
+                  ),
+                  NextTrackIntent: CallbackAction<NextTrackIntent>(
+                    onInvoke: (_) => state.next(),
+                  ),
+                  PreviousTrackIntent: CallbackAction<PreviousTrackIntent>(
+                    onInvoke: (_) => state.previous(),
+                  ),
+                  VolumeUpIntent: CallbackAction<VolumeUpIntent>(
+                    onInvoke: (_) => state.adjustVolume(0.05),
+                  ),
+                  VolumeDownIntent: CallbackAction<VolumeDownIntent>(
+                    onInvoke: (_) => state.adjustVolume(-0.05),
+                  ),
+                },
+                child: scaffold,
               ),
-              bottomSheet: null,
-            );
-          }
-          return Scaffold(
-            appBar: AppBar(title: Text('Niusic')),
-            body: body,
-            bottomNavigationBar: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [_miniPlayer(strings), _navBar(strings)],
             ),
           );
         },

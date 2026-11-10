@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.3.0
+
+Menambahkan kontrol keyboard desktop dan penyesuaian memori decode gambar.
+
+### Fitur baru
+
+- **Kontrol keyboard desktop.** Space putar/jeda, panah lompat dan ubah volume, Ctrl+panah lewati lagu.
+
+### Peningkatan
+
+- **Cache gambar.** Gambar jaringan memakai parameter cacheWidth sehingga thumbnail dan banner memakai memori lebih sedikit.
+- **Optimalkan.** Import tidak terpakai dihapus. Analisis dan tes bersih.
+
 ## v1.2.1
 
 Layar lirik kini mengikuti lagu saat lirik bertanda waktu tersedia.

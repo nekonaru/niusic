@@ -582,6 +582,19 @@ class AppState extends ChangeNotifier {
     await player.seek(d);
   }
 
+  Future<void> seekRelative(int seconds) async {
+    final target = position + Duration(seconds: seconds);
+    if (target < Duration.zero) {
+      await seek(Duration.zero);
+      return;
+    }
+    await seek(target);
+  }
+
+  Future<void> adjustVolume(double delta) async {
+    await setVolume(volume + delta);
+  }
+
   Future<void> next({bool auto = false}) async {
     if (queue.isEmpty) {
       return;

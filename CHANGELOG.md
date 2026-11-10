@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.3.0
+
+Adds desktop keyboard control and image decode memory tuning.
+
+### New features
+
+- **Desktop keyboard control.** Space toggles play/pause, arrows seek and change volume, Ctrl+arrows skip tracks.
+
+### Improvements
+
+- **Image cache.** Network images use decode cacheWidth so thumbnails and banners use less memory.
+- **Optimization pass.** Analyzed and removed an unused import. Tests and analyze are clean.
+
 ## v1.2.1
 
 Lyrics screen now follows the song when timed lyrics are available.
