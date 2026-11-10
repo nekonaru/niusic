@@ -13,4 +13,10 @@ Out of scope: third-party services, the user's own media files, and social engin
 
 ## Supported Versions
 
-Only the latest release is supported. Fixes ship as a new release.
+Only the latest stable release is supported. Fixes ship as a new release.
+
+## Known limitations at v1.0.0
+
+- Release APK and Windows zip are not code-signed with a private key. They install from a direct download on Android and as a portable exe on Windows.
+- Online search uses public Piped instances and online playback uses Googlevideo URLs. Both can change or rate-limit.
+- Background media notification controls, widgets, equalizer, Discord presence, and song recognition are not implemented. See `docs/GAPS.md`.
