@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.8.0
+
+Menambahkan playlist online, persistensi antrean, dan manajemen penyimpanan.
+
+### Fitur baru
+
+- **Playlist online.** Pencarian kini menampilkan playlist online. Buka satu, putar, atau simpan sebagai playlist lokal.
+- **Persistensi antrean.** Urutan antrean dan posisi putar tetap ada setelah aplikasi restart.
+- **Ringkasan penyimpanan.** Ukuran unduhan tersedia lewat `totalDownloadBytes` dan `clearDownloads`.
+
 ## v0.7.0
 
 Menambahkan browse kanal, saran pencarian, kecepatan putar, dan tema aksen. Juga memperbaiki radio terkait dan mendokumentasikan kesenjangan yang tersisa.

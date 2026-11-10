@@ -87,6 +87,7 @@ Niusic is a local-first music player for Android and Windows. One Flutter codeba
 | **Suggestions** | See YouTube search suggestions as chips. |
 | **Playback speed** | Set 0.5x to 2.0x in Settings. |
 | **Accent themes** | Pick indigo, teal, purple, or orange accent. |
+| **Online playlists** | Browse YouTube playlists, play them, or save them locally. |
 
 ### Organization
 

@@ -247,6 +247,108 @@ class StreamService {
     return null;
   }
 
+  String? _playlistIdFromUrl(String? url) {
+    if (url == null) {
+      return null;
+    }
+    final uri = Uri.tryParse(url);
+    return uri?.queryParameters['list'];
+  }
+
+  Future<List<PlaylistResult>> searchPlaylists(
+    String query, {
+    int maxResults = 10,
+  }) async {
+    Object? lastError;
+    for (final base in _instances) {
+      try {
+        final uri = Uri.parse(
+          '$base/search?q=${Uri.encodeComponent(query)}&filter=playlists',
+        );
+        final res = await _http
+            .get(uri, headers: <String, String>{'Accept': 'application/json'})
+            .timeout(const Duration(seconds: 15));
+        if (res.statusCode != 200) {
+          throw StateError('search ${res.statusCode}');
+        }
+        final decoded = jsonDecode(res.body) as Map<String, dynamic>;
+        final items = decoded['items'] as List<dynamic>? ?? <dynamic>[];
+        final out = <PlaylistResult>[];
+        for (final item in items) {
+          if (item is! Map<String, dynamic>) {
+            continue;
+          }
+          final id = _playlistIdFromUrl(item['url'] as String?);
+          if (id == null) {
+            continue;
+          }
+          out.add(
+            PlaylistResult(
+              playlistId: id,
+              name: item['name'] as String? ?? '',
+              thumbnailUrl: item['thumbnail'] as String?,
+              author: item['uploaderName'] as String?,
+              videoCount: item['videos'] is int ? item['videos'] as int : null,
+            ),
+          );
+          if (out.length >= maxResults) {
+            break;
+          }
+        }
+        return out;
+      } catch (e) {
+        lastError = e;
+      }
+    }
+    throw StateError('playlist search failed: $lastError');
+  }
+
+  Future<OnlinePlaylistDetail> fetchPlaylist(String playlistId) async {
+    Object? lastError;
+    for (final base in _instances) {
+      try {
+        final uri = Uri.parse('$base/playlists/$playlistId');
+        final res = await _http
+            .get(uri, headers: <String, String>{'Accept': 'application/json'})
+            .timeout(const Duration(seconds: 15));
+        if (res.statusCode != 200) {
+          throw StateError('playlist ${res.statusCode}');
+        }
+        final decoded = jsonDecode(res.body) as Map<String, dynamic>;
+        final videos = <VideoResult>[];
+        final related =
+            decoded['relatedStreams'] as List<dynamic>? ?? <dynamic>[];
+        for (final item in related) {
+          if (item is! Map<String, dynamic>) {
+            continue;
+          }
+          final vid = _videoIdFromWatchUrl(item['url'] as String? ?? '');
+          if (vid == null) {
+            continue;
+          }
+          videos.add(
+            VideoResult(
+              videoId: vid,
+              title: item['title'] as String? ?? vid,
+              author: item['uploaderName'] as String? ?? '',
+              thumbnailUrl: item['thumbnail'] as String?,
+            ),
+          );
+        }
+        return OnlinePlaylistDetail(
+          playlistId: playlistId,
+          name: decoded['name'] as String? ?? '',
+          description: decoded['description'] as String?,
+          thumbnailUrl: decoded['thumbnailUrl'] as String?,
+          videos: videos,
+        );
+      } catch (e) {
+        lastError = e;
+      }
+    }
+    throw StateError('playlist failed: $lastError');
+  }
+
   String? _videoIdFromWatchUrl(String url) {
     final uri = Uri.tryParse(url);
     if (uri == null) {

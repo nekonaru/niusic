@@ -551,6 +551,47 @@ class SettingsScreen extends StatelessWidget {
           onSelectionChanged: (value) => state.setAccent(value.first),
         ),
         SizedBox(height: 16),
+        Text(strings.storage, style: Theme.of(context).textTheme.titleLarge),
+        FutureBuilder<int>(
+          future: state.totalDownloadBytes(),
+          builder: (context, snap) {
+            final bytes = snap.data ?? 0;
+            final mb = bytes / (1024 * 1024);
+            return Text(
+              '${strings.downloadsSize}: ${mb.toStringAsFixed(1)} MB',
+            );
+          },
+        ),
+        SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: () async {
+            final ok = await showDialog<bool>(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  title: Text(strings.clearDownloads),
+                  content: Text(strings.clearDataConfirm),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: Text(strings.cancel),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: Text(strings.delete),
+                    ),
+                  ],
+                );
+              },
+            );
+            if (ok == true) {
+              await state.clearDownloads();
+            }
+          },
+          icon: Icon(Icons.delete_sweep),
+          label: Text(strings.clearDownloads),
+        ),
+        SizedBox(height: 16),
         OutlinedButton.icon(
           onPressed: () async {
             final ok = await showDialog<bool>(
@@ -598,6 +639,7 @@ class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _controller = TextEditingController();
   List<VideoResult> results = <VideoResult>[];
   List<ChannelResult> channels = <ChannelResult>[];
+  List<PlaylistResult> onlinePlaylists = <PlaylistResult>[];
   List<String> suggestions = <String>[];
   bool loading = false;
   bool failed = false;
@@ -619,6 +661,7 @@ class _SearchScreenState extends State<SearchScreen> {
         setState(() {
           results = <VideoResult>[];
           channels = <ChannelResult>[];
+          onlinePlaylists = <PlaylistResult>[];
           suggestions = <String>[];
           searched = false;
           failed = false;
@@ -633,12 +676,20 @@ class _SearchScreenState extends State<SearchScreen> {
       try {
         final found = await widget.state.streamService.search(query);
         List<ChannelResult> foundChannels = <ChannelResult>[];
+        List<PlaylistResult> foundPlaylists = <PlaylistResult>[];
         try {
           foundChannels = await widget.state.streamService.searchChannels(
             query,
           );
         } catch (_) {
           foundChannels = <ChannelResult>[];
+        }
+        try {
+          foundPlaylists = await widget.state.streamService.searchPlaylists(
+            query,
+          );
+        } catch (_) {
+          foundPlaylists = <PlaylistResult>[];
         }
         List<String> foundHints = <String>[];
         try {
@@ -650,6 +701,7 @@ class _SearchScreenState extends State<SearchScreen> {
         setState(() {
           results = found;
           channels = foundChannels;
+          onlinePlaylists = foundPlaylists;
           suggestions = foundHints;
           loading = false;
           searched = true;
@@ -741,6 +793,41 @@ class _SearchScreenState extends State<SearchScreen> {
                                 state: widget.state,
                                 strings: strings,
                                 channelId: ch.channelId,
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        if (!loading && onlinePlaylists.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: SizedBox(
+              height: 48,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: onlinePlaylists.length,
+                itemBuilder: (context, index) {
+                  final p = onlinePlaylists[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ActionChip(
+                      avatar: Icon(Icons.playlist_play),
+                      label: Text(p.name),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute<void>(
+                            builder: (context) {
+                              return OnlinePlaylistScreen(
+                                state: widget.state,
+                                strings: strings,
+                                playlistId: p.playlistId,
                               );
                             },
                           ),
@@ -1008,6 +1095,109 @@ class _ChannelScreenState extends State<ChannelScreen> {
                       onTap: () => widget.state.playVideo(video),
                     ),
                   ),
+              ],
+            ),
+    );
+  }
+}
+
+class OnlinePlaylistScreen extends StatefulWidget {
+  const OnlinePlaylistScreen({
+    required this.state,
+    required this.strings,
+    required this.playlistId,
+    super.key,
+  });
+
+  final AppState state;
+  final AppStrings strings;
+  final String playlistId;
+
+  @override
+  State<OnlinePlaylistScreen> createState() => _OnlinePlaylistScreenState();
+}
+
+class _OnlinePlaylistScreenState extends State<OnlinePlaylistScreen> {
+  OnlinePlaylistDetail? detail;
+  bool loading = true;
+  bool failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final d = await widget.state.streamService.fetchPlaylist(
+        widget.playlistId,
+      );
+      if (!mounted) return;
+      setState(() {
+        detail = d;
+        loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        loading = false;
+        failed = true;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(detail?.name ?? widget.strings.newPlaylist)),
+      body: loading
+          ? Center(child: CircularProgressIndicator())
+          : failed || detail == null
+          ? Center(child: Text(widget.strings.searchError))
+          : ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                if (detail!.description != null &&
+                    detail!.description!.isNotEmpty)
+                  Text(detail!.description!),
+                SizedBox(height: 8),
+                FilledButton.icon(
+                  onPressed: () {
+                    if (detail!.videos.isNotEmpty) {
+                      widget.state.playVideo(detail!.videos.first);
+                    }
+                  },
+                  icon: Icon(Icons.play_arrow),
+                  label: Text(widget.strings.playNow),
+                ),
+                TextButton.icon(
+                  onPressed: () async {
+                    final playlist = await widget.state.createPlaylist(
+                      detail!.name,
+                    );
+                    for (final v in detail!.videos) {
+                      final track = Track.remote(
+                        videoId: v.videoId,
+                        title: v.title,
+                        author: v.author,
+                        thumbnailUrl: v.thumbnailUrl,
+                        durationSeconds: v.durationSeconds,
+                      );
+                      await widget.state.addToPlaylist(playlist, track);
+                    }
+                  },
+                  icon: Icon(Icons.download),
+                  label: Text(widget.strings.addToPlaylist),
+                ),
+                SizedBox(height: 8),
+                ...detail!.videos.map(
+                  (video) => ListTile(
+                    title: Text(video.title),
+                    subtitle: Text(video.author),
+                    onTap: () => widget.state.playVideo(video),
+                  ),
+                ),
               ],
             ),
     );

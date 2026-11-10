@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.8.0
+
+Adds online playlists, queue persistence, and storage management.
+
+### New features
+
+- **Online playlists.** Search now shows online playlists. Open one, play it, or save it as a local playlist.
+- **Queue persistence.** The queue order and play position survive app restarts.
+- **Storage overview.** Download sizes are available through `totalDownloadBytes` and `clearDownloads`.
+
 ## v0.7.0
 
 Adds channel browse, search suggestions, playback speed, and accent themes. Also fixes related radio and documents remaining gaps.

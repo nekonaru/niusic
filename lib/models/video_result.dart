@@ -16,6 +16,38 @@ class VideoResult {
   final int? durationSeconds;
 }
 
+class PlaylistResult {
+  const PlaylistResult({
+    required this.playlistId,
+    required this.name,
+    this.thumbnailUrl,
+    this.author,
+    this.videoCount,
+  });
+
+  final String playlistId;
+  final String name;
+  final String? thumbnailUrl;
+  final String? author;
+  final int? videoCount;
+}
+
+class OnlinePlaylistDetail {
+  const OnlinePlaylistDetail({
+    required this.playlistId,
+    required this.name,
+    this.description,
+    this.thumbnailUrl,
+    this.videos = const <VideoResult>[],
+  });
+
+  final String playlistId;
+  final String name;
+  final String? description;
+  final String? thumbnailUrl;
+  final List<VideoResult> videos;
+}
+
 class ChannelResult {
   const ChannelResult({
     required this.channelId,

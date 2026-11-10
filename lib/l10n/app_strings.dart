@@ -56,6 +56,10 @@ class AppStrings {
   String get playbackSpeed => isId ? 'Kecepatan putar' : 'Playback speed';
   String get accent => isId ? 'Warna aksen' : 'Accent color';
   String get suggestions => isId ? 'Saran pencarian' : 'Search suggestions';
+  String get storage => isId ? 'Penyimpanan' : 'Storage';
+  String get downloadsSize => isId ? 'Ukuran unduhan' : 'Download size';
+  String get clearDownloads =>
+      isId ? 'Hapus semua unduhan' : 'Clear all downloads';
   String get nowPlaying => isId ? 'Sedang diputar' : 'Now Playing';
   String get addMusic => isId ? 'Tambah musik' : 'Add music';
   String get emptyLibrary => isId

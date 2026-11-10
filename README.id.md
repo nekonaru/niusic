@@ -87,6 +87,7 @@ Niusic adalah pemutar musik local-first untuk Android dan Windows. Satu codebase
 | **Saran** | Lihat saran pencarian YouTube sebagai chip. |
 | **Kecepatan putar** | Atur 0,5x hingga 2,0x di Pengaturan. |
 | **Tema aksen** | Pilih aksen indigo, teal, ungu, atau oranye. |
+| **Playlist online** | Jelajahi playlist YouTube, putar, atau simpan lokal. |
 
 ### Organisasi
 

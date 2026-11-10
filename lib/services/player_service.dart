@@ -31,11 +31,11 @@ const int _maxHistory = 100;
 
 class AppState extends ChangeNotifier {
   AppState({StreamService? stream, DownloadService? downloads})
-      : streamService = stream ?? StreamService(),
-        downloadService = downloads ?? DownloadService(),
-        lyricsService = LyricsService(),
-        chartService = ChartService(),
-        suggestionsService = SuggestionsService() {
+    : streamService = stream ?? StreamService(),
+      downloadService = downloads ?? DownloadService(),
+      lyricsService = LyricsService(),
+      chartService = ChartService(),
+      suggestionsService = SuggestionsService() {
     _completion = player.onPlayerComplete.listen((_) => next(auto: true));
     _stateSub = player.onPlayerStateChanged.listen((s) {
       final playing = s == PlayerState.playing;
@@ -167,8 +167,34 @@ class AppState extends ChangeNotifier {
       ),
     );
     await player.setVolume(volume);
-    queue = List<Track>.of(library);
+    final queueRaw = prefs.getString('queue_v1');
+    if (queueRaw != null) {
+      final decoded = jsonDecode(queueRaw) as List<dynamic>;
+      final byId = <String, Track>{for (final t in library) t.id: t};
+      final restored = <Track>[];
+      for (final id in decoded) {
+        if (id is String && byId.containsKey(id)) {
+          restored.add(byId[id]!);
+        }
+      }
+      queue = restored.isEmpty ? List<Track>.of(library) : restored;
+      final savedIndex = prefs.getInt('queue_index');
+      if (savedIndex != null && savedIndex >= 0 && savedIndex < queue.length) {
+        queueIndex = savedIndex;
+      }
+    } else {
+      queue = List<Track>.of(library);
+    }
     notifyListeners();
+  }
+
+  Future<void> _saveQueue() async {
+    final prefs = await _getPrefs();
+    await prefs.setString(
+      'queue_v1',
+      jsonEncode(queue.map((t) => t.id).toList()),
+    );
+    await prefs.setInt('queue_index', queueIndex);
   }
 
   Future<void> addPaths(List<String> paths) async {
@@ -199,6 +225,7 @@ class AppState extends ChangeNotifier {
     historyIds.remove(track.id);
     historyIds.insert(0, track.id);
     await _saveHistory();
+    await _saveQueue();
     await _playTrack(track);
     notifyListeners();
   }
@@ -421,6 +448,23 @@ class AppState extends ChangeNotifier {
     final prefs = await _getPrefs();
     await prefs.setString(_keyAccent, value);
     notifyListeners();
+  }
+
+  Future<int> totalDownloadBytes() async {
+    var total = 0;
+    for (final track in library) {
+      if (track.isDownloaded) {
+        total += await downloadService.sizeOf(track.downloadPath);
+      }
+    }
+    return total;
+  }
+
+  Future<void> clearDownloads() async {
+    final tracks = downloadedTracks();
+    for (final track in tracks) {
+      await deleteDownload(track);
+    }
   }
 
   Future<void> toggle() async {
