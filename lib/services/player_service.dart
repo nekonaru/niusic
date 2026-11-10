@@ -27,6 +27,8 @@ const String _keyVolume = 'volume';
 const String _keyQuality = 'audio_quality';
 const String _keyRate = 'playback_rate';
 const String _keyAccent = 'accent';
+const String _keyLibraryV2 = 'library_v2';
+const String _keyHistoryV2 = 'history_v2';
 const int _maxHistory = 100;
 
 class AppState extends ChangeNotifier {
@@ -120,7 +122,8 @@ class AppState extends ChangeNotifier {
 
   Future<void> load() async {
     final prefs = await _getPrefs();
-    final libRaw = prefs.getString(_keyLibrary);
+    final libRaw =
+        prefs.getString(_keyLibraryV2) ?? prefs.getString(_keyLibrary);
     if (libRaw != null) {
       final decoded = jsonDecode(libRaw) as List<dynamic>;
       for (final item in decoded) {
@@ -139,12 +142,17 @@ class AppState extends ChangeNotifier {
         }
       }
     }
-    final histRaw = prefs.getString(_keyHistory);
+    final histRaw =
+        prefs.getString(_keyHistoryV2) ?? prefs.getString(_keyHistory);
     if (histRaw != null) {
       final decoded = jsonDecode(histRaw) as List<dynamic>;
       for (final item in decoded) {
         if (item is String) {
-          historyIds.add(item);
+          historyIds.add(
+            item.startsWith('local:') || item.startsWith('yt:')
+                ? item
+                : 'local:$item',
+          );
         }
       }
     }
@@ -167,14 +175,21 @@ class AppState extends ChangeNotifier {
       ),
     );
     await player.setVolume(volume);
-    final queueRaw = prefs.getString('queue_v1');
+    final queueRaw = prefs.getString('queue_v2') ?? prefs.getString('queue_v1');
     if (queueRaw != null) {
       final decoded = jsonDecode(queueRaw) as List<dynamic>;
       final byId = <String, Track>{for (final t in library) t.id: t};
       final restored = <Track>[];
       for (final id in decoded) {
-        if (id is String && byId.containsKey(id)) {
-          restored.add(byId[id]!);
+        if (id is! String) {
+          continue;
+        }
+        final normalized = id.startsWith('local:') || id.startsWith('yt:')
+            ? id
+            : 'local:$id';
+        final match = byId[normalized] ?? byId[id];
+        if (match != null) {
+          restored.add(match);
         }
       }
       queue = restored.isEmpty ? List<Track>.of(library) : restored;
@@ -191,7 +206,7 @@ class AppState extends ChangeNotifier {
   Future<void> _saveQueue() async {
     final prefs = await _getPrefs();
     await prefs.setString(
-      'queue_v1',
+      'queue_v2',
       jsonEncode(queue.map((t) => t.id).toList()),
     );
     await prefs.setInt('queue_index', queueIndex);
@@ -201,7 +216,8 @@ class AppState extends ChangeNotifier {
     final existing = library.map((t) => t.id).toSet();
     var added = false;
     for (final path in paths) {
-      if (!existing.contains(path)) {
+      final id = 'local:$path';
+      if (!existing.contains(id)) {
         final track = Track.fromPath(path);
         library.add(track);
         _libraryIndex[track.id] = library.length - 1;
@@ -254,7 +270,9 @@ class AppState extends ChangeNotifier {
     }
     try {
       final url = await streamService.resolveAudioUrl(videoId);
-      queue[queueIndex] = track.copyWithUrl(url);
+      if (queueIndex >= 0 && queueIndex < queue.length) {
+        queue[queueIndex] = queue[queueIndex].copyWithUrl(url);
+      }
       await player.play(UrlSource(url));
       lastError = null;
     } catch (e) {
@@ -409,16 +427,20 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> playRadioFor(Track track) async {
-    // Prefer true related streams for remote tracks, fall back to search.
     final videoId = track.videoId;
-    final relatedResults = videoId != null
-        ? await streamService.related(videoId)
-        : <VideoResult>[];
-    final candidates = relatedResults.isNotEmpty
-        ? relatedResults
-        : await streamService.search(
-            '${track.title} ${track.author ?? ''}'.trim(),
-          );
+    List<VideoResult> candidates = <VideoResult>[];
+    if (videoId != null) {
+      try {
+        candidates = await streamService.related(videoId);
+      } catch (_) {
+        candidates = <VideoResult>[];
+      }
+    }
+    if (candidates.isEmpty) {
+      candidates = await streamService.search(
+        '${track.title} ${track.author ?? ''}'.trim(),
+      );
+    }
     final seen = <String>{track.id};
     var added = 0;
     for (final v in candidates) {
@@ -617,7 +639,7 @@ class AppState extends ChangeNotifier {
   Future<void> _saveLibrary() async {
     final prefs = await _getPrefs();
     await prefs.setString(
-      _keyLibrary,
+      _keyLibraryV2,
       jsonEncode(library.map((t) => t.toJson()).toList()),
     );
   }
@@ -635,7 +657,7 @@ class AppState extends ChangeNotifier {
       historyIds.length = _maxHistory;
     }
     final prefs = await _getPrefs();
-    await prefs.setString(_keyHistory, jsonEncode(historyIds));
+    await prefs.setString(_keyHistoryV2, jsonEncode(historyIds));
   }
 
   void _rebuildIndexes() {

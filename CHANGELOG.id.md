@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.0.0
+
+Rilis stabil pertama. Pemutaran lokal dan online, unduhan, lirik, radio, chart, dan UI adaptif desktop dan mobile.
+
+### Peningkatan
+
+- **Persistensi antrean.** Urutan antrean dan posisi putar bertahan setelah restart.
+- **Manajemen penyimpanan.** Pengaturan menampilkan ukuran unduhan dan menghapus semua unduhan.
+- **Artefak rilis.** CI memverifikasi aset APK dan zip ada sebelum terbit.
+- **Keamanan.** Pemutaran online meng-resolve URL audio baru per lagu dan fallback saat satu sumber gagal.
+
 ## v0.8.0
 
 Menambahkan playlist online, persistensi antrean, dan manajemen penyimpanan.

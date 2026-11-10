@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.0.0
+
+Stable first release. Local and online playback, downloads, lyrics, radio, chart, and adaptive desktop and mobile UI.
+
+### Improvements
+
+- **Queue persistence.** The queue order and play position survive restarts.
+- **Storage management.** Settings shows download size and clears all downloads.
+- **Release artifacts.** CI verifies APK and zip assets exist before publishing.
+- **Safety.** Remote playback resolves a fresh audio URL per track and falls back when one source fails.
+
 ## v0.8.0
 
 Adds online playlists, queue persistence, and storage management.

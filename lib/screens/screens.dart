@@ -429,6 +429,7 @@ class PlaylistsScreen extends StatelessWidget {
                       }
                       return ListTile(
                         title: Text(track.title),
+                        subtitle: Text(track.subtitle ?? ''),
                         trailing: IconButton(
                           icon: Icon(Icons.remove_circle_outline),
                           onPressed: () async {

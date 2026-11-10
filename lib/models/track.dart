@@ -59,7 +59,7 @@ class Track {
   }
 
   factory Track.fromPath(String path) {
-    return Track(id: path, title: titleFromPath(path), path: path);
+    return Track(id: 'local:$path', title: titleFromPath(path), path: path);
   }
 
   factory Track.remote({
@@ -140,10 +140,20 @@ class Track {
     // Backward compat: old entries only have path and title.
     if (kindName == null && idJson == null && pathJson != null) {
       final t = title.isEmpty ? titleFromPath(pathJson) : title;
-      return Track(id: pathJson, title: t, path: pathJson);
+      return Track(id: 'local:$pathJson', title: t, path: pathJson);
     }
     final kind = kindName == 'remote' ? TrackKind.remote : TrackKind.local;
-    final id = idJson ?? pathJson ?? '';
+    var id = idJson ?? pathJson ?? '';
+    // Old entries used the bare path as id. Normalize so local and remote
+    // ids cannot collide after the v1.0 id scheme change.
+    if (kind == TrackKind.local &&
+        !id.startsWith('local:') &&
+        pathJson != null) {
+      id = 'local:$pathJson';
+    }
+    if (kind == TrackKind.remote && !id.startsWith('yt:')) {
+      id = 'yt:${json['vid'] as String? ?? id}';
+    }
     final durRaw = json['dur'];
     int? dur;
     if (durRaw is String) {

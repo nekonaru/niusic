@@ -10,14 +10,14 @@ void main() {
   test('Track json round trip', () {
     final track = Track.fromPath('/music/a.mp3');
     final restored = Track.fromJson(track.toJson());
-    expect(restored.id, '/music/a.mp3');
+    expect(restored.id, 'local:/music/a.mp3');
     expect(restored.title, 'a');
     expect(restored.kind, TrackKind.local);
   });
 
   test('Track reads legacy json without id and kind', () {
     final restored = Track.fromJson({'path': '/music/a.mp3', 'title': 'a'});
-    expect(restored.id, '/music/a.mp3');
+    expect(restored.id, 'local:/music/a.mp3');
     expect(restored.kind, TrackKind.local);
   });
 
