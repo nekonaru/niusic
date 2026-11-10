@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.4.0
+
+Menambahkan perbaikan runtime Android dan memperkuat startup aplikasi.
+
+### Fitur baru
+
+- **Permintaan izin notifikasi.** MainActivity kini meminta POST_NOTIFICATIONS di Android 13+, agar notifikasi media muncul.
+- **Audio service activity.** MainActivity kini turunan AudioServiceActivity, base yang direkomendasikan audio_service.
+
+### Peningkatan
+
+- **Ketahanan startup.** Jika memuat data lokal melempar error, Niusic tetap terbuka dan menampilkan error di layar Beranda alih-alih berhenti di spinner. Tab tetap bisa dipakai.
+
 ## v1.3.0
 
 Menambahkan kontrol keyboard desktop dan penyesuaian memori decode gambar.

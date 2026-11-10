@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.4.0
+
+Implements the Android runtime fixes and hardens app startup.
+
+### New features
+
+- **Notification permission request.** MainActivity now asks for POST_NOTIFICATIONS on Android 13+, so media notifications show up.
+- **Audio service activity.** MainActivity now extends AudioServiceActivity, the base audio_service recommends.
+
+### Improvements
+
+- **Startup resilience.** If loading local data throws, Niusic opens anyway and shows the error on the home screen instead of hanging on the progress spinner. The home tabs are always usable.
+
 ## v1.3.0
 
 Adds desktop keyboard control and image decode memory tuning.

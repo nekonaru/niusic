@@ -1,7 +1,7 @@
 name: niusic
 description: Play local and online music on Android and Windows with one Flutter codebase.
 publish_to: 'none'
-version: 1.3.0+14
+version: 1.4.0+15
 
 environment:
   sdk: ^3.13.0

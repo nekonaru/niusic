@@ -47,16 +47,27 @@ class _NiusicAppState extends State<NiusicApp> {
   late final AppState state = widget.state;
   int index = 0;
   bool loaded = false;
+  String? loadError;
 
   @override
   void initState() {
     super.initState();
     state.addListener(_onStateChanged);
-    state.load().then((_) {
-      if (mounted) {
-        setState(() => loaded = true);
-      }
-    });
+    state
+        .load()
+        .then((_) {
+          if (mounted) {
+            setState(() => loaded = true);
+          }
+        })
+        .catchError((Object error) {
+          if (mounted) {
+            setState(() {
+              loadError = error.toString();
+              loaded = true;
+            });
+          }
+        });
   }
 
   @override
@@ -235,7 +246,22 @@ class _NiusicAppState extends State<NiusicApp> {
         builder: (context) {
           final desktop = isDesktop(context) || isTabletOrMore(context);
           final body = loaded
-              ? IndexedStack(index: index, children: pages)
+              ? Column(
+                  children: [
+                    if (loadError != null)
+                      Material(
+                        color: Theme.of(context).colorScheme.errorContainer,
+                        child: ListTile(
+                          leading: Icon(Icons.error_outline),
+                          title: Text('Local data failed to load.'),
+                          subtitle: Text(loadError!),
+                        ),
+                      ),
+                    Expanded(
+                      child: IndexedStack(index: index, children: pages),
+                    ),
+                  ],
+                )
               : Center(child: CircularProgressIndicator());
           final scaffold = desktop
               ? Scaffold(
