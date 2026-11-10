@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.1.0
+
+Menambahkan kontrol notifikasi media OS di Android sehingga Niusic bisa terus memutar di latar belakang.
+
+### Fitur baru
+
+- **Notifikasi media.** Android menampilkan judul, artis, putar/jeda, lewati berikutnya, lewati sebelumnya, berhenti, dan lompat di notifikasi saat musik diputar.
+
+### Peningkatan
+
+- **Status notifikasi.** Aplikasi mengirim antrean, status putar, posisi, dan item media ke notifikasi OS pada setiap perubahan status.
+- **Windows tidak terganggu.** Di Windows, handler notifikasi tidak didaftarkan; aplikasi berjalan seperti sebelumnya.
+- **Manifest Android.** Foreground service dan media button receiver dideklarasikan dengan foreground type mediaPlayback.
+
 ## v1.0.0
 
 Rilis stabil pertama. Pemutaran lokal dan online, unduhan, lirik, radio, chart, dan UI adaptif desktop dan mobile.

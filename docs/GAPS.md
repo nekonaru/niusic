@@ -1,9 +1,10 @@
 # Feature Gap Analysis
 
-Date: 2026-11-10. Comparison: Niusic v1.0.0 against Auralys (Android Kotlin/Metrolist fork and Windows JavaFX).
+Date: 2026-11-10. Comparison: Niusic v1.1.0 against Auralys (Android Kotlin/Metrolist fork and Windows JavaFX).
 
 ## Implemented
 
+- **Background media notification.** Android shows play/pause, skip, seek, and stop in the media notification. Windows runs without it.
 - **Local library.** Import local audio files, search, play.
 - **Online search and playback.** YouTube search via Piped, audio via Googlevideo manifest.
 - **Queue, playlists, history.** Queue persists across restarts.
@@ -25,11 +26,10 @@ Date: 2026-11-10. Comparison: Niusic v1.0.0 against Auralys (Android Kotlin/Metr
 - **Android widgets.** Needs Kotlin AppWidget providers and native layout resources. Not implemented in Flutter-only build.
 - **Equalizer and audio effects.** audioplayers has no EQ API. Needs native audio effects or a different engine. Not implemented.
 - **YouTube Music library sync, subscriptions, likes, and comments.** Needs Google account OAuth and YouTube Data API key. Not implemented.
-- **Background media notification controls.** audioplayers routes through OS media session on Android and Windows but exposes no custom notification actions. Full foreground service with notification buttons needs native code. Not implemented.
 
 ## Roadmap
 
-1. Native media session with notification controls via audio_service or Kotlin.
-2. Widgets via native Android providers.
-3. Recognition provider behind an optional API key store.
-4. EQ presets via native effects.
+1. Widgets via native Android providers.
+2. Recognition provider behind an optional API key store.
+3. EQ presets via native effects.
+4. Discord presence behind an optional app registration.

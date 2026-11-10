@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:niusic/main.dart';
+import 'package:niusic/services/player_service.dart';
 
 void main() {
   testWidgets('Niusic shows home and navigation', (tester) async {
-    await tester.pumpWidget(NiusicApp());
+    await tester.pumpWidget(NiusicApp(state: AppState()));
     await tester.pump();
     expect(find.text('Niusic'), findsWidgets);
     expect(find.text('Home'), findsOneWidget);
@@ -14,7 +15,7 @@ void main() {
     tester.view.physicalSize = Size(400, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(NiusicApp());
+    await tester.pumpWidget(NiusicApp(state: AppState()));
     await tester.pump();
     expect(find.byType(NavigationBar), findsOneWidget);
   });
@@ -23,7 +24,7 @@ void main() {
     tester.view.physicalSize = Size(1400, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(NiusicApp());
+    await tester.pumpWidget(NiusicApp(state: AppState()));
     await tester.pump();
     expect(find.byType(NavigationRail), findsOneWidget);
   });

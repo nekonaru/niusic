@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.1.0
+
+Adds OS media notification controls on Android so Niusic can keep playing in the background.
+
+### New features
+
+- **Media notification.** Android shows title, artist, play/pause, skip next, skip previous, stop, and seek in the notification while music plays.
+
+### Improvements
+
+- **Notification state.** App pushes queue, play state, position, and media item to the OS notification on every state change.
+- **Windows unaffected.** On Windows the notification handler is not registered; the app runs as before.
+- **Android manifest.** Foreground service and media button receiver are declared with the mediaPlayback foreground type.
+
 ## v1.0.0
 
 Stable first release. Local and online playback, downloads, lyrics, radio, chart, and adaptive desktop and mobile UI.

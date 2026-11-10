@@ -1,24 +1,49 @@
+import 'package:audio_service/audio_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import 'l10n/app_strings.dart';
 import 'screens/screens.dart';
+import 'services/audio_handler.dart';
 import 'services/player_service.dart';
 import 'ui/responsive.dart';
 
-void main() {
-  runApp(NiusicApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final state = AppState();
+  try {
+    final handler = await AudioService.init(
+      builder: () => NiusicAudioHandler(
+        onSkipNext: () => state.next(),
+        onSkipPrevious: () => state.previous(),
+        onTogglePlay: () => state.toggle(),
+        onSeek: (d) => state.seek(d),
+        onStopPlayback: () => state.player.stop(),
+      ),
+      config: const AudioServiceConfig(
+        androidNotificationChannelId: 'com.niusic.app.channel.audio',
+        androidNotificationChannelName: 'Niusic playback',
+        androidNotificationOngoing: true,
+      ),
+    );
+    state.audioHandler = handler;
+  } catch (_) {
+    // Media notification is not available on this platform. The UI still works.
+  }
+  runApp(NiusicApp(state: state));
 }
 
 class NiusicApp extends StatefulWidget {
-  const NiusicApp({super.key});
+  const NiusicApp({required this.state, super.key});
+
+  final AppState state;
 
   @override
   State<NiusicApp> createState() => _NiusicAppState();
 }
 
 class _NiusicAppState extends State<NiusicApp> {
-  final AppState state = AppState();
+  late final AppState state = widget.state;
   int index = 0;
   bool loaded = false;
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:audio_service/audio_service.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/playlist.dart';
 import '../models/track.dart';
 import '../models/video_result.dart';
+import 'audio_handler.dart';
 import 'chart_service.dart';
 import 'download_service.dart';
 import 'lyrics_service.dart';
@@ -67,6 +69,10 @@ class AppState extends ChangeNotifier {
   final LyricsService lyricsService;
   final ChartService chartService;
   final SuggestionsService suggestionsService;
+
+  /// Handler that mirrors playback into the OS media notification.
+  /// Assigned by main() after AudioService.init; null on unsupported platforms.
+  NiusicAudioHandler? audioHandler;
   final List<Track> library = <Track>[];
   final List<Playlist> playlists = <Playlist>[];
   final List<String> historyIds = <String>[];
@@ -95,6 +101,50 @@ class AppState extends ChangeNotifier {
 
   final Map<String, int> _libraryIndex = <String, int>{};
   final Map<String, String> _lowerTitles = <String, String>{};
+
+  @override
+  void notifyListeners() {
+    _syncNotification();
+    super.notifyListeners();
+  }
+
+  void _syncNotification() {
+    final handler = audioHandler;
+    if (handler == null) {
+      return;
+    }
+    final cur = current;
+    if (cur == null) {
+      return;
+    }
+    final items = queue.map(_toMediaItem).toList();
+    handler.sync(
+      playing: isPlaying,
+      position: position,
+      duration: duration,
+      title: cur.title,
+      artist: cur.subtitle,
+      id: cur.id,
+      queueIndex: queueIndex,
+      items: items,
+    );
+  }
+
+  MediaItem _toMediaItem(Track track) {
+    return MediaItem(
+      id: track.id,
+      title: track.title,
+      artist: track.subtitle,
+      duration: track.durationSeconds != null && track.durationSeconds! > 0
+          ? Duration(seconds: track.durationSeconds!)
+          : duration,
+      artUri:
+          track.thumbnailUrl != null &&
+              Uri.tryParse(track.thumbnailUrl!)?.scheme == 'https'
+          ? Uri.tryParse(track.thumbnailUrl!)
+          : null,
+    );
+  }
 
   Track? get current {
     if (queueIndex < 0 || queueIndex >= queue.length) {
