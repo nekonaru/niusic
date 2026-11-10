@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.6.0
+
+Mengurangi alokasi berlebih pada notifikasi pemutaran dan pembaruan widget, serta mengaudit jalur panas untuk stabilitas Android.
+
+### Peningkatan
+
+- **Sinkron notifikasi.** Item media disimpan dalam cache per antrean, dan panggilan sinkron ganda ditekan saat tidak ada yang berubah di lagu saat ini.
+- **Stabilitas Android.** Startup kini memuat secara tangguh dan layar Beranda selalu terbuka.
+
 ## v1.5.0
 
 Mendesain ulang UI aplikasi agar lebih rapi dan konsisten di Android dan Windows.

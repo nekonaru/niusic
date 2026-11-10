@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.6.0
+
+Cuts allocation overhead in playback notifications and widget updates, and audits the hot paths for Android stability.
+
+### Improvements
+
+- **Notification sync.** Media items are cached per queue, and duplicate sync calls are suppressed when nothing about the current track changed.
+- **Android stability.** Startup now loads resiliently and the home screen always opens.
+
 ## v1.5.0
 
 Redesigns the app UI for a cleaner, more consistent feel on Android and Windows.

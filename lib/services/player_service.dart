@@ -139,6 +139,10 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  final List<MediaItem> _cachedItems = <MediaItem>[];
+  String _cachedQueueKey = '';
+  String _lastSyncKey = '';
+
   void _syncNotification() {
     final handler = audioHandler;
     if (handler == null) {
@@ -148,7 +152,19 @@ class AppState extends ChangeNotifier {
     if (cur == null) {
       return;
     }
-    final items = queue.map(_toMediaItem).toList();
+    final queueKey = queue.map((t) => t.id).join('|');
+    if (_cachedItems.isEmpty || queueKey != _cachedQueueKey) {
+      _cachedItems
+        ..clear()
+        ..addAll(queue.map(_toMediaItem));
+      _cachedQueueKey = queueKey;
+    }
+    final syncKey =
+        '${cur.id}|$queueIndex|${isPlaying ? 1 : 0}|${position.inSeconds}';
+    if (syncKey == _lastSyncKey) {
+      return;
+    }
+    _lastSyncKey = syncKey;
     handler.sync(
       playing: isPlaying,
       position: position,
@@ -157,7 +173,7 @@ class AppState extends ChangeNotifier {
       artist: cur.subtitle,
       id: cur.id,
       queueIndex: queueIndex,
-      items: items,
+      items: _cachedItems,
     );
   }
 
