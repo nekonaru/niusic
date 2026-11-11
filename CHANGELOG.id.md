@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.7.0
+
+Audit rilis: memperbaiki kebocoran penyimpanan dan memperkuat startup aplikasi serta alur pembersihan.
+
+### Peningkatan
+
+- **Bersihkan penyimpanan.** "Hapus semua data" kini juga menghapus file audio unduhan di disk, bukan hanya mengubah metadata.
+- **State startup.** Cache widget dan notifikasi diatur ulang dengan benar setelah data dihapus, sehingga UI langsung menampilkan perpustakaan kosong.
+
 ## v1.6.0
 
 Mengurangi alokasi berlebih pada notifikasi pemutaran dan pembaruan widget, serta mengaudit jalur panas untuk stabilitas Android.

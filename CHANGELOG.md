@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.7.0
+
+Release audit: fixes storage leak and hardens app startup and cleanup flows.
+
+### Improvements
+
+- **Storage cleanup.** "Clear all data" now also deletes downloaded audio files on disk instead of leaving orphans behind.
+- **Startup state.** Widget and notification caches reset correctly after clearing data, so the UI reflects an empty library immediately.
+
 ## v1.6.0
 
 Cuts allocation overhead in playback notifications and widget updates, and audits the hot paths for Android stability.

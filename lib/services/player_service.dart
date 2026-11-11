@@ -184,7 +184,7 @@ class AppState extends ChangeNotifier {
       artist: track.subtitle,
       duration: track.durationSeconds != null && track.durationSeconds! > 0
           ? Duration(seconds: track.durationSeconds!)
-          : duration,
+          : null,
       artUri:
           track.thumbnailUrl != null &&
               Uri.tryParse(track.thumbnailUrl!)?.scheme == 'https'
@@ -720,6 +720,10 @@ class AppState extends ChangeNotifier {
 
   Future<void> clearAll() async {
     await player.stop();
+    // Free downloaded audio files on disk before wiping metadata.
+    for (final track in downloadedTracks()) {
+      await downloadService.deleteFile(track.downloadPath);
+    }
     library.clear();
     _libraryIndex.clear();
     _lowerTitles.clear();
@@ -727,10 +731,17 @@ class AppState extends ChangeNotifier {
     playlists.clear();
     historyIds.clear();
     queueIndex = -1;
+    _cachedQueueKey = '';
+    _cachedItems.clear();
+    _lastSyncKey = '';
+    _widgetTitle = null;
+    _widgetArtist = null;
+    _widgetPlaying = null;
     _volumeTimer?.cancel();
     await _saveLibrary();
     await _savePlaylists();
     await _saveHistory();
+    await _saveQueue();
     notifyListeners();
   }
 
