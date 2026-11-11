@@ -166,10 +166,7 @@ class _NiusicAppState extends State<NiusicApp> {
           icon: Icon(Icons.library_music),
           label: strings.library,
         ),
-        NavigationDestination(
-          icon: Icon(Icons.online_prediction),
-          label: strings.stream,
-        ),
+        NavigationDestination(icon: Icon(Icons.search), label: strings.stream),
         NavigationDestination(
           icon: Icon(Icons.queue_music),
           label: strings.playlists,
@@ -201,7 +198,7 @@ class _NiusicAppState extends State<NiusicApp> {
           label: Text(strings.library),
         ),
         NavigationRailDestination(
-          icon: Icon(Icons.online_prediction),
+          icon: Icon(Icons.search),
           label: Text(strings.stream),
         ),
         NavigationRailDestination(

@@ -488,6 +488,7 @@ class AppState extends ChangeNotifier {
     } else if (oldIndex > queueIndex && target <= queueIndex) {
       queueIndex++;
     }
+    unawaited(_saveQueue());
     notifyListeners();
   }
 
@@ -501,12 +502,8 @@ class AppState extends ChangeNotifier {
     } else if (index < queueIndex) {
       queueIndex--;
     }
+    unawaited(_saveQueue());
     notifyListeners();
-  }
-
-  Future<void> setSleepTimerTestOnly(int? minutes) {
-    setSleepTimer(minutes);
-    return Future.value();
   }
 
   void setSleepTimer(int? minutes) {

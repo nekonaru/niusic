@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.8.0
+
+Audit rilis: perbaikan stabilitas, urutan antrean persisten, dan penggunaan ulang penyimpanan.
+
+### Peningkatan
+
+- **Persistensi antrean.** Mengurutkan atau menghapus item antrean kini menyimpan urutan antrean ke disk.
+- **Metadata media.** Item media di notifikasi tidak lagi memakai durasi lagu yang sedang diputar untuk item lain.
+- **Ikon tab Streaming.** Memakai ikon cari alih-alih ikon yang tidak relevan.
+
 ## v1.7.0
 
 Audit rilis: memperbaiki kebocoran penyimpanan dan memperkuat startup aplikasi serta alur pembersihan.

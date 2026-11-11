@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.8.0
+
+Release audit: more fixes for stability, persistent queue order, and storage reuse.
+
+### Improvements
+
+- **Queue persistence.** Reordering or removing queue items now saves the queue order to disk.
+- **Media metadata.** Individual media items in the notification no longer reuse the currently playing track's duration.
+- **Stream tab icon.** Uses the search icon instead of an unrelated icon.
+
 ## v1.7.0
 
 Release audit: fixes storage leak and hardens app startup and cleanup flows.
