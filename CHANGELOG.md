@@ -1,5 +1,19 @@
 # Changelog
 
+## v2.0.0
+
+Fixes the startup blockade that made the app look broken, and reworks local import to be reliable on Android.
+
+### Bug fixes
+
+- **Startup blockade.** Niusic no longer asks for notification permission on first open. It requests it only from Settings. Android no longer blocks the UI behind the permission dialog.
+- **Local import.** Picked files are copied into the app's documents directory, so playback works after a restart on Android 13+ scoped storage.
+
+### Improvements
+
+- **Piped reliability.** Search now uses five public Piped instances with fallback.
+- **Settings tile.** Live Notifications section for users who want media-control notifications.
+
 ## v1.8.0
 
 Release audit: more fixes for stability, persistent queue order, and storage reuse.

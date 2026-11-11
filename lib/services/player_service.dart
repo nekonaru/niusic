@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../models/playlist.dart';
 import '../models/track.dart';
@@ -327,6 +329,60 @@ class AppState extends ChangeNotifier {
       queue = List<Track>.of(library);
       notifyListeners();
     }
+  }
+
+  /// Imports picked files by copying them into the app's documents directory.
+  /// On Android the picker grants temporary access to the source path, so a raw
+  /// path reference breaks playback. Copying guarantees a permanent, readable
+  /// local path.
+  Future<int> importPickedFiles(List<dynamic> files) async {
+    var added = 0;
+    final docs = await getApplicationDocumentsDirectory();
+    final dir = Directory('${docs.path}/library');
+    await dir.create(recursive: true);
+    final existing = library.map((t) => t.path).whereType<String>().toSet();
+    for (final file in files) {
+      try {
+        final bytes = await file.readAsBytes() as Uint8List?;
+        if (bytes == null || bytes.isEmpty) {
+          continue;
+        }
+        final name =
+            file.name as String? ??
+            'track_${DateTime.now().microsecondsSinceEpoch}';
+        final safe = name.replaceAll(RegExp(r'[^A-Za-z0-9._ -]'), '_');
+        var dest = File('${dir.path}/$safe');
+        var counter = 1;
+        while (await dest.exists()) {
+          final base = safe.contains('.')
+              ? safe.substring(0, safe.lastIndexOf('.'))
+              : safe;
+          final ext = safe.contains('.')
+              ? safe.substring(safe.lastIndexOf('.'))
+              : '';
+          dest = File('${dir.path}/${base}_$counter$ext');
+          counter++;
+        }
+        await dest.writeAsBytes(bytes, flush: true);
+        final track = Track.fromPath(dest.path);
+        if (existing.contains(track.path)) {
+          continue;
+        }
+        library.add(track);
+        _libraryIndex[track.id] = library.length - 1;
+        _lowerTitles[track.id] = track.title.toLowerCase();
+        existing.add(track.path!);
+        added++;
+      } catch (_) {
+        // Skip unreadable files, keep importing the rest.
+      }
+    }
+    if (added > 0) {
+      await _saveLibrary();
+      queue = List<Track>.of(library);
+      notifyListeners();
+    }
+    return added;
   }
 
   Future<void> playAt(int index) async {

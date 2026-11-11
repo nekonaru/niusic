@@ -107,4 +107,7 @@ class AppStrings {
   String get removed => isId ? 'Dihapus.' : 'Removed.';
   String get save => isId ? 'Simpan' : 'Save';
   String get openNowPlaying => isId ? 'Buka pemutar' : 'Open now playing';
+  String get notifications => isId ? 'Notifikasi' : 'Notifications';
+  String get enableNotifications =>
+      isId ? 'Izinkan notifikasi media' : 'Allow media notifications';
 }

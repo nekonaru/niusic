@@ -102,8 +102,7 @@ class _NiusicAppState extends State<NiusicApp> {
     if (files.isEmpty) {
       return;
     }
-    final paths = files.map((f) => f.path).whereType<String>().toList();
-    await state.addPaths(paths);
+    await state.importPickedFiles(files);
   }
 
   void _openNowPlaying() {

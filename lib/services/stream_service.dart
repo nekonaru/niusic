@@ -32,6 +32,9 @@ class StreamService {
   static const List<String> _instances = <String>[
     'https://api.piped.private.coffee',
     'https://pipedapi.ducks.party',
+    'https://pipedapi.adminforge.de',
+    'https://pipedapi.kavin.rocks',
+    'https://pipedapi.reallyaweso.me',
   ];
 
   Future<List<VideoResult>> search(

@@ -15,15 +15,7 @@ import com.ryanheise.audioservice.AudioServiceActivity
  */
 class MainActivity : AudioServiceActivity() {
     private val channelName = "niusic/widget"
-
-    override fun onCreate(savedInstanceState: android.os.Bundle?) {
-        super.onCreate(savedInstanceState)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) {
-            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1001)
-        }
-    }
+    private val permissionChannel = "niusic/permission"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -41,6 +33,29 @@ class MainActivity : AudioServiceActivity() {
                         }
                         sendBroadcast(intent)
                         result.success(ids.size)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, permissionChannel)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "areNotificationsGranted" -> {
+                        result.success(
+                            Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                                checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
+                                PackageManager.PERMISSION_GRANTED
+                        )
+                    }
+                    "requestNotifications" -> {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            requestPermissions(
+                                arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                                1001
+                            )
+                        }
+                        result.success(null)
                     }
                     else -> result.notImplemented()
                 }

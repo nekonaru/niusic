@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../l10n/app_strings.dart';
 import '../models/lyrics.dart';
@@ -707,6 +708,16 @@ class SettingsScreen extends StatelessWidget {
           ],
           selected: {state.streamService.audioQuality},
           onSelectionChanged: (value) => state.setAudioQuality(value.first),
+        ),
+        const SizedBox(height: 20),
+        _section(context, strings.notifications),
+        OutlinedButton.icon(
+          onPressed: () {
+            const MethodChannel('niusic/permission')
+                .invokeMethod<bool>('requestNotifications');
+          },
+          icon: const Icon(Icons.notifications),
+          label: Text(strings.enableNotifications),
         ),
         const SizedBox(height: 20),
         _section(context, strings.playbackSpeed),

@@ -18,7 +18,7 @@
 **English** | [Bahasa Indonesia](README.id.md)
 
 > [!NOTE]
-> Niusic plays your local files offline and streams YouTube videos online when you use the Stream tab.
+> Niusic plays your local files offline and streams YouTube videos online when you use the Stream tab. On Android 13+ it asks for notification permission only from Settings, not at first launch.
 
 ---
 

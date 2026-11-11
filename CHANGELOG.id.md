@@ -1,5 +1,19 @@
 # Changelog
 
+## v2.0.0
+
+Memperbaiki blokir startup yang membuat aplikasi terlihat rusak, dan menulis ulang impor lokal agar andal di Android.
+
+### Perbaikan bug
+
+- **Blokir startup.** Niusic tidak lagi meminta izin notifikasi saat pertama buka. Izin hanya diminta dari Pengaturan. Android tidak lagi menahan UI di balik dialog izin.
+- **Impor lokal.** File yang dipilih disalin ke direktori dokumen app, sehingga pemutaran berjalan setelah restart pada scoped storage Android 13+.
+
+### Peningkatan
+
+- **Reliabilitas Piped.** Pencarian kini memakai lima instance Piped publik dengan fallback.
+- **Tombol Pengaturan.** Bagian Notifikasi langsung untuk pengguna yang ingin kontrol media di notifikasi.
+
 ## v1.8.0
 
 Audit rilis: perbaikan stabilitas, urutan antrean persisten, dan penggunaan ulang penyimpanan.

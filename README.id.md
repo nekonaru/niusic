@@ -18,7 +18,7 @@
 [English](README.md) | **Bahasa Indonesia**
 
 > [!NOTE]
-> Niusic memutar file lokal kamu secara offline dan memutar streaming video YouTube secara online saat kamu memakai tab Streaming.
+> Niusic memutar file lokal kamu secara offline dan memutar streaming video YouTube secara online saat kamu memakai tab Streaming. Di Android 13+, aplikasi meminta izin notifikasi hanya dari Pengaturan, bukan saat pertama buka.
 
 ---
 
