@@ -262,6 +262,46 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 20),
         ],
+        if (recent.isEmpty && downloads.isEmpty && state.library.isEmpty) ...[
+          const SizedBox(height: 8),
+          Card(
+            color: theme.colorScheme.surfaceContainerHighest,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.music_note,
+                    size: 40,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    strings.emptyLibrary,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    strings.emptyLibraryHint,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton.icon(
+                    onPressed: widget.onImport,
+                    icon: const Icon(Icons.folder_open),
+                    label: Text(strings.addMusic),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
         if (chart.isNotEmpty) ...[
           _sectionTitle(strings.topToday, Icons.show_chart),
           const SizedBox(height: 12),

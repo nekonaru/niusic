@@ -65,6 +65,9 @@ class AppStrings {
   String get emptyLibrary => isId
       ? 'Belum ada musik. Tambahkan file audio dari perangkat ini.'
       : 'No music yet. Add audio files from this device.';
+  String get emptyLibraryHint => isId
+      ? 'Import file lokal di sini, atau gunakan tab Streaming untuk mencari lagu online dari YouTube.'
+      : 'Import local files here, or open the Stream tab to search YouTube for tracks online.';
   String get searchHint => isId ? 'Cari di perpustakaan' : 'Search library';
   String get queue => isId ? 'Antrian' : 'Queue';
   String get recent => isId ? 'Baru diputar' : 'Recently played';

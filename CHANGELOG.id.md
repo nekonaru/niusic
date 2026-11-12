@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.1.0
+
+Memperdalam pengalaman pertama dibuka dan memperbarui panduan state kosong.
+
+### Peningkatan
+
+- **Kartu state kosong.** Pengguna baru melihat penjelasan jelas tentang impor lokal vs tab Streaming, dengan tombol Tambah musik langsung.
+- **Audit rilis.** Build debug APK dan jalan di emulator Android; Home, chart, state kosong, dan navigasi terkonfirmasi.
+
 ## v2.0.0
 
 Memperbaiki blokir startup yang membuat aplikasi terlihat rusak, dan menulis ulang impor lokal agar andal di Android.

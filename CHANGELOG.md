@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.1.0
+
+Deepens the first-launch experience and refreshes empty-state guidance.
+
+### Improvements
+
+- **Empty state card.** New users see a clear explanation of local import vs the Stream tab, with a direct Add music button.
+- **Verification pass.** Debug APK builds and runs on Android emulator; Home, chart, empty state, and navigation confirmed.
+
 ## v2.0.0
 
 Fixes the startup blockade that made the app look broken, and reworks local import to be reliable on Android.
