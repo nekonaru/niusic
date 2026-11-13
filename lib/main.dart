@@ -121,36 +121,66 @@ class _NiusicAppState extends State<NiusicApp> {
     if (current == null) {
       return SizedBox.shrink();
     }
+    final max = state.duration.inSeconds > 0 ? state.duration.inSeconds : 1;
+    final value = (state.position.inSeconds / max).clamp(0.0, 1.0);
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        visualDensity: VisualDensity.compact,
-        leading: Icon(
-          state.isPlaying ? Icons.pause_circle : Icons.play_circle,
-          color: Theme.of(context).colorScheme.primary,
-          size: 30,
-        ),
-        title: Text(
-          current.title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        subtitle: Text(
-          current.fileName,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: IconButton(
-          icon: Icon(state.isPlaying ? Icons.pause : Icons.play_arrow),
-          onPressed: state.toggle,
-        ),
-        onTap: _openNowPlaying,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          LinearProgressIndicator(
+            value: value,
+            minHeight: 3,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+          ),
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 4,
+            ),
+            visualDensity: VisualDensity.compact,
+            leading: Semantics(
+              label: state.isPlaying ? strings.pause : strings.play,
+              button: true,
+              child: Icon(
+                state.isPlaying ? Icons.pause_circle : Icons.play_circle,
+                color: Theme.of(context).colorScheme.primary,
+                size: 30,
+              ),
+            ),
+            title: Text(
+              current.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            subtitle: Text(
+              current.fileName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            trailing: Semantics(
+              label: state.isPlaying ? strings.pause : strings.play,
+              button: true,
+              child: IconButton(
+                icon: Icon(state.isPlaying ? Icons.pause : Icons.play_arrow),
+                onPressed: state.toggle,
+              ),
+            ),
+            onTap: _openNowPlaying,
+          ),
+        ],
       ),
     );
   }

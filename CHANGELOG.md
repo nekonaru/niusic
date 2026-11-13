@@ -1,5 +1,18 @@
 # Changelog
 
+## v2.2.0
+
+Release audit: fixes a duplicated-library bug and improves mini player accessibility.
+
+### Bug fixes
+
+- **Queue duplicates.** Adding the same online track to the queue no longer duplicates it in the library.
+
+### Improvements
+
+- **Mini player accessible.** Mini player play/pause controls now carry proper labels for screen readers.
+- **Error color.** The Now Playing error message uses the theme error color instead of hard-coded red.
+
 ## v2.1.0
 
 Deepens the first-launch experience and refreshes empty-state guidance.

@@ -466,11 +466,13 @@ class AppState extends ChangeNotifier {
     if (queue.any((t) => t.id == track.id)) {
       return;
     }
+    if (!library.any((t) => t.id == track.id)) {
+      library.add(track);
+      _libraryIndex[track.id] = library.length - 1;
+      _lowerTitles[track.id] = track.title.toLowerCase();
+      unawaited(_saveLibrary());
+    }
     queue.add(track);
-    library.add(track);
-    _libraryIndex[track.id] = library.length - 1;
-    _lowerTitles[track.id] = track.title.toLowerCase();
-    unawaited(_saveLibrary());
     notifyListeners();
   }
 

@@ -1,5 +1,18 @@
 # Changelog
 
+## v2.2.0
+
+Audit rilis: memperbaiki bug library terduplikasi dan meningkatkan aksesibilitas pemutar mini.
+
+### Perbaikan bug
+
+- **Duplikat antrean.** Menambahkan lagu online yang sama ke antrean tidak lagi menggandakannya di perpustakaan.
+
+### Peningkatan
+
+- **Pemutar mini aksesibel.** Kontrol putar/jeda pemutar mini kini punya label yang benar untuk screen reader.
+- **Warna error.** Pesan error "Sedang diputar" memakai warna error tema, bukan merah hard-coded.
+
 ## v2.1.0
 
 Memperdalam pengalaman pertama dibuka dan memperbarui panduan state kosong.

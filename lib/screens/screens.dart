@@ -1794,7 +1794,7 @@ class NowPlayingScreen extends StatelessWidget {
           Text(
             state.lastError!,
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.red),
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),
         ],
         SizedBox(height: 16),
