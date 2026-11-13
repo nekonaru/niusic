@@ -875,7 +875,7 @@ class _SearchScreenState extends State<SearchScreen> {
   List<VideoResult> results = <VideoResult>[];
   List<ChannelResult> channels = <ChannelResult>[];
   List<PlaylistResult> onlinePlaylists = <PlaylistResult>[];
-  List<String> suggestions = <String>[];
+  String filter = 'videos';
   bool loading = false;
   bool failed = false;
   bool searched = false;
@@ -897,7 +897,6 @@ class _SearchScreenState extends State<SearchScreen> {
           results = <VideoResult>[];
           channels = <ChannelResult>[];
           onlinePlaylists = <PlaylistResult>[];
-          suggestions = <String>[];
           searched = false;
           failed = false;
           loading = false;
@@ -926,18 +925,11 @@ class _SearchScreenState extends State<SearchScreen> {
         } catch (_) {
           foundPlaylists = <PlaylistResult>[];
         }
-        List<String> foundHints = <String>[];
-        try {
-          foundHints = await widget.state.suggestionsService.fetch(query);
-        } catch (_) {
-          foundHints = <String>[];
-        }
         if (!mounted) return;
         setState(() {
           results = found;
           channels = foundChannels;
           onlinePlaylists = foundPlaylists;
-          suggestions = foundHints;
           loading = false;
           searched = true;
         });
@@ -952,21 +944,25 @@ class _SearchScreenState extends State<SearchScreen> {
     });
   }
 
+  void _onFilter(String value) {
+    setState(() => filter = value);
+    _onChanged(_controller.text);
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = widget.strings;
+    final theme = Theme.of(context);
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
           child: TextField(
             controller: _controller,
+            style: theme.textTheme.bodyLarge,
             decoration: InputDecoration(
               hintText: strings.searchOnlineHint,
-              prefixIcon: Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              prefixIcon: const Icon(Icons.search),
             ),
             onChanged: _onChanged,
             textInputAction: TextInputAction.search,
@@ -974,246 +970,257 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-          child: Text(
-            strings.needsInternet,
-            style: Theme.of(context).textTheme.bodySmall,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              _filterChip(context, 'videos', strings.videos, Icons.music_note),
+              const SizedBox(width: 8),
+              _filterChip(context, 'channels', strings.channels, Icons.person),
+              const SizedBox(width: 8),
+              _filterChip(
+                context,
+                'playlists',
+                strings.playlists,
+                Icons.playlist_play,
+              ),
+            ],
           ),
         ),
-        if (loading) Center(child: CircularProgressIndicator()),
-        if (!loading && failed) Center(child: Text(strings.searchError)),
-        if (!loading && !failed && searched && results.isEmpty)
-          Center(child: Text(strings.noResults)),
-        if (!loading && suggestions.isNotEmpty)
-          SizedBox(
-            height: 40,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: suggestions.length,
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ActionChip(
-                    label: Text(suggestions[index]),
-                    onPressed: () {
-                      _controller.text = suggestions[index];
-                      _onChanged(suggestions[index]);
-                    },
-                  ),
-                );
-              },
-            ),
-          ),
-        if (!loading && channels.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: SizedBox(
-              height: 48,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: channels.length,
-                itemBuilder: (context, index) {
-                  final ch = channels[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ActionChip(
-                      avatar: Icon(Icons.person),
-                      label: Text(ch.name),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute<void>(
-                            builder: (context) {
-                              return ChannelScreen(
-                                state: widget.state,
-                                strings: strings,
-                                channelId: ch.channelId,
-                              );
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-        if (!loading && onlinePlaylists.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: SizedBox(
-              height: 48,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: onlinePlaylists.length,
-                itemBuilder: (context, index) {
-                  final p = onlinePlaylists[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ActionChip(
-                      avatar: Icon(Icons.playlist_play),
-                      label: Text(p.name),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute<void>(
-                            builder: (context) {
-                              return OnlinePlaylistScreen(
-                                state: widget.state,
-                                strings: strings,
-                                playlistId: p.playlistId,
-                              );
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-        if (!loading && !failed && results.isNotEmpty)
+        const SizedBox(height: 8),
+        if (loading)
+          Expanded(child: Center(child: CircularProgressIndicator()))
+        else if (failed)
           Expanded(
-            child: GridView.builder(
-              addRepaintBoundaries: true,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: searchColumns(context),
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 8,
-                childAspectRatio: searchColumns(context) == 1 ? 6.5 : 1.1,
+            child: Center(
+              child: Text(strings.searchError, textAlign: TextAlign.center),
+            ),
+          )
+        else if (searched && _itemCount == 0)
+          Expanded(
+            child: Center(
+              child: Text(
+                strings.noResults,
+                style: theme.textTheme.bodyLarge,
+                textAlign: TextAlign.center,
               ),
-              itemCount: results.length,
-              itemBuilder: (context, index) {
-                final video = results[index];
-                return Card(
-                  child: ListTile(
-                    leading: _thumb(video.thumbnailUrl),
-                    title: Text(video.title),
-                    subtitle: Text(video.author),
-                    trailing: PopupMenuButton<String>(
-                      onSelected: (value) async {
-                        if (value == 'queue') {
-                          widget.state.addToQueue(video);
-                        } else if (value == 'playlist') {
-                          await _addToPlaylist(video);
-                        } else if (value == 'download') {
-                          setState(() => loading = true);
-                          try {
-                            await widget.state.downloadVideo(video);
-                          } catch (_) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(this.context).showSnackBar(
-                                SnackBar(content: Text(strings.searchError)),
-                              );
-                            }
-                          } finally {
-                            if (mounted) {
-                              setState(() => loading = false);
-                            }
-                          }
-                        } else if (value == 'channel') {
-                          final id = video.channelId;
-                          if (id != null) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute<void>(
-                                builder: (context) {
-                                  return ChannelScreen(
-                                    state: widget.state,
-                                    strings: strings,
-                                    channelId: id,
-                                  );
-                                },
-                              ),
-                            );
-                          }
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: 'queue',
-                          child: Text(strings.enqueue),
-                        ),
-                        PopupMenuItem(
-                          value: 'playlist',
-                          child: Text(strings.addToPlaylist),
-                        ),
-                        PopupMenuItem(
-                          value: 'download',
-                          child: Text(strings.download),
-                        ),
-                        if (video.channelId != null)
-                          PopupMenuItem(
-                            value: 'channel',
-                            child: Text(strings.channel),
-                          ),
-                      ],
+            ),
+          )
+        else if (_itemCount > 0)
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(8),
+              itemCount: _itemCount,
+              itemBuilder: (context, index) => _itemAt(index, strings),
+            ),
+          )
+        else
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.search,
+                    size: 64,
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.4,
                     ),
-                    onTap: () => widget.state.playVideo(video),
                   ),
-                );
-              },
+                  const SizedBox(height: 12),
+                  Text(
+                    strings.searchOnlineHint,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
       ],
     );
   }
 
-  Widget _thumb(String? url) {
-    if (url == null || url.isEmpty || Uri.tryParse(url)?.scheme != 'https') {
-      return Icon(Icons.audiotrack);
+  int get _itemCount {
+    switch (filter) {
+      case 'channels':
+        return channels.length;
+      case 'playlists':
+        return onlinePlaylists.length;
+      default:
+        return results.length;
     }
-    return SizedBox(
-      width: 72,
-      height: 40,
-      child: Image.network(
-        url,
-        fit: BoxFit.cover,
-        cacheWidth: 144,
-        // ignore: unused_element_parameter
-        errorBuilder: (context, error, stackTrace) => Icon(Icons.audiotrack),
+  }
+
+  Widget _itemAt(int index, AppStrings strings) {
+    switch (filter) {
+      case 'channels':
+        return _channelTile(channels[index], strings);
+      case 'playlists':
+        return _playlistTile(onlinePlaylists[index], strings);
+      default:
+        return _videoTile(results[index], strings);
+    }
+  }
+
+  Widget _filterChip(
+    BuildContext context,
+    String value,
+    String label,
+    IconData icon,
+  ) {
+    final theme = Theme.of(context);
+    final selected = filter == value;
+    return Expanded(
+      child: Material(
+        color: selected
+            ? theme.colorScheme.primary
+            : theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _onFilter(value),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 16,
+                  color: selected ? theme.colorScheme.onPrimary : null,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: selected ? theme.colorScheme.onPrimary : null,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
 
-  Future<void> _addToPlaylist(VideoResult video) async {
-    final state = widget.state;
-    final track = Track.remote(
-      videoId: video.videoId,
-      title: video.title,
-      author: video.author,
-      thumbnailUrl: video.thumbnailUrl,
-      durationSeconds: video.durationSeconds,
+  Widget _videoTile(VideoResult video, AppStrings strings) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(8),
+        leading: _squareThumb(video.thumbnailUrl),
+        title: Text(
+          video.title,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(fontWeight: FontWeight.w600, height: 1.2),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            video.author,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        trailing: IconButton(
+          icon: const Icon(Icons.play_circle_fill),
+          iconSize: 44,
+          color: Theme.of(context).colorScheme.primary,
+          tooltip: strings.playNow,
+          onPressed: () => widget.state.playVideo(video),
+        ),
+        onTap: () => widget.state.playVideo(video),
+      ),
     );
-    if (state.playlists.isEmpty) {
-      final playlist = await state.createPlaylist('Favorites');
-      await state.addToPlaylist(playlist, track);
-      return;
-    }
-    final picked = await showModalBottomSheet<Playlist>(
-      context: context,
-      builder: (context) {
-        return ListView.builder(
-          shrinkWrap: true,
-          itemCount: state.playlists.length,
-          itemBuilder: (context, index) {
-            final playlist = state.playlists[index];
-            return ListTile(
-              title: Text(playlist.name),
-              subtitle: Text(
-                '${playlist.length} ${widget.strings.tracksCount}',
+  }
+
+  Widget _channelTile(ChannelResult channel, AppStrings strings) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(8),
+        leading: _squareThumb(channel.thumbnailUrl, isCircle: true),
+        title: Text(channel.name),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            channel.verified == true
+                ? '${channel.subscriberCount ?? 0} ${strings.subscribers} · Verified'
+                : '${channel.subscriberCount ?? 0} ${strings.subscribers}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute<void>(
+              builder: (context) => ChannelScreen(
+                state: widget.state,
+                strings: strings,
+                channelId: channel.channelId,
               ),
-              onTap: () => Navigator.pop(context, playlist),
-            );
-          },
-        );
-      },
+            ),
+          );
+        },
+      ),
     );
-    if (picked != null) {
-      await state.addToPlaylist(picked, track);
+  }
+
+  Widget _playlistTile(PlaylistResult playlist, AppStrings strings) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(8),
+        leading: _squareThumb(playlist.thumbnailUrl),
+        title: Text(playlist.name, maxLines: 2),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(playlist.author ?? ''),
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute<void>(
+              builder: (context) => OnlinePlaylistScreen(
+                state: widget.state,
+                strings: strings,
+                playlistId: playlist.playlistId,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _squareThumb(String? url, {bool isCircle = false}) {
+    final size = isCircle ? 56.0 : 80.0;
+    final fallback = Icon(Icons.music_note, size: size * 0.5);
+    if (url == null || url.isEmpty || Uri.tryParse(url)?.scheme != 'https') {
+      if (isCircle) {
+        return CircleAvatar(radius: 28, child: fallback);
+      }
+      return SizedBox(width: size, height: size, child: fallback);
     }
+    final image = Image.network(
+      url,
+      width: size,
+      height: size,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => fallback,
+    );
+    if (isCircle) {
+      return ClipOval(child: image);
+    }
+    return ClipRRect(borderRadius: BorderRadius.circular(8), child: image);
   }
 }
 

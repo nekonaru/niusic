@@ -34,6 +34,8 @@ class AppStrings {
   String get qualityHigh => isId ? 'Tinggi' : 'High';
   String get qualityLow => isId ? 'Rendah' : 'Low';
   String get lyrics => isId ? 'Lirik' : 'Lyrics';
+  String get videos => isId ? 'Video' : 'Videos';
+  String get channels => isId ? 'Kanal' : 'Channels';
   String get noLyrics => isId
       ? 'Lirik tidak ditemukan untuk lagu ini.'
       : 'No lyrics found for this track.';

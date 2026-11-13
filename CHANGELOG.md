@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.3.0
+
+Stream tab restyle for a bigger, calmer search experience.
+
+### Improvements
+
+- **Stream layout.** Search results render as a simple list with square thumbnails, clearer titles, a prominent play button, and icon-only Videos / Channels / Playlists filter pills. No more horizontal chip rows.
+- **Cleaner search field.** The field uses the filled style for a calmer look.
+
 ## v2.2.0
 
 Release audit: fixes a duplicated-library bug and improves mini player accessibility.
