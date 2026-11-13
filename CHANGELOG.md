@@ -1,5 +1,24 @@
 # Changelog
 
+## v2.4.0
+
+Device music auto-scan, a redesigned Settings screen, and clearer playback errors.
+
+### New features
+
+- **Device auto-scan.** Android scans the device for music files on launch and adds them to the library automatically. The app watches the media database and picks up new songs the moment they appear. No manual import needed.
+- **Scan controls in Settings.** See the last scan result, request access to music files, and trigger a rescan. The app asks once at first launch.
+
+### Improvements
+
+- **Settings redesign.** Sections on cards with icons, clearer typography, color accent swatches, a brand header with the app mark and version, and a calmer layout overall.
+- **Clearer playback errors.** Missing files and stream failures show as snackbar messages and on the Now Playing screen instead of failing silently.
+- **Library rows.** Library entries use a calmer row layout with clamped text.
+
+### Bug fixes
+
+- **Stale local paths.** Playback now checks the file exists before playing, and local entries whose files are gone are pruned from the library in the real-time scan.
+
 ## v2.3.0
 
 Stream tab restyle for a bigger, calmer search experience.

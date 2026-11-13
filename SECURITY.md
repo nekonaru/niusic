@@ -4,7 +4,7 @@
 
 Report security issues through GitHub Issues in this repository. Include a short description, the affected version, and steps to reproduce or observe the issue. Do not include secrets or personal data.
 
-Niusic is a local-first app. It stores library paths, playlists, history, and settings on the device with SharedPreferences. It has no backend, no account, and no analytics.
+Niusic is a local-first app. It stores library paths, playlists, history, and settings on the device with SharedPreferences. On Android it also queries the device media database for audio files to build the library. It does not copy, modify, or upload your audio files. It has no backend, no account, and no analytics.
 
 ## Scope
 
@@ -15,7 +15,7 @@ Out of scope: third-party services, the user's own media files, and social engin
 
 Only the latest stable release is supported. Fixes ship as a new release.
 
-## Known limitations at v1.3.0
+## Known limitations at v2.4.0
 
 - Release APK and Windows zip are not code-signed with a private key. They install from a direct download on Android and as a portable exe on Windows.
 - Online search uses public Piped instances and online playback uses Googlevideo URLs. Both can change or rate-limit.

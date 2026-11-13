@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -53,7 +54,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
         ),
         Expanded(
           child: filtered.isEmpty
-              ? Center(child: Text(strings.emptyLibrary))
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Text(
+                      Platform.isAndroid
+                          ? strings.scanDeviceMusicDesc
+                          : strings.emptyLibrary,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
               : GridView.builder(
                   addRepaintBoundaries: true,
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -67,10 +78,35 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     final track = filtered[index];
                     final queueIndex = state.queueIndexOf(track);
                     return Card(
+                      clipBehavior: Clip.antiAlias,
                       child: ListTile(
-                        leading: Icon(Icons.audiotrack),
-                        title: Text(track.title),
-                        subtitle: Text(track.fileName),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        leading: CircleAvatar(
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .primaryContainer,
+                          child: Icon(
+                            Icons.music_note,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onPrimaryContainer,
+                          ),
+                        ),
+                        title: Text(
+                          track.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(
+                          track.fileName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                         trailing: PopupMenuButton<Track>(
                           onSelected: (value) => _addToPlaylist(value),
                           itemBuilder: (context) => [
@@ -147,6 +183,13 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadChart();
+  }
+
+  Future<void> _rescanFromHome() async {
+    await widget.state.rescanDeviceMusic();
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _loadChart() async {
@@ -272,7 +315,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(
-                    Icons.music_note,
+                    Icons.library_music,
                     size: 40,
                     color: theme.colorScheme.primary,
                   ),
@@ -285,17 +328,44 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    strings.emptyLibraryHint,
+                    Platform.isAndroid
+                        ? strings.scanDeviceMusicDesc
+                        : strings.emptyLibraryHint,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 16),
-                  FilledButton.icon(
-                    onPressed: widget.onImport,
-                    icon: const Icon(Icons.folder_open),
-                    label: Text(strings.addMusic),
-                  ),
+                  if (Platform.isAndroid) ...[
+                    if (state.scanBusy)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (state.scanGranted)
+                      FilledButton.icon(
+                        onPressed: _rescanFromHome,
+                        icon: const Icon(Icons.refresh),
+                        label: Text(strings.scanNow),
+                      )
+                    else
+                      FilledButton.icon(
+                        onPressed: _rescanFromHome,
+                        icon: const Icon(Icons.library_music),
+                        label: Text(strings.scanPermissionNeeded),
+                      ),
+                    const SizedBox(height: 4),
+                    TextButton.icon(
+                      onPressed: widget.onImport,
+                      icon: const Icon(Icons.folder_open),
+                      label: Text(strings.addMusic),
+                    ),
+                  ] else
+                    FilledButton.icon(
+                      onPressed: widget.onImport,
+                      icon: const Icon(Icons.folder_open),
+                      label: Text(strings.addMusic),
+                    ),
                 ],
               ),
             ),
@@ -669,7 +739,7 @@ class PlaylistsScreen extends StatelessWidget {
   }
 }
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
     required this.state,
     required this.strings,
@@ -681,179 +751,553 @@ class SettingsScreen extends StatelessWidget {
   final AppStrings strings;
   final VoidCallback onChanged;
 
+  static const String version = '2.4.0';
+  static const String buildNumber = '24';
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool _scanning = false;
+  String? _scanMessage;
+
+  AppStrings get strings => widget.strings;
+  AppState get state => widget.state;
+
+  Future<void> _rescan() async {
+    setState(() {
+      _scanning = true;
+      _scanMessage = null;
+    });
+    await state.rescanDeviceMusic();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _scanning = false;
+      _scanMessage = state.scanGranted
+          ? strings.scanResult(state.lastScanAdded, state.lastScanTotal)
+          : (Platform.isAndroid
+                ? strings.scanPermissionNeeded
+                : strings.scanUnavailable);
+    });
+  }
+
+  Future<void> _requestNotifications() async {
+    try {
+      await const MethodChannel('niusic/permission')
+          .invokeMethod<bool>('requestNotifications');
+    } on MissingPluginException {
+      // Not available on this platform.
+    } on PlatformException {
+      // Keep the UI usable; the user can enable it in system settings.
+    }
+  }
+
+  String _timeLabel(DateTime value) {
+    final h = value.hour.toString().padLeft(2, '0');
+    final m = value.minute.toString().padLeft(2, '0');
+    return '$h:$m';
+  }
+
+  String _scanSubtitle() {
+    if (!Platform.isAndroid) {
+      return strings.scanUnavailable;
+    }
+    if (!state.scanGranted) {
+      return strings.scanPermissionNeeded;
+    }
+    final at = state.lastScanAt;
+    if (at == null) {
+      return strings.scanDeviceMusicDesc;
+    }
+    return '${strings.lastScanPrefix}: ${_timeLabel(at)}. '
+        '${strings.scanResult(state.lastScanAdded, state.lastScanTotal)}';
+  }
+
+  Widget _label(BuildContext context, String text) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 20, 4, 8),
+      child: Text(
+        text.toUpperCase(),
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.4,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+
+  Widget _divider() => const Divider(height: 1, indent: 56);
+
+  Widget _settingRow({
+    required IconData icon,
+    required String title,
+    required Widget child,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                icon,
+                size: 22,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.bodyLarge
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 34, top: 10),
+            child: child,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _accentRow(BuildContext context) {
+    const colors = <String, Color>{
+      'indigo': Color(0xFF4F46E5),
+      'teal': Color(0xFF0F766E),
+      'purple': Color(0xFF7E22CE),
+      'orange': Color(0xFFEA580C),
+    };
+    return Row(
+      children: [
+        for (final entry in colors.entries) ...[
+          _AccentSwatch(
+            color: entry.value,
+            selected: state.accent == entry.key,
+            onTap: () => state.setAccent(entry.key),
+          ),
+          const SizedBox(width: 14),
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: [
-        _section(context, strings.language),
-        SegmentedButton<String>(
-          segments: [
-            ButtonSegment(value: 'en', label: Text(strings.english)),
-            ButtonSegment(value: 'id', label: Text(strings.indonesian)),
-          ],
-          selected: {state.language},
-          onSelectionChanged: (value) async {
-            await state.setLanguage(value.first);
-            onChanged();
-          },
-        ),
-        const SizedBox(height: 20),
-        _section(context, strings.theme),
-        SegmentedButton<ThemeChoice>(
-          segments: [
-            ButtonSegment(
-              value: ThemeChoice.system,
-              label: Text(strings.themeSystem),
+        Card(
+          clipBehavior: Clip.antiAlias,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Image.asset('assets/niusic-mark.png', width: 56, height: 56),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Niusic',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${SettingsScreen.version} (${SettingsScreen.buildNumber})',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            ButtonSegment(
-              value: ThemeChoice.light,
-              label: Text(strings.themeLight),
-            ),
-            ButtonSegment(
-              value: ThemeChoice.dark,
-              label: Text(strings.themeDark),
-            ),
-          ],
-          selected: {state.theme},
-          onSelectionChanged: (value) async {
-            await state.setTheme(value.first);
-            onChanged();
-          },
+          ),
         ),
-        const SizedBox(height: 20),
-        _section(context, strings.accent),
-        SegmentedButton<String>(
-          segments: [
-            ButtonSegment(value: 'indigo', label: Text('Indigo')),
-            ButtonSegment(value: 'teal', label: Text('Teal')),
-            ButtonSegment(value: 'purple', label: Text('Purple')),
-            ButtonSegment(value: 'orange', label: Text('Orange')),
-          ],
-          selected: {state.accent},
-          onSelectionChanged: (value) => state.setAccent(value.first),
-        ),
-        const SizedBox(height: 20),
-        _section(context, strings.volume),
-        Slider(
-          value: state.volume,
-          onChanged: (value) => state.setVolume(value),
-        ),
-        const SizedBox(height: 20),
-        _section(context, strings.audioQuality),
-        SegmentedButton<String>(
-          segments: [
-            ButtonSegment(value: 'low', label: Text(strings.qualityLow)),
-            ButtonSegment(value: 'high', label: Text(strings.qualityHigh)),
-          ],
-          selected: {state.streamService.audioQuality},
-          onSelectionChanged: (value) => state.setAudioQuality(value.first),
-        ),
-        const SizedBox(height: 20),
-        _section(context, strings.notifications),
-        OutlinedButton.icon(
-          onPressed: () {
-            const MethodChannel('niusic/permission')
-                .invokeMethod<bool>('requestNotifications');
-          },
-          icon: const Icon(Icons.notifications),
-          label: Text(strings.enableNotifications),
-        ),
-        const SizedBox(height: 20),
-        _section(context, strings.playbackSpeed),
-        Text('${state.playbackRate.toStringAsFixed(2)}x'),
-        Slider(
-          min: 0.5,
-          max: 2.0,
-          divisions: 6,
-          value: state.playbackRate,
-          onChanged: (value) => state.setPlaybackRate(value),
-        ),
-        const SizedBox(height: 20),
-        _section(context, strings.storage),
-        FutureBuilder<int>(
-          future: state.totalDownloadBytes(),
-          builder: (context, snap) {
-            final bytes = snap.data ?? 0;
-            final mb = bytes / (1024 * 1024);
-            return Text(
-              '${strings.downloadsSize}: ${mb.toStringAsFixed(1)} MB',
-              style: Theme.of(context).textTheme.bodyLarge,
-            );
-          },
-        ),
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          onPressed: () async {
-            final ok = await showDialog<bool>(
-              context: context,
-              builder: (context) {
-                return AlertDialog(
-                  title: Text(strings.clearDownloads),
-                  content: Text(strings.clearDataConfirm),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: Text(strings.cancel),
+        _label(context, strings.appearance),
+        Card(
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              _settingRow(
+                icon: Icons.translate,
+                title: strings.language,
+                child: SegmentedButton<String>(
+                  showSelectedIcon: false,
+                  segments: [
+                    ButtonSegment(value: 'en', label: Text(strings.english)),
+                    ButtonSegment(value: 'id', label: Text(strings.indonesian)),
+                  ],
+                  selected: {state.language},
+                  onSelectionChanged: (value) async {
+                    await state.setLanguage(value.first);
+                    widget.onChanged();
+                  },
+                ),
+              ),
+              _divider(),
+              _settingRow(
+                icon: Icons.brightness_6_outlined,
+                title: strings.theme,
+                child: SegmentedButton<ThemeChoice>(
+                  showSelectedIcon: false,
+                  segments: [
+                    ButtonSegment(
+                      value: ThemeChoice.system,
+                      label: Text(strings.themeSystem),
                     ),
-                    FilledButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: Text(strings.delete),
+                    ButtonSegment(
+                      value: ThemeChoice.light,
+                      label: Text(strings.themeLight),
+                    ),
+                    ButtonSegment(
+                      value: ThemeChoice.dark,
+                      label: Text(strings.themeDark),
                     ),
                   ],
-                );
-              },
-            );
-            if (ok == true) {
-              await state.clearDownloads();
-            }
-          },
-          icon: const Icon(Icons.delete_sweep),
-          label: Text(strings.clearDownloads),
+                  selected: {state.theme},
+                  onSelectionChanged: (value) async {
+                    await state.setTheme(value.first);
+                    widget.onChanged();
+                  },
+                ),
+              ),
+              _divider(),
+              _settingRow(
+                icon: Icons.palette_outlined,
+                title: strings.accent,
+                child: _accentRow(context),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 20),
-        _section(context, strings.clearData),
-        OutlinedButton.icon(
-          onPressed: () async {
-            final ok = await showDialog<bool>(
-              context: context,
-              builder: (context) {
-                return AlertDialog(
-                  title: Text(strings.clearData),
-                  content: Text(strings.clearDataConfirm),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: Text(strings.cancel),
+        _label(context, strings.playback),
+        Card(
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              _settingRow(
+                icon: Icons.volume_up_outlined,
+                title: strings.volume,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Slider(
+                        value: state.volume,
+                        onChanged: (value) => state.setVolume(value),
+                      ),
                     ),
-                    FilledButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: Text(strings.delete),
+                    SizedBox(
+                      width: 48,
+                      child: Text(
+                        '${(state.volume * 100).round()}%',
+                        textAlign: TextAlign.end,
+                        style: theme.textTheme.labelLarge,
+                      ),
                     ),
                   ],
-                );
-              },
-            );
-            if (ok == true) {
-              await state.clearAll();
-            }
-          },
-          icon: const Icon(Icons.delete_forever),
-          label: Text(strings.clearData),
+                ),
+              ),
+              _divider(),
+              _settingRow(
+                icon: Icons.speed,
+                title: strings.playbackSpeed,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Slider(
+                        min: 0.5,
+                        max: 2.0,
+                        divisions: 6,
+                        value: state.playbackRate,
+                        onChanged: (value) => state.setPlaybackRate(value),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 48,
+                      child: Text(
+                        '${state.playbackRate.toStringAsFixed(2)}x',
+                        textAlign: TextAlign.end,
+                        style: theme.textTheme.labelLarge,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _divider(),
+              _settingRow(
+                icon: Icons.high_quality_outlined,
+                title: strings.audioQuality,
+                child: SegmentedButton<String>(
+                  showSelectedIcon: false,
+                  segments: [
+                    ButtonSegment(
+                      value: 'low',
+                      label: Text(strings.qualityLow),
+                    ),
+                    ButtonSegment(
+                      value: 'high',
+                      label: Text(strings.qualityHigh),
+                    ),
+                  ],
+                  selected: {state.streamService.audioQuality},
+                  onSelectionChanged: (value) =>
+                      state.setAudioQuality(value.first),
+                ),
+              ),
+            ],
+          ),
+        ),
+        _label(context, strings.library),
+        Card(
+          clipBehavior: Clip.antiAlias,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.auto_awesome_mosaic_outlined,
+                      size: 22,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        strings.scanDeviceMusic,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _scanSubtitle(),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                if (_scanMessage != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    _scanMessage!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.tonalIcon(
+                    onPressed: _scanning ? null : _rescan,
+                    icon: _scanning
+                        ? SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2.2),
+                          )
+                        : const Icon(Icons.refresh),
+                    label: Text(_scanning ? strings.scanning : strings.scanNow),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        _label(context, strings.notifications),
+        Card(
+          clipBehavior: Clip.antiAlias,
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 10,
+            ),
+            leading: Icon(
+              Icons.notifications_outlined,
+              size: 22,
+              color: theme.colorScheme.primary,
+            ),
+            title: Text(
+              strings.notifications,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            subtitle: Text(strings.enableNotificationsDesc),
+            trailing: OutlinedButton(
+              onPressed: _requestNotifications,
+              child: Text(strings.allow),
+            ),
+          ),
+        ),
+        _label(context, strings.storage),
+        Card(
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              FutureBuilder<int>(
+                future: state.totalDownloadBytes(),
+                builder: (context, snap) {
+                  final mb = (snap.data ?? 0) / (1024 * 1024);
+                  return ListTile(
+                    leading: Icon(
+                      Icons.sd_storage_outlined,
+                      color: theme.colorScheme.primary,
+                    ),
+                    title: Text(
+                      '${strings.downloadsSize}: '
+                      '${mb.toStringAsFixed(1)} MB',
+                    ),
+                  );
+                },
+              ),
+              _divider(),
+              ListTile(
+                leading: Icon(
+                  Icons.delete_sweep_outlined,
+                  color: theme.colorScheme.primary,
+                ),
+                title: Text(strings.clearDownloads),
+                onTap: () => _confirmAndRun(
+                  context,
+                  title: strings.clearDownloads,
+                  icon: Icons.delete_sweep_outlined,
+                  action: state.clearDownloads,
+                ),
+              ),
+              _divider(),
+              ListTile(
+                leading: Icon(
+                  Icons.delete_forever_outlined,
+                  color: theme.colorScheme.error,
+                ),
+                title: Text(
+                  strings.clearData,
+                  style: TextStyle(color: theme.colorScheme.error),
+                ),
+                onTap: () => _confirmAndRun(
+                  context,
+                  title: strings.clearData,
+                  icon: Icons.delete_forever_outlined,
+                  action: state.clearAll,
+                ),
+              ),
+            ],
+          ),
+        ),
+        _label(context, strings.about),
+        Card(
+          clipBehavior: Clip.antiAlias,
+          child: ListTile(
+            leading: Icon(Icons.info_outline, color: theme.colorScheme.primary),
+            title: Text(strings.version),
+            trailing: Text(
+              '${SettingsScreen.version} (${SettingsScreen.buildNumber})',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
         ),
       ],
     );
   }
 
-  Widget _section(BuildContext context, String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.2,
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
+  Future<void> _confirmAndRun(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required Future<void> Function() action,
+  }) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          icon: Icon(icon, color: Theme.of(context).colorScheme.error),
+          title: Text(title),
+          content: Text(strings.clearDataConfirm),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(strings.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(strings.delete),
+            ),
+          ],
+        );
+      },
+    );
+    if (ok == true) {
+      await action();
+    }
+  }
+}
+
+class _AccentSwatch extends StatelessWidget {
+  const _AccentSwatch({
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkResponse(
+        onTap: onTap,
+        radius: 26,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: selected
+                ? Border.all(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    width: 3,
+                  )
+                : Border.all(color: Colors.black12, width: 1),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.5),
+                      blurRadius: 10,
+                      spreadRadius: 1,
+                    ),
+                  ]
+                : const [],
+          ),
+          child: selected
+              ? const Icon(Icons.check, color: Colors.white, size: 22)
+              : null,
         ),
       ),
     );
@@ -1799,7 +2243,7 @@ class NowPlayingScreen extends StatelessWidget {
         if (state.lastError != null) ...[
           SizedBox(height: 12),
           Text(
-            state.lastError!,
+            strings.errorText(state.lastError),
             textAlign: TextAlign.center,
             style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),

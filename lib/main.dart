@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -50,9 +52,13 @@ class _NiusicAppState extends State<NiusicApp> {
   bool loaded = false;
   String? loadError;
 
+  static final GlobalKey<ScaffoldMessengerState> messengerKey =
+      GlobalKey<ScaffoldMessengerState>();
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(_lifecycleObserver);
     state.addListener(_onStateChanged);
     state
         .load()
@@ -71,14 +77,34 @@ class _NiusicAppState extends State<NiusicApp> {
         });
   }
 
+  late final _NiusicLifecycleObserver _lifecycleObserver =
+      _NiusicLifecycleObserver(
+        () => state.rescanDeviceMusic(requestIfNotGranted: false),
+      );
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(_lifecycleObserver);
     state.removeListener(_onStateChanged);
     state.dispose();
     super.dispose();
   }
 
+  String? _lastShownError;
+
   void _onStateChanged() {
+    final err = state.lastError;
+    if (err == null) {
+      _lastShownError = null;
+    } else if (err != _lastShownError) {
+      _lastShownError = err;
+      messengerKey.currentState?.showSnackBar(
+        SnackBar(
+          content: Text(_strings.errorText(err)),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
     if (mounted) {
       setState(() {});
     }
@@ -277,6 +303,7 @@ class _NiusicAppState extends State<NiusicApp> {
       ),
     ];
     return MaterialApp(
+      scaffoldMessengerKey: messengerKey,
       debugShowCheckedModeBanner: false,
       title: 'Niusic',
       theme: niusicTheme(Brightness.light, seed: seed),
@@ -357,5 +384,18 @@ class _NiusicAppState extends State<NiusicApp> {
         },
       ),
     );
+  }
+}
+
+class _NiusicLifecycleObserver extends WidgetsBindingObserver {
+  _NiusicLifecycleObserver(this.onResume);
+
+  final Future<void> Function() onResume;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(onResume());
+    }
   }
 }

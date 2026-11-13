@@ -1,5 +1,24 @@
 # Changelog
 
+## v2.4.0
+
+Pindai otomatis musik perangkat, desain ulang layar Pengaturan, dan pesan error pemutaran yang lebih jelas.
+
+### Fitur baru
+
+- **Pindai otomatis.** Android memindai file musik perangkat saat aplikasi dibuka dan menambahkannya ke perpustakaan secara otomatis. Aplikasi memantau database media dan langsung mendeteksi lagu baru begitu muncul. Tidak perlu impor manual.
+- **Kontrol pindai di Pengaturan.** Lihat hasil pindai terakhir, minta izin akses file musik, dan picu pindai ulang. Aplikasi meminta izin satu kali saat pertama buka.
+
+### Peningkatan
+
+- **Desain ulang Pengaturan.** Bagian-bagian dalam kartu dengan ikon, tipografi lebih jelas, pilihan warna aksen membulat, header dengan mark aplikasi dan versi, dan tata letak lebih tenang.
+- **Pesan error pemutaran lebih jelas.** File hilang dan kegagalan streaming tampil sebagai snackbar dan di layar Now Playing, bukan gagal diam-diam.
+- **Baris perpustakaan.** Entri perpustakaan memakai tata letak baris lebih tenang dengan teks yang dipotong rapi.
+
+### Perbaikan bug
+
+- **Path file lokal usang.** Pemutaran kini memeriksa keberadaan file sebelum memutar, dan entri lokal dengan file yang hilang dihapus dari perpustakaan lewat pindai real-time.
+
 ## v2.3.0
 
 Stream tab restyle with bigger list items and a cleaner layout.

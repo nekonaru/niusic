@@ -18,7 +18,7 @@
 [English](README.md) | **Bahasa Indonesia**
 
 > [!NOTE]
-> Niusic memutar file lokal kamu secara offline dan memutar streaming video YouTube secara online saat kamu memakai tab Streaming. Di Android 13+, aplikasi meminta izin notifikasi hanya dari Pengaturan, bukan saat pertama buka.
+> Niusic memutar file lokal kamu secara offline dan memutar streaming video YouTube secara online saat kamu memakai tab Streaming. Di Android 13+, aplikasi meminta izin akses file musik satu kali saat pertama buka agar bisa memindai lagu, dan meminta izin notifikasi hanya dari Pengaturan.
 
 ---
 
@@ -65,6 +65,7 @@ Niusic adalah pemutar musik local-first untuk Android dan Windows. Satu codebase
 
 | Fitur | Deskripsi |
 |-------|-----------|
+| **Pindai otomatis** | Di Android, Niusic memindai file musik perangkat secara otomatis dan mendeteksi file baru secara langsung. Tidak perlu menambah manual. |
 | **Impor audio** | Pilih banyak file audio lewat pemilih file sistem. |
 | **Cari** | Saring perpustakaan berdasarkan teks judul. |
 | **Riwayat** | Simpan 100 lagu terakhir yang diputar di perangkat. |
@@ -98,7 +99,7 @@ Niusic adalah pemutar musik local-first untuk Android dan Windows. Satu codebase
 | Fitur | Deskripsi |
 |-------|-----------|
 | **Playlist** | Buat, ganti nama lewat kode, hapus, tambah, dan hapus lagu secara lokal. |
-| **Pengaturan** | Ganti bahasa, tema, volume, dan hapus data lokal. |
+| **Pengaturan** | Ganti bahasa, tema, aksen, volume, kecepatan putar, dan hapus data lokal. |
 
 ---
 
@@ -188,20 +189,20 @@ flutter build apk --release --split-per-abi
 ### Peluncuran pertama
 
 1. Buka Niusic.
-2. Ketuk Tambah musik pada tab Beranda.
-3. Pilih file audio di pemilih file.
+2. Izinkan akses ke file musik saat Android menanyakannya. Lagu akan muncul setelah Niusic memindainya. Tidak perlu langkah impor.
+3. Atau ketuk Tambah musik pada tab Beranda untuk memilih file tertentu.
 4. Ketuk lagu pada Perpustakaan untuk memutarnya.
 
 > [!NOTE]
-> Niusic menyimpan path file, playlist, riwayat, dan pengaturan di perangkat ini saja.
+> Niusic menyimpan path file, playlist, riwayat, dan pengaturan di perangkat ini saja. Aplikasi tidak menyalin atau mengunggah file audio kamu.
 
 ### Pemakaian harian
 
-- **Beranda:** Lihat lagu baru diputar dan tambah musik.
-- **Perpustakaan:** Cari dan putar seluruh perpustakaan.
+- **Beranda:** Lihat lagu baru diputar, chart harian, dan tambah musik.
+- **Perpustakaan:** Cari dan putar seluruh perpustakaan. File baru muncul otomatis.
 - **Streaming:** Cari online, ketuk untuk putar, atau tambah ke antrian atau playlist.
 - **Playlist:** Buat playlist, lalu tambah lagu dari menu Perpustakaan.
-- **Pengaturan:** Ubah bahasa, tema, volume, atau hapus data lokal.
+- **Pengaturan:** Ubah bahasa, tema, aksen, volume, kecepatan putar, atau hapus data lokal.
 - **Pemutar mini:** Ketuk bar lagu di bawah untuk membuka pemutar penuh.
 
 ---
@@ -223,7 +224,7 @@ niusic
 │   ├── l10n     # String UI English dan Indonesia
 │   ├── models   # Model Track dan Playlist
 │   ├── screens  # Home, Library, Playlists, Settings, Now Playing
-│   └── services # Pemutaran dan penyimpanan di perangkat
+│   └── services # Pemutaran, penyimpanan di perangkat, pemindai musik perangkat
 ├── test         # Tes unit dan widget
 ├── android      # Shell aplikasi Android
 ├── windows      # Shell aplikasi Windows

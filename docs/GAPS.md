@@ -6,7 +6,7 @@ Date: 2026-11-10. Comparison: Niusic v1.2.0 against Auralys (Android Kotlin/Metr
 
 - **Background media notification.** Android shows play/pause, skip, seek, and stop in the media notification. Windows runs without it.
 - **Android home screen widget.** Shows title, artist, and previous/play/next buttons. Tapping artwork opens the app.
-- **Local library.** Import local audio files, search, play.
+- **Local library.** Import local audio files, search, play. Android additionally auto-scans the device media database for music and picks up new files in real time via a content observer.
 - **Online search and playback.** YouTube search via Piped, audio via Googlevideo manifest.
 - **Queue, playlists, history.** Queue persists across restarts.
 - **Downloads.** Save YouTube audio to disk, play offline, delete, clear all.

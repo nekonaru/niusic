@@ -115,4 +115,69 @@ class AppStrings {
   String get notifications => isId ? 'Notifikasi' : 'Notifications';
   String get enableNotifications =>
       isId ? 'Izinkan notifikasi media' : 'Allow media notifications';
+  String get enableNotificationsDesc => isId
+      ? 'Tampilkan notifikasi media dengan kontrol putar.'
+      : 'Show a media notification with playback controls.';
+  String get allow => isId ? 'Izinkan' : 'Allow';
+
+  String get appearance => isId ? 'Tampilan' : 'Appearance';
+  String get playback => isId ? 'Pemutaran' : 'Playback';
+  String get about => isId ? 'Tentang' : 'About';
+  String get version => isId ? 'Versi' : 'Version';
+
+  String get scanDeviceMusic =>
+      isId ? 'Pindai musik perangkat' : 'Scan device music';
+  String get scanDeviceMusicDesc => isId
+      ? 'Mencari file audio di perangkat secara otomatis. Lagu baru muncul dengan sendirinya.'
+      : 'Finds audio files on this device automatically. New songs appear on their own.';
+  String get scanNow => isId ? 'Pindai sekarang' : 'Scan now';
+  String get scanning => isId ? 'Memindai...' : 'Scanning...';
+  String get scanPermissionNeeded =>
+      isId ? 'Izinkan akses ke file musik' : 'Allow access to music files';
+  String get scanUnavailable => isId
+      ? 'Pindai otomatis hanya tersedia di Android.'
+      : 'Auto scan is available on Android only.';
+  String get noMusicFound => isId
+      ? 'Belum ada file musik di perangkat ini.'
+      : 'No music files found on this device yet.';
+  String get lastScanPrefix => isId ? 'Terakhir dipindai' : 'Last scan';
+  String scanResult(int added, int total) {
+    final newSongs = added == 0
+        ? (isId ? 'tidak ada lagu baru' : 'no new songs')
+        : '+$added ${isId ? "lagu baru" : "new"}';
+    return isId
+        ? 'Ditemukan $total lagu, $newSongs.'
+        : 'Found $total tracks, $newSongs.';
+  }
+
+  String get errorMissingPath => isId
+      ? 'Lagu ini tidak punya lokasi file.'
+      : 'This track has no file path.';
+  String get errorFileNotFound => isId
+      ? 'File tidak ditemukan di perangkat.'
+      : 'File not found on this device.';
+  String get errorMissingVideoId => isId
+      ? 'Lagu online ini hilang pengenal.'
+      : 'This online track is missing its id.';
+  String get errorStreamFailed => isId
+      ? 'Streaming gagal. Periksa koneksi lalu coba lagi.'
+      : 'Stream failed. Check your connection and try again.';
+  String get errorPlaybackFailed =>
+      isId ? 'Gagal memutar audio.' : 'Could not play audio.';
+  String errorText(String? code) {
+    switch (code) {
+      case 'missing_path':
+        return errorMissingPath;
+      case 'file_not_found':
+        return errorFileNotFound;
+      case 'missing_video_id':
+        return errorMissingVideoId;
+      case 'stream_failed':
+        return errorStreamFailed;
+      case 'playback_failed':
+        return errorPlaybackFailed;
+      default:
+        return code ?? '';
+    }
+  }
 }

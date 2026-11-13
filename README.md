@@ -18,7 +18,7 @@
 **English** | [Bahasa Indonesia](README.id.md)
 
 > [!NOTE]
-> Niusic plays your local files offline and streams YouTube videos online when you use the Stream tab. On Android 13+ it asks for notification permission only from Settings, not at first launch.
+> Niusic plays your local files offline and streams YouTube videos online when you use the Stream tab. On Android 13+ it asks once for access to music files at first launch so it can scan your songs, and it asks for notification permission only from Settings.
 
 ---
 
@@ -65,6 +65,7 @@ Niusic is a local-first music player for Android and Windows. One Flutter codeba
 
 | Feature | Description |
 |---------|-------------|
+| **Auto scan** | On Android, Niusic scans the device for music files automatically and picks up new files in real time. No manual add needed. |
 | **Import audio** | Pick multiple audio files with the system file picker. |
 | **Search** | Filter the library by title text. |
 | **History** | Keep the last 100 played tracks on the device. |
@@ -98,7 +99,7 @@ Niusic is a local-first music player for Android and Windows. One Flutter codeba
 | Feature | Description |
 |---------|-------------|
 | **Playlists** | Create, rename in code, delete, add, and remove tracks locally. |
-| **Settings** | Switch language, theme, volume, and clear local data. |
+| **Settings** | Switch language, theme, accent, volume, playback speed, and clear local data. |
 
 ---
 
@@ -188,20 +189,20 @@ flutter build apk --release --split-per-abi
 ### First launch
 
 1. Open Niusic.
-2. Tap Add music on the Home tab.
-3. Pick audio files in the file picker.
+2. Allow access to music files when Android asks. Your songs appear as Niusic scans. No import step is needed.
+3. Or tap Add music on the Home tab to pick specific files.
 4. Tap a track in the Library to play it.
 
 > [!NOTE]
-> Niusic stores file paths, playlists, history, and settings on this device only.
+> Niusic stores file paths, playlists, history, and settings on this device only. It does not copy or upload your audio files.
 
 ### Everyday use
 
-- **Home:** See recent tracks and add more music.
-- **Library:** Search and play the full library.
+- **Home:** See recent tracks, the daily chart, and add more music.
+- **Library:** Search and play the full library. New files appear automatically.
 - **Stream:** Search online, tap to play, or add to queue or a playlist.
 - **Playlists:** Create a playlist, then add tracks from the Library menu.
-- **Settings:** Change language, theme, volume, or clear local data.
+- **Settings:** Change language, theme, accent, volume, playback speed, or clear local data.
 - **Mini player:** Tap the bottom track bar to open the full player.
 
 ---
@@ -223,7 +224,7 @@ niusic
 │   ├── l10n     # English and Indonesian UI strings
 │   ├── models   # Track and Playlist models
 │   ├── screens  # Home, Library, Playlists, Settings, Now Playing
-│   └── services # Playback and on-device storage
+│   └── services # Playback, on-device storage, device music scanner
 ├── test         # Unit and widget tests
 ├── android      # Android app shell
 ├── windows      # Windows app shell

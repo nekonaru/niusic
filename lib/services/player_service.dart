@@ -15,7 +15,9 @@ import '../models/video_result.dart';
 import 'audio_handler.dart';
 import 'chart_service.dart';
 import 'download_service.dart';
+import 'library_merge.dart';
 import 'lyrics_service.dart';
+import 'scanner_service.dart';
 import 'stream_service.dart';
 import 'suggestions_service.dart';
 
@@ -34,6 +36,7 @@ const String _keyRate = 'playback_rate';
 const String _keyAccent = 'accent';
 const String _keyLibraryV2 = 'library_v2';
 const String _keyHistoryV2 = 'history_v2';
+const String _keyScanAsked = 'scan_permission_asked';
 const int _maxHistory = 100;
 
 class AppState extends ChangeNotifier {
@@ -72,6 +75,7 @@ class AppState extends ChangeNotifier {
   final LyricsService lyricsService;
   final ChartService chartService;
   final SuggestionsService suggestionsService;
+  final ScannerService scannerService = ScannerService();
 
   /// Handler that mirrors playback into the OS media notification.
   /// Assigned by main() after AudioService.init; null on unsupported platforms.
@@ -100,10 +104,20 @@ class AppState extends ChangeNotifier {
   Timer? _sleepTimer;
   int? sleepMinutes;
 
+  /// Scanner state for the UI.
+  bool scanGranted = false;
+  bool scanBusy = false;
+  int lastScanAdded = 0;
+  int lastScanTotal = 0;
+  DateTime? lastScanAt;
+
   StreamSubscription<void>? _completion;
   StreamSubscription<PlayerState>? _stateSub;
   StreamSubscription<Duration>? _positionSub;
   StreamSubscription<Duration>? _durationSub;
+  StreamSubscription<void>? _scanSub;
+  Timer? _scanDebounce;
+  Timer? _scanRetryTimer;
   SharedPreferences? _prefs;
   Timer? _volumeTimer;
 
@@ -300,6 +314,128 @@ class AppState extends ChangeNotifier {
       queue = List<Track>.of(library);
     }
     notifyListeners();
+    unawaited(initScanner());
+  }
+
+  /// Android only: grants access if needed, starts the real-time observer,
+  /// and runs the first scan.
+  Future<void> initScanner() async {
+    if (!Platform.isAndroid) {
+      return;
+    }
+    scanGranted = await scannerService.areScanGranted();
+    _startScanObserver();
+    if (scanGranted) {
+      await scanDeviceMusic();
+      return;
+    }
+    final prefs = await _getPrefs();
+    final asked = prefs.getBool(_keyScanAsked) ?? false;
+    if (!asked) {
+      // One automatic prompt on first launch. The UI stays usable underneath.
+      await prefs.setBool(_keyScanAsked, true);
+      await scannerService.requestScanPermission();
+      _scanRetryTimer = Timer(const Duration(seconds: 3), () async {
+        scanGranted = await scannerService.areScanGranted();
+        if (scanGranted) {
+          await scanDeviceMusic();
+        }
+        notifyListeners();
+      });
+    }
+    notifyListeners();
+  }
+
+  /// Re-checks the permission and rescans. Used by the Settings action and
+  /// the app-resume hook. The resume hook passes
+  /// [requestIfNotGranted] = false so a denied permission is not re-asked
+  /// every time the app comes to the foreground.
+  Future<void> rescanDeviceMusic({bool requestIfNotGranted = true}) async {
+    scanGranted = await scannerService.areScanGranted();
+    if (!scanGranted && requestIfNotGranted) {
+      await scannerService.requestScanPermission();
+      scanGranted = await scannerService.areScanGranted();
+    }
+    if (scanGranted) {
+      await scanDeviceMusic();
+    } else {
+      notifyListeners();
+    }
+  }
+
+  void _startScanObserver() {
+    if (_scanSub != null) {
+      return;
+    }
+    try {
+      _scanSub = scannerService.changes.listen(
+        (_) => _queueScanRefresh(),
+        onError: (_) {},
+      );
+    } catch (_) {
+      _scanSub = null;
+    }
+  }
+
+  void _queueScanRefresh() {
+    _scanDebounce?.cancel();
+    _scanDebounce = Timer(const Duration(milliseconds: 1200), () {
+      unawaited(scanDeviceMusic());
+    });
+  }
+
+  /// Merges scanned device files into the library. Returns the number of
+  /// newly added tracks. Local tracks whose file disappeared from both the
+  /// scan results and disk are pruned.
+  int mergeScannedTracks(List<ScannedTrack> scanned) {
+    final result = mergeScannedTracksInto(
+      library,
+      queue,
+      scanned,
+      fileExists: (path) => File(path).existsSync(),
+    );
+    if (result.pruned > 0) {
+      if (queue.isEmpty) {
+        queueIndex = -1;
+      } else if (queueIndex >= queue.length) {
+        queueIndex = queue.length - 1;
+      }
+    }
+    if (result.added > 0 || result.pruned > 0) {
+      _rebuildIndexes();
+      if (queue.isEmpty && library.isNotEmpty) {
+        queue = List<Track>.of(library);
+      }
+    }
+    return result.added;
+  }
+
+  /// Scans the device for music files and merges them into the library.
+  Future<bool> scanDeviceMusic() async {
+    if (scanBusy) {
+      return false;
+    }
+    scanBusy = true;
+    notifyListeners();
+    try {
+      final granted = await scannerService.areScanGranted();
+      scanGranted = granted;
+      if (!granted) {
+        return false;
+      }
+      final scanned = await scannerService.scanLibrary();
+      lastScanTotal = scanned.length;
+      lastScanAt = DateTime.now();
+      final added = mergeScannedTracks(scanned);
+      lastScanAdded = added;
+      // Always persist the post-merge library. It is small and the scan is
+      // infrequent (debounced), so the cost is negligible.
+      await _saveLibrary();
+      return true;
+    } finally {
+      scanBusy = false;
+      notifyListeners();
+    }
   }
 
   Future<void> _saveQueue() async {
@@ -407,11 +543,36 @@ class AppState extends ChangeNotifier {
         notifyListeners();
         return;
       }
-      await player.play(DeviceFileSource(path));
+      if (!await File(path).exists()) {
+        lastError = 'file_not_found';
+        notifyListeners();
+        return;
+      }
+      try {
+        await player.play(DeviceFileSource(path));
+        lastError = null;
+      } catch (e) {
+        debugPrint('playback failed: $e');
+        lastError = 'playback_failed';
+        notifyListeners();
+      }
       return;
     }
     if (track.isDownloaded) {
-      await player.play(DeviceFileSource(track.downloadPath!));
+      final path = track.downloadPath!;
+      if (!await File(path).exists()) {
+        lastError = 'file_not_found';
+        notifyListeners();
+        return;
+      }
+      try {
+        await player.play(DeviceFileSource(path));
+        lastError = null;
+      } catch (e) {
+        debugPrint('playback failed: $e');
+        lastError = 'playback_failed';
+        notifyListeners();
+      }
       return;
     }
     // Remote: resolve a fresh audio URL (cache lives in StreamService).
@@ -429,7 +590,8 @@ class AppState extends ChangeNotifier {
       await player.play(UrlSource(url));
       lastError = null;
     } catch (e) {
-      lastError = e.toString();
+      debugPrint('stream failed: $e');
+      lastError = 'stream_failed';
       notifyListeners();
     }
   }
@@ -855,6 +1017,9 @@ class AppState extends ChangeNotifier {
   @override
   void dispose() {
     _volumeTimer?.cancel();
+    _scanDebounce?.cancel();
+    _scanRetryTimer?.cancel();
+    unawaited(_scanSub?.cancel());
     unawaited(_completion?.cancel());
     unawaited(_stateSub?.cancel());
     unawaited(_positionSub?.cancel());
