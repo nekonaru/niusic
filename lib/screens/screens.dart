@@ -65,6 +65,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     ),
                   ),
                 )
+              : searchColumns(context) == 1
+              ? ListView.separated(
+                  addRepaintBoundaries: true,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: filtered.length,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 4),
+                  itemBuilder: (context, index) =>
+                      _libraryTile(filtered[index], context),
+                )
               : GridView.builder(
                   addRepaintBoundaries: true,
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -75,53 +85,51 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   ),
                   itemCount: filtered.length,
                   itemBuilder: (context, index) {
-                    final track = filtered[index];
-                    final queueIndex = state.queueIndexOf(track);
-                    return Card(
-                      clipBehavior: Clip.antiAlias,
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 4,
-                        ),
-                        leading: CircleAvatar(
-                          backgroundColor: Theme.of(context)
-                              .colorScheme
-                              .primaryContainer,
-                          child: Icon(
-                            Icons.music_note,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onPrimaryContainer,
-                          ),
-                        ),
-                        title: Text(
-                          track.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                        subtitle: Text(
-                          track.fileName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        trailing: PopupMenuButton<Track>(
-                          onSelected: (value) => _addToPlaylist(value),
-                          itemBuilder: (context) => [
-                            PopupMenuItem(
-                              child: Text(widget.strings.addToPlaylist),
-                            ),
-                          ],
-                        ),
-                        onTap: () => state.playAt(queueIndex),
-                      ),
-                    );
+                    return _libraryTile(filtered[index], context);
                   },
                 ),
         ),
       ],
+    );
+  }
+
+  Widget _libraryTile(Track track, BuildContext context) {
+    final state = widget.state;
+    final theme = Theme.of(context);
+    final queueIndex = state.queueIndexOf(track);
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      margin: const EdgeInsets.symmetric(horizontal: 8),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        leading: CircleAvatar(
+          backgroundColor: theme.colorScheme.primaryContainer,
+          child: Icon(
+            Icons.music_note,
+            color: theme.colorScheme.onPrimaryContainer,
+          ),
+        ),
+        title: Text(
+          track.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        subtitle: Text(
+          track.fileName,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: PopupMenuButton<Track>(
+          onSelected: (value) => _addToPlaylist(value),
+          itemBuilder: (context) => [
+            PopupMenuItem(child: Text(widget.strings.addToPlaylist)),
+          ],
+        ),
+        onTap: () => state.playAt(queueIndex),
+      ),
     );
   }
 
@@ -751,8 +759,8 @@ class SettingsScreen extends StatefulWidget {
   final AppStrings strings;
   final VoidCallback onChanged;
 
-  static const String version = '2.4.0';
-  static const String buildNumber = '24';
+  static const String version = '2.4.1';
+  static const String buildNumber = '25';
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();

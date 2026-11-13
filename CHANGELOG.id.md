@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.4.1
+
+Patch: baris perpustakaan muat di layar.
+
+### Perbaikan bug
+
+- **Baris perpustakaan.** Di ponsel, daftar perpustakaan kini memakai baris dengan tinggi alami, bukan grid aspek tetap, sehingga avatar dan subjudul tidak lagi terpotong tepi kartu.
+
 ## v2.4.0
 
 Pindai otomatis musik perangkat, desain ulang layar Pengaturan, dan pesan error pemutaran yang lebih jelas.

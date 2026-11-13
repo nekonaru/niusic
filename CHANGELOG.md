@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.4.1
+
+Patch: library rows fit the screen.
+
+### Bug fixes
+
+- **Library rows.** On phones the library list now uses natural-height rows instead of a fixed-aspect grid, so the avatar and subtitle are no longer clipped by the card edge.
+
 ## v2.4.0
 
 Device music auto-scan, a redesigned Settings screen, and clearer playback errors.
