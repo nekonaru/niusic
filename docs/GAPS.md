@@ -1,6 +1,6 @@
 # Feature Gap Analysis
 
-Date: 2026-11-10. Comparison: Niusic v1.2.0 against Auralys (Android Kotlin/Metrolist fork and Windows JavaFX).
+Date: 2026-11-18. Comparison: Niusic v3.0.0 against Auralys (Android Kotlin/Metrolist fork and Windows JavaFX).
 
 ## Implemented
 
@@ -18,13 +18,15 @@ Date: 2026-11-10. Comparison: Niusic v1.2.0 against Auralys (Android Kotlin/Metr
 - **Online playlists.** Search, open, play, or save as a local playlist.
 - **Search suggestions.** YouTube suggest endpoint.
 - **Themes.** Light, dark, system, plus 4 accent colors.
+- **Equalizer.** Five-band equalizer and loudness enhancer via the AudioPipeline of just_audio (Android only). Set gains in dB, persisted, restored on next launch, applied live during playback.
 - **Adaptive UI.** Sidebar desktop, bottom bar mobile, two-pane now playing.
+- **Share.** Share the current track from Now Playing.
+- **Most played.** On-device play counts, shown on Home.
 
 ## Not implemented
 
 - **Discord presence and Listen Together.** Needs a Discord app registration and OAuth. Owner gives ideas only, no account walkthrough is allowed. Recorded as Open: needs account access. Code is safe without it: no tokens stored.
 - **Song recognition.** Needs a recognition API key or microphone plus model. No public key-free endpoint was verified. Not implemented.
-- **Equalizer and audio effects.** audioplayers has no EQ API. Needs native audio effects or a different engine. Not implemented.
 - **YouTube Music library sync, subscriptions, likes, and comments.** Needs Google account OAuth and YouTube Data API key. Not implemented.
 
 ## Roadmap

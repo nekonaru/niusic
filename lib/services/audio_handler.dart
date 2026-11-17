@@ -1,9 +1,9 @@
 import 'package:audio_service/audio_service.dart';
 
-/// Handler that mirrors the app's audioplayers playback into the OS media
-/// notification. Playback itself stays in AppState (audioplayers supports
-/// Android and Windows); this handler only surfaces the notification and
-/// forwards notification actions back into the app.
+/// Handler that mirrors the app's playback into the OS media notification.
+/// Playback itself stays in AppState (just_audio supports Android and
+/// Windows); this handler only surfaces the notification and forwards
+/// notification actions back into the app.
 class NiusicAudioHandler extends BaseAudioHandler with QueueHandler {
   /// Creates the handler and wires notification actions to app callbacks.
   NiusicAudioHandler({

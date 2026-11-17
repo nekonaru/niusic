@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:just_audio/just_audio.dart';
 
 import '../l10n/app_strings.dart';
 import '../models/lyrics.dart';
@@ -10,6 +11,7 @@ import '../models/playlist.dart';
 import '../models/track.dart';
 import '../models/video_result.dart';
 import '../services/lyrics_service.dart';
+import '../services/library_sort.dart';
 import '../services/player_service.dart';
 import '../ui/responsive.dart';
 
@@ -36,20 +38,55 @@ class _LibraryScreenState extends State<LibraryScreen> {
   Widget build(BuildContext context) {
     final state = widget.state;
     final strings = widget.strings;
-    final filtered = state.searchLibrary(query);
+    final filtered = sortLibrary(
+      state.searchLibrary(query),
+      state.librarySort,
+      state.historyIds,
+    );
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: strings.searchHint,
-              prefixIcon: Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: strings.searchHint,
+                    prefixIcon: Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onChanged: (value) => setState(() => query = value),
+                ),
               ),
-            ),
-            onChanged: (value) => setState(() => query = value),
+              const SizedBox(width: 8),
+              Tooltip(
+                message: strings.sortBy,
+                child: PopupMenuButton<LibrarySort>(
+                  icon: const Icon(Icons.sort),
+                  initialValue: state.librarySort,
+                  onSelected: (value) => state.setLibrarySort(value),
+                  itemBuilder: (context) => [
+                    for (final sort in LibrarySort.values)
+                      PopupMenuItem<LibrarySort>(
+                        value: sort,
+                        child: Row(
+                          children: [
+                            Icon(
+                              sort == state.librarySort ? Icons.check : null,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(_sortLabel(sort, strings)),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
         Expanded(
@@ -131,6 +168,19 @@ class _LibraryScreenState extends State<LibraryScreen> {
         onTap: () => state.playAt(queueIndex),
       ),
     );
+  }
+
+  String _sortLabel(LibrarySort sort, AppStrings strings) {
+    switch (sort) {
+      case LibrarySort.name:
+        return strings.sortByName;
+      case LibrarySort.artist:
+        return strings.sortByArtist;
+      case LibrarySort.duration:
+        return strings.sortByDuration;
+      case LibrarySort.recent:
+        return strings.sortByRecent;
+    }
   }
 
   Future<void> _addToPlaylist(Track track) async {
@@ -482,6 +532,49 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 20),
         ],
+        if (state.topPlayed().isNotEmpty) ...[
+          _sectionTitle(strings.mostPlayed, Icons.trending_up),
+          const SizedBox(height: 12),
+          Card(
+            child: Column(
+              children: state.topPlayed().take(5).map((track) {
+                final plays = state.playCounts[track.id] ?? 0;
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: theme.colorScheme.secondaryContainer,
+                    child: Icon(
+                      Icons.music_note,
+                      color: theme.colorScheme.onSecondaryContainer,
+                    ),
+                  ),
+                  title: Text(
+                    track.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    '${track.subtitle ?? ''} · $plays ${strings.playsCountSuffix}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: Icon(
+                    Icons.play_arrow,
+                    color: theme.colorScheme.primary,
+                  ),
+                  onTap: () {
+                    final index = state.queueIndexOf(track);
+                    if (index >= 0) {
+                      state.playAt(index);
+                    }
+                    widget.onOpenNowPlaying();
+                  },
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
         _sectionTitle(strings.downloads, Icons.download),
         const SizedBox(height: 12),
         if (downloads.isEmpty)
@@ -759,8 +852,8 @@ class SettingsScreen extends StatefulWidget {
   final AppStrings strings;
   final VoidCallback onChanged;
 
-  static const String version = '2.4.1';
-  static const String buildNumber = '25';
+  static const String version = '3.0.0';
+  static const String buildNumber = '30';
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -1070,6 +1163,108 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
         ),
+        if (Platform.isAndroid) ...[
+          _label(context, strings.equalizer),
+          Card(
+            clipBehavior: Clip.antiAlias,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    secondary: Icon(
+                      Icons.graphic_eq,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    title: Text(strings.equalizer),
+                    subtitle: Text(strings.equalizerDesc),
+                    value: state.equalizerEnabled,
+                    onChanged: (value) => state.setEqualizerEnabled(value),
+                  ),
+                  if (state.equalizerEnabled) ...[
+                    const SizedBox(height: 8),
+                    FutureBuilder<AndroidEqualizerParameters>(
+                      future: state.equalizer.parameters,
+                      builder: (context, snap) {
+                        final params = snap.data;
+                        if (params == null) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(12),
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        }
+                        return Column(
+                          children: [
+                            for (var i = 0; i < params.bands.length; i++)
+                              _EqBandRow(
+                                band: params.bands[i],
+                                minDecibels: params.minDecibels,
+                                maxDecibels: params.maxDecibels,
+                                gain: i < state.equalizerGains.length
+                                    ? state.equalizerGains[i]
+                                    : 0,
+                                onChanged: (dB) =>
+                                    state.setEqualizerBandGain(i, dB),
+                              ),
+                            const SizedBox(height: 4),
+                            const Divider(),
+                            SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
+                              secondary: Icon(
+                                Icons.volume_up,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              title: Text(strings.loudnessEnhancer),
+                              value: state.loudnessEnabled,
+                              onChanged: (value) =>
+                                  state.setLoudnessEnabled(value),
+                            ),
+                            if (state.loudnessEnabled)
+                              Row(
+                                children: [
+                                  const Icon(Icons.graphic_eq, size: 18),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Slider(
+                                      min: 0,
+                                      max: 10,
+                                      divisions: 10,
+                                      value: state.loudnessGain,
+                                      onChanged: state.setLoudnessGain,
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 44,
+                                    child: Text(
+                                      '+${state.loudnessGain.toStringAsFixed(0)}',
+                                      textAlign: TextAlign.end,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: state.resetEqualizer,
+                                icon: const Icon(Icons.restart_alt),
+                                label: Text(strings.reset),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
         _label(context, strings.library),
         Card(
           clipBehavior: Clip.antiAlias,
@@ -2063,6 +2258,11 @@ class NowPlayingScreen extends StatelessWidget {
         title: Text(strings.nowPlaying),
         actions: [
           IconButton(
+            icon: Icon(Icons.share),
+            tooltip: strings.share,
+            onPressed: () => state.shareCurrent(),
+          ),
+          IconButton(
             icon: Icon(Icons.lyrics),
             tooltip: strings.lyrics,
             onPressed: () {
@@ -2256,6 +2456,14 @@ class NowPlayingScreen extends StatelessWidget {
             style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),
         ],
+        if (state.sleepDeadline != null) ...[
+          SizedBox(height: 12),
+          _SleepCountdown(
+            state: state,
+            strings: strings,
+            onCancel: state.setSleepTimer,
+          ),
+        ],
         SizedBox(height: 16),
         Slider(
           value: value,
@@ -2285,14 +2493,24 @@ class NowPlayingScreen extends StatelessWidget {
               tooltip: strings.previous,
               onPressed: state.previous,
             ),
-            IconButton(
-              icon: Icon(
-                state.isPlaying ? Icons.pause_circle : Icons.play_circle,
+            if (state.isBuffering)
+              const Padding(
+                padding: EdgeInsets.all(12),
+                child: SizedBox(
+                  width: 56,
+                  height: 56,
+                  child: CircularProgressIndicator(strokeWidth: 4),
+                ),
+              )
+            else
+              IconButton(
+                icon: Icon(
+                  state.isPlaying ? Icons.pause_circle : Icons.play_circle,
+                ),
+                iconSize: 56,
+                tooltip: state.isPlaying ? strings.pause : strings.play,
+                onPressed: state.toggle,
               ),
-              iconSize: 56,
-              tooltip: state.isPlaying ? strings.pause : strings.play,
-              onPressed: state.toggle,
-            ),
             IconButton(
               icon: Icon(Icons.skip_next),
               tooltip: strings.next,
@@ -2328,5 +2546,151 @@ class NowPlayingScreen extends StatelessWidget {
   ) {
     final controls = _controls(context, track, value, max);
     return [controls];
+  }
+}
+
+class _EqBandRow extends StatelessWidget {
+  const _EqBandRow({
+    required this.band,
+    required this.minDecibels,
+    required this.maxDecibels,
+    required this.gain,
+    required this.onChanged,
+  });
+
+  final AndroidEqualizerBand band;
+  final double minDecibels;
+  final double maxDecibels;
+  final double gain;
+  final ValueChanged<double> onChanged;
+
+  String _freq(double hz) {
+    if (hz >= 1000) {
+      final khz = hz / 1000;
+      return '${khz >= 10 ? khz.toStringAsFixed(0) : khz.toStringAsFixed(1)}k';
+    }
+    return hz.toStringAsFixed(0);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final clampedGain = gain.clamp(minDecibels, maxDecibels);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 44,
+            child: Text(
+              _freq(band.centerFrequency),
+              style: Theme.of(context).textTheme.labelMedium,
+            ),
+          ),
+          Expanded(
+            child: Slider(
+              min: minDecibels,
+              max: maxDecibels,
+              value: clampedGain,
+              onChanged: onChanged,
+            ),
+          ),
+          SizedBox(
+            width: 52,
+            child: Text(
+              '${clampedGain >= 0 ? '+' : ''}${clampedGain.toStringAsFixed(1)}',
+              textAlign: TextAlign.end,
+              style: Theme.of(context).textTheme.labelMedium,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SleepCountdown extends StatefulWidget {
+  const _SleepCountdown({
+    required this.state,
+    required this.strings,
+    required this.onCancel,
+  });
+
+  final AppState state;
+  final AppStrings strings;
+  final void Function(int?) onCancel;
+
+  @override
+  State<_SleepCountdown> createState() => _SleepCountdownState();
+}
+
+class _SleepCountdownState extends State<_SleepCountdown> {
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final deadline = widget.state.sleepDeadline;
+    if (deadline == null) {
+      return const SizedBox.shrink();
+    }
+    var remaining = deadline.difference(DateTime.now());
+    if (remaining.isNegative) {
+      remaining = Duration.zero;
+    }
+    final m = remaining.inMinutes;
+    final s = remaining.inSeconds % 60;
+    final theme = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.bedtime,
+            size: 18,
+            color: theme.colorScheme.onSecondaryContainer,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '${widget.strings.sleepTimer}: $m:${s.toString().padLeft(2, '0')}',
+            style: TextStyle(
+              color: theme.colorScheme.onSecondaryContainer,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 4),
+          InkResponse(
+            onTap: () => widget.onCancel(null),
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Icon(
+                Icons.close,
+                size: 18,
+                color: theme.colorScheme.onSecondaryContainer,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

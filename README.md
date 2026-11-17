@@ -60,6 +60,7 @@ Niusic is a local-first music player for Android and Windows. One Flutter codeba
 | **Seek and volume** | Seek within a track and adjust volume. |
 | **Shuffle and repeat** | Toggle shuffle and repeat off, all, or one. |
 | **Queue** | Play the full library as a queue, in order. |
+| **Equalizer** | Five bands in decibels, plus a loudness enhancer. Android only. |
 
 ### Library
 
@@ -68,6 +69,8 @@ Niusic is a local-first music player for Android and Windows. One Flutter codeba
 | **Auto scan** | On Android, Niusic scans the device for music files automatically and picks up new files in real time. No manual add needed. |
 | **Import audio** | Pick multiple audio files with the system file picker. |
 | **Search** | Filter the library by title text. |
+| **Sort** | Sort by name, artist, duration, or last played. |
+| **Most played** | See your most played tracks with play counts on Home. Kept on the device. |
 | **History** | Keep the last 100 played tracks on the device. |
 
 ### Streaming
@@ -91,6 +94,7 @@ Niusic is a local-first music player for Android and Windows. One Flutter codeba
 | **Channel browse** | Open any channel from search and play its uploads. |
 | **Suggestions** | See YouTube search suggestions as chips. |
 | **Playback speed** | Set 0.5x to 2.0x in Settings. |
+| **Share** | Share the current track from the Now Playing screen. |
 | **Accent themes** | Pick indigo, teal, purple, or orange accent. |
 | **Online playlists** | Browse YouTube playlists, play them, or save them locally. |
 
@@ -99,7 +103,7 @@ Niusic is a local-first music player for Android and Windows. One Flutter codeba
 | Feature | Description |
 |---------|-------------|
 | **Playlists** | Create, rename in code, delete, add, and remove tracks locally. |
-| **Settings** | Switch language, theme, accent, volume, playback speed, and clear local data. |
+| **Settings** | Switch language, theme, accent, volume, playback speed, equalizer, and clear local data. |
 
 ---
 
@@ -202,7 +206,7 @@ flutter build apk --release --split-per-abi
 - **Library:** Search and play the full library. New files appear automatically.
 - **Stream:** Search online, tap to play, or add to queue or a playlist.
 - **Playlists:** Create a playlist, then add tracks from the Library menu.
-- **Settings:** Change language, theme, accent, volume, playback speed, or clear local data.
+- **Settings:** Change language, theme, accent, volume, playback speed, equalizer, or clear local data.
 - **Mini player:** Tap the bottom track bar to open the full player.
 
 ---

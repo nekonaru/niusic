@@ -1,5 +1,29 @@
 # Changelog
 
+## v3.0.0
+
+Playback engine swap plus new features: equalizer, most played, library sorting, and share.
+
+### New features
+
+- **Equalizer.** Five bands tuned in decibels, plus a loudness enhancer. Android only, no extra permissions. Settings applies the equalizer live while music plays.
+- **Most played.** Home shows your most played tracks with play counts. Kept on the device, never uploaded.
+- **Library sorting.** Sort by name, artist, duration, or last played from the toolbar in the Library tab.
+- **Share.** Share the current track from the Now Playing screen. Online tracks share a YouTube link.
+
+### Improvements
+
+- **New playback engine.** Switched from audioplayers to just_audio. More reliable state handling, real buffering indication (spinner while loading), accurate completion handling, and gapless-quality seek behavior. Audio focus and call interruption are handled by the engine.
+- **Sleep timer countdown.** Now Playing shows a live countdown with a cancel button when the timer is on.
+- **Restart resume.** Tapping play after an app restart loads the restored track from your queue instead of doing nothing.
+- **Native Windows playback.** Windows uses the WinRT MediaPlayer backend.
+- **True shuffle.** Shuffle picks a random next track without repeating the current one.
+
+### Bug fixes
+
+- **Startup freeze.** The equalizer parameters future only resolves after playback starts. The app no longer waits for it at launch, so a cold start opens straight into the UI.
+- **Startup speed and setSpeed crash.** Volume and speed are applied after the audio source is set, when the engine can accept them.
+
 ## v2.4.1
 
 Patch: library rows fit the screen.

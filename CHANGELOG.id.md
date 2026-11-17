@@ -1,5 +1,29 @@
 # Changelog
 
+## v3.0.0
+
+Ganti mesin pemutaran plus fitur baru: equalizer, paling sering diputar, urutkan perpustakaan, dan bagikan.
+
+### Fitur baru
+
+- **Equalizer.** Lima band dalam desibel, ditambah penguat volume. Hanya Android, tanpa izin tambahan. Pengaturan menerapkan equalizer langsung saat musik diputar.
+- **Paling sering diputar.** Beranda menampilkan lagu yang paling sering kamu putar dengan jumlah pemutarannya. Disimpan di perangkat, tidak diunggah.
+- **Urutkan perpustakaan.** Urutkan berdasarkan nama, artis, durasi, atau terakhir diputar dari toolbar di tab Perpustakaan.
+- **Bagikan.** Bagikan lagu yang sedang diputar dari layar Now Playing. Lagu online dibagikan sebagai tautan YouTube.
+
+### Peningkatan
+
+- **Mesin pemutar baru.** Berpindah dari audioplayers ke just_audio. Penanganan state lebih andal, indikator buffering nyata (spinner saat memuat), deteksi selesai akurat, dan lompat posisi lebih presisi. Fokus audio dan interupsi telepon ditangani mesin.
+- **Hitung mundur timer tidur.** Now Playing menampilkan hitung mundur langsung dengan tombol batalkan saat timer aktif.
+- **Lanjutkan saat restart.** Menekan putar setelah aplikasi dibuka lagi memuat lagu yang tersimpan di antrian, bukan diam.
+- **Pemutaran Windows native.** Windows memakai backend WinRT MediaPlayer.
+- **Acak jujur.** Acak memilih lagu berikutnya secara acak tanpa mengulang lagu yang sedang diputar.
+
+### Perbaikan bug
+
+- **Layar peluncuran berhenti.** Future parameter equalizer baru ada setelah pemutaran dimulai. Aplikasi tidak lagi menunggunya saat dibuka, jadi startup dingin langsung menampilkan UI.
+- **Crash setSpeed saat startup.** Volume dan kecepatan diterapkan setelah sumber audio diatur, saat mesin siap menerimanya.
+
 ## v2.4.1
 
 Patch: baris perpustakaan muat di layar.

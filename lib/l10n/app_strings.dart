@@ -180,4 +180,21 @@ class AppStrings {
         return code ?? '';
     }
   }
+
+  String get equalizer => 'Equalizer';
+  String get equalizerDesc => isId
+      ? 'Ubah karakter suara. Hanya di Android.'
+      : 'Tune the sound. Android only.';
+  String get loudnessEnhancer => isId ? 'Penguat volume' : 'Loudness enhancer';
+  String get reset => isId ? 'Atur ulang' : 'Reset';
+  String get mostPlayed => isId ? 'Paling sering diputar' : 'Most played';
+  String get sortBy => isId ? 'Urutkan' : 'Sort by';
+  String get sortByName => isId ? 'Nama' : 'Name';
+  String get sortByArtist => isId ? 'Artis' : 'Artist';
+  String get sortByDuration => isId ? 'Durasi' : 'Duration';
+  String get sortByRecent => isId ? 'Terakhir diputar' : 'Recently played';
+  String get share => isId ? 'Bagikan' : 'Share';
+  String get playsCountSuffix => isId ? 'kali diputar' : 'plays';
+  String get cancelSleep =>
+      isId ? 'Batalkan timer tidur' : 'Cancel sleep timer';
 }

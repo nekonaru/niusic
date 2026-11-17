@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:audio_service/audio_service.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -16,6 +18,7 @@ import 'audio_handler.dart';
 import 'chart_service.dart';
 import 'download_service.dart';
 import 'library_merge.dart';
+import 'library_sort.dart';
 import 'lyrics_service.dart';
 import 'scanner_service.dart';
 import 'stream_service.dart';
@@ -37,6 +40,12 @@ const String _keyAccent = 'accent';
 const String _keyLibraryV2 = 'library_v2';
 const String _keyHistoryV2 = 'history_v2';
 const String _keyScanAsked = 'scan_permission_asked';
+const String _keyPlayCounts = 'play_counts_v1';
+const String _keyLibrarySort = 'library_sort';
+const String _keyEqEnabled = 'equalizer_enabled';
+const String _keyEqGains = 'equalizer_gains';
+const String _keyLoudnessEnabled = 'loudness_enhancer_enabled';
+const String _keyLoudnessGain = 'loudness_enhancer_gain';
 const int _maxHistory = 100;
 
 class AppState extends ChangeNotifier {
@@ -46,15 +55,26 @@ class AppState extends ChangeNotifier {
       lyricsService = LyricsService(),
       chartService = ChartService(),
       suggestionsService = SuggestionsService() {
-    _completion = player.onPlayerComplete.listen((_) => next(auto: true));
-    _stateSub = player.onPlayerStateChanged.listen((s) {
-      final playing = s == PlayerState.playing;
+    _playerStateSub = player.playerStateStream.listen((s) {
+      final completed = s.processingState == ProcessingState.completed;
+      if (completed) {
+        unawaited(next(auto: true));
+        return;
+      }
+      final buffering =
+          s.processingState == ProcessingState.loading ||
+          s.processingState == ProcessingState.buffering;
+      if (buffering != isBuffering) {
+        isBuffering = buffering;
+        notifyListeners();
+      }
+      final playing = s.playing;
       if (playing != isPlaying) {
         isPlaying = playing;
         notifyListeners();
       }
     });
-    _positionSub = player.onPositionChanged.listen((d) {
+    _positionSub = player.positionStream.listen((d) {
       final nextSecond = d.inSeconds;
       if (nextSecond != position.inSeconds || duration == Duration.zero) {
         position = d;
@@ -63,13 +83,27 @@ class AppState extends ChangeNotifier {
         position = d;
       }
     });
-    _durationSub = player.onDurationChanged.listen((d) {
-      duration = d;
+    _durationSub = player.durationStream.listen((d) {
+      final newDuration = d ?? Duration.zero;
+      if (newDuration != duration) {
+        duration = newDuration;
+        notifyListeners();
+      }
+    });
+    _errorSub = player.errorStream.listen((e) {
+      debugPrint('playback error: ${e.message}');
+      lastError = 'playback_failed';
       notifyListeners();
     });
   }
 
-  final AudioPlayer player = AudioPlayer();
+  final AndroidEqualizer equalizer = AndroidEqualizer();
+  final AndroidLoudnessEnhancer loudnessEnhancer = AndroidLoudnessEnhancer();
+  late final AudioPlayer player = AudioPlayer(
+    audioPipeline: AudioPipeline(
+      androidAudioEffects: [loudnessEnhancer, equalizer],
+    ),
+  );
   final StreamService streamService;
   final DownloadService downloadService;
   final LyricsService lyricsService;
@@ -96,6 +130,7 @@ class AppState extends ChangeNotifier {
   String language = 'en';
   ThemeChoice theme = ThemeChoice.system;
   bool isPlaying = false;
+  bool isBuffering = false;
   Duration position = Duration.zero;
   Duration duration = Duration.zero;
   String? lastError;
@@ -103,6 +138,13 @@ class AppState extends ChangeNotifier {
   String accent = 'indigo';
   Timer? _sleepTimer;
   int? sleepMinutes;
+  DateTime? sleepDeadline;
+  LibrarySort librarySort = LibrarySort.name;
+  final Map<String, int> playCounts = <String, int>{};
+  bool equalizerEnabled = false;
+  List<double> equalizerGains = <double>[];
+  bool loudnessEnabled = false;
+  double loudnessGain = 0;
 
   /// Scanner state for the UI.
   bool scanGranted = false;
@@ -111,15 +153,19 @@ class AppState extends ChangeNotifier {
   int lastScanTotal = 0;
   DateTime? lastScanAt;
 
-  StreamSubscription<void>? _completion;
-  StreamSubscription<PlayerState>? _stateSub;
+  StreamSubscription<PlayerState>? _playerStateSub;
   StreamSubscription<Duration>? _positionSub;
-  StreamSubscription<Duration>? _durationSub;
+  StreamSubscription<Duration?>? _durationSub;
+  StreamSubscription<PlayerException>? _errorSub;
   StreamSubscription<void>? _scanSub;
   Timer? _scanDebounce;
   Timer? _scanRetryTimer;
+  Timer? _equalizerTimer;
+  bool _equalizerApplied = false;
+  bool _sourceLoaded = false;
   SharedPreferences? _prefs;
   Timer? _volumeTimer;
+  final Random _random = Random();
 
   final Map<String, int> _libraryIndex = <String, int>{};
   final Map<String, String> _lowerTitles = <String, String>{};
@@ -277,17 +323,25 @@ class AppState extends ChangeNotifier {
     streamService.audioQuality = prefs.getString(_keyQuality) ?? 'high';
     playbackRate = prefs.getDouble(_keyRate) ?? 1;
     accent = prefs.getString(_keyAccent) ?? 'indigo';
-    await player.setPlaybackRate(playbackRate);
-    await player.setAudioContext(
-      AudioContext(
-        android: AudioContextAndroid(
-          audioFocus: AndroidAudioFocus.gain,
-          contentType: AndroidContentType.music,
-          usageType: AndroidUsageType.media,
-        ),
-      ),
-    );
-    await player.setVolume(volume);
+    librarySort =
+        LibrarySort.values.asNameMap()[prefs.getString(_keyLibrarySort)] ??
+        LibrarySort.name;
+    final countsRaw = prefs.getString(_keyPlayCounts);
+    if (countsRaw != null) {
+      try {
+        final decoded = jsonDecode(countsRaw) as Map<String, dynamic>;
+        playCounts
+          ..clear()
+          ..addAll(
+            decoded.map((key, value) => MapEntry(key, (value as num).toInt())),
+          );
+      } catch (_) {
+        playCounts.clear();
+      }
+    }
+    // just_audio's platform is created on first playback. Volume, speed,
+    // and equalizer state are applied in _playTrack once it exists.
+    await loadEqualizer();
     final queueRaw = prefs.getString('queue_v2') ?? prefs.getString('queue_v1');
     if (queueRaw != null) {
       final decoded = jsonDecode(queueRaw) as List<dynamic>;
@@ -315,6 +369,229 @@ class AppState extends ChangeNotifier {
     }
     notifyListeners();
     unawaited(initScanner());
+  }
+
+  /// Restores equalizer preferences into memory and enables the effects.
+  /// The band gains are applied to the platform by [_ensureEqualizerApplied]
+  /// once it exists, which happens on first playback.
+  Future<void> loadEqualizer() async {
+    if (!Platform.isAndroid) {
+      return;
+    }
+    try {
+      final prefs = await _getPrefs();
+      equalizerEnabled = prefs.getBool(_keyEqEnabled) ?? false;
+      loudnessEnabled = prefs.getBool(_keyLoudnessEnabled) ?? false;
+      loudnessGain = prefs.getDouble(_keyLoudnessGain) ?? 0;
+      final gainsRaw = prefs.getString(_keyEqGains);
+      if (gainsRaw != null) {
+        try {
+          equalizerGains = (jsonDecode(gainsRaw) as List<dynamic>)
+              .map((e) => (e as num).toDouble())
+              .toList();
+        } catch (_) {
+          equalizerGains = <double>[];
+        }
+      }
+      // setEnabled only flips an in-memory flag until the platform exists.
+      await equalizer.setEnabled(equalizerEnabled);
+      await loudnessEnhancer.setEnabled(loudnessEnabled);
+      await loudnessEnhancer.setTargetGain(loudnessGain);
+    } catch (_) {
+      // Effects are not supported here. Sliders stay at their stored values.
+    }
+  }
+
+  /// Applies the stored band gains to the platform the first time audio
+  /// exists. Safe to call any number of times.
+  Future<void> _ensureEqualizerApplied() async {
+    if (_equalizerApplied) {
+      return;
+    }
+    _equalizerApplied = true;
+    await _applyEqualizerControls();
+  }
+
+  Future<void> _applyEqualizerControls() async {
+    if (!Platform.isAndroid) {
+      return;
+    }
+    try {
+      final params = await equalizer.parameters;
+      final bandCount = params.bands.length;
+      if (equalizerGains.length != bandCount) {
+        equalizerGains = List<double>.generate(
+          bandCount,
+          (i) => i < equalizerGains.length ? equalizerGains[i] : 0,
+        );
+        await _saveEqualizerGains();
+      }
+      for (var i = 0; i < bandCount; i++) {
+        await params.bands[i].setGain(equalizerGains[i]);
+      }
+      if (loudnessEnabled) {
+        await loudnessEnhancer.setTargetGain(loudnessGain);
+      }
+    } catch (_) {
+      // Unsupported device or activation not finished. Try again on play.
+      _equalizerApplied = false;
+    }
+  }
+
+  Future<void> setEqualizerEnabled(bool value) async {
+    equalizerEnabled = value;
+    try {
+      await equalizer.setEnabled(value);
+    } catch (_) {
+      // Unsupported device. Keep the preference.
+    }
+    final prefs = await _getPrefs();
+    await prefs.setBool(_keyEqEnabled, value);
+    notifyListeners();
+  }
+
+  /// Sets the gain (in dB) for [index] and debounces the prefs write.
+  Future<void> setEqualizerBandGain(int index, double dB) async {
+    if (index < 0) {
+      return;
+    }
+    if (equalizerGains.length <= index) {
+      equalizerGains = List<double>.filled(index + 1, 0, growable: true);
+    }
+    equalizerGains[index] = dB;
+    _equalizerTimer?.cancel();
+    _equalizerTimer = Timer(const Duration(milliseconds: 300), () {
+      unawaited(_saveEqualizerGains());
+    });
+    notifyListeners();
+    // Apply to the platform when it exists. Before first playback the gains
+    // are applied on activation instead.
+    try {
+      final params = await equalizer.parameters;
+      if (index < params.bands.length) {
+        await params.bands[index].setGain(dB);
+      }
+    } catch (_) {
+      // Activation not done yet. Gains live in equalizerGains.
+    }
+  }
+
+  Future<void> resetEqualizer() async {
+    equalizerGains = List<double>.filled(
+      equalizerGains.length,
+      0,
+      growable: true,
+    );
+    await _saveEqualizerGains();
+    notifyListeners();
+    try {
+      final params = await equalizer.parameters;
+      for (final band in params.bands) {
+        await band.setGain(0);
+      }
+    } catch (_) {
+      // Activation not done yet. Gains live in equalizerGains.
+    }
+  }
+
+  Future<void> _saveEqualizerGains() async {
+    final prefs = await _getPrefs();
+    await prefs.setString(_keyEqGains, jsonEncode(equalizerGains));
+  }
+
+  Future<void> setLoudnessEnabled(bool value) async {
+    loudnessEnabled = value;
+    try {
+      await loudnessEnhancer.setEnabled(value);
+    } catch (_) {
+      // Unsupported device. Keep the preference.
+    }
+    final prefs = await _getPrefs();
+    await prefs.setBool(_keyLoudnessEnabled, value);
+    notifyListeners();
+  }
+
+  Future<void> setLoudnessGain(double value) async {
+    loudnessGain = value.clamp(0, 10).toDouble();
+    try {
+      await loudnessEnhancer.setTargetGain(loudnessGain);
+    } catch (_) {
+      // Unsupported device. Keep the preference.
+    }
+    _equalizerTimer?.cancel();
+    _equalizerTimer = Timer(const Duration(milliseconds: 300), () async {
+      final prefs = await _getPrefs();
+      await prefs.setDouble(_keyLoudnessGain, loudnessGain);
+    });
+    notifyListeners();
+  }
+
+  /// Sets the library sort order and persists it.
+  Future<void> setLibrarySort(LibrarySort sort) async {
+    librarySort = sort;
+    final prefs = await _getPrefs();
+    await prefs.setString(_keyLibrarySort, sort.name);
+    notifyListeners();
+  }
+
+  /// Tracks most played by this install. Not sent anywhere.
+  List<Track> topPlayed({int limit = 8}) {
+    final byId = <String, Track>{for (final t in library) t.id: t};
+    final entries = playCounts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final out = <Track>[];
+    for (final entry in entries) {
+      final track = byId[entry.key];
+      if (track != null) {
+        out.add(track);
+      }
+      if (out.length >= limit) {
+        break;
+      }
+    }
+    return out;
+  }
+
+  void _recordPlay(Track track) {
+    playCounts[track.id] = (playCounts[track.id] ?? 0) + 1;
+    _savePlayCountsSoon();
+  }
+
+  Future<void>? _playCountsSaveFuture;
+
+  void _savePlayCountsSoon() {
+    _playCountsSaveFuture ??= Future<void>.delayed(
+      const Duration(seconds: 1),
+      () async {
+        final prefs = await _getPrefs();
+        await prefs.setString(_keyPlayCounts, jsonEncode(playCounts));
+        _playCountsSaveFuture = null;
+      },
+    );
+  }
+
+  /// Shares the current track. Uses the platform share sheet.
+  Future<void> shareCurrent() async {
+    final cur = current;
+    if (cur == null) {
+      return;
+    }
+    final parts = <String>[
+      if (cur.author != null && cur.author!.isNotEmpty)
+        '${cur.title} - ${cur.author}'
+      else
+        cur.title,
+    ];
+    if (cur.isRemote && cur.videoId != null) {
+      parts.add('https://www.youtube.com/watch?v=${cur.videoId}');
+    }
+    try {
+      await SharePlus.instance.share(
+        ShareParams(text: parts.join('\n'), subject: cur.title),
+      );
+    } catch (_) {
+      // Share sheet is not available on this platform.
+    }
   }
 
   /// Android only: grants access if needed, starts the real-time observer,
@@ -529,6 +806,7 @@ class AppState extends ChangeNotifier {
     final track = queue[index];
     historyIds.remove(track.id);
     historyIds.insert(0, track.id);
+    _recordPlay(track);
     await _saveHistory();
     await _saveQueue();
     await _playTrack(track);
@@ -549,7 +827,11 @@ class AppState extends ChangeNotifier {
         return;
       }
       try {
-        await player.play(DeviceFileSource(path));
+        await player.setFilePath(path);
+        await _applySessionPrefs();
+        await player.play();
+        _sourceLoaded = true;
+        unawaited(_ensureEqualizerApplied());
         lastError = null;
       } catch (e) {
         debugPrint('playback failed: $e');
@@ -566,7 +848,11 @@ class AppState extends ChangeNotifier {
         return;
       }
       try {
-        await player.play(DeviceFileSource(path));
+        await player.setFilePath(path);
+        await _applySessionPrefs();
+        await player.play();
+        _sourceLoaded = true;
+        unawaited(_ensureEqualizerApplied());
         lastError = null;
       } catch (e) {
         debugPrint('playback failed: $e');
@@ -587,12 +873,28 @@ class AppState extends ChangeNotifier {
       if (queueIndex >= 0 && queueIndex < queue.length) {
         queue[queueIndex] = queue[queueIndex].copyWithUrl(url);
       }
-      await player.play(UrlSource(url));
+      await player.setUrl(url);
+      await _applySessionPrefs();
+      await player.play();
+      _sourceLoaded = true;
+      unawaited(_ensureEqualizerApplied());
       lastError = null;
     } catch (e) {
       debugPrint('stream failed: $e');
       lastError = 'stream_failed';
       notifyListeners();
+    }
+  }
+
+  /// Applies volume and speed to the player. Called after the source is set,
+  /// when the platform exists. The calls are safe no-ops if the platform is
+  /// not ready yet.
+  Future<void> _applySessionPrefs() async {
+    try {
+      await player.setVolume(volume);
+      await player.setSpeed(playbackRate);
+    } catch (_) {
+      // Platform not ready yet. Defaults are used until the next play.
     }
   }
 
@@ -730,12 +1032,17 @@ class AppState extends ChangeNotifier {
     _sleepTimer?.cancel();
     sleepMinutes = minutes;
     if (minutes != null && minutes > 0) {
+      sleepDeadline = DateTime.now().add(Duration(minutes: minutes));
       _sleepTimer = Timer(Duration(minutes: minutes), () {
         if (isPlaying) {
           unawaited(player.pause());
         }
+        sleepMinutes = null;
+        sleepDeadline = null;
         notifyListeners();
       });
+    } else {
+      sleepDeadline = null;
     }
     notifyListeners();
   }
@@ -773,7 +1080,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> setPlaybackRate(double value) async {
     playbackRate = value.clamp(0.5, 2.0);
-    await player.setPlaybackRate(playbackRate);
+    await player.setSpeed(playbackRate);
     final prefs = await _getPrefs();
     await prefs.setDouble(_keyRate, playbackRate);
     notifyListeners();
@@ -806,9 +1113,22 @@ class AppState extends ChangeNotifier {
   Future<void> toggle() async {
     if (isPlaying) {
       await player.pause();
-    } else {
-      await player.resume();
+      return;
     }
+    // After a restart the queue is restored but no source is loaded. Load
+    // the restored current track instead of playing nothing.
+    if (!_sourceLoaded) {
+      if (queue.isEmpty) {
+        return;
+      }
+      var target = queueIndex;
+      if (target < 0 || target >= queue.length) {
+        target = 0;
+      }
+      await playAt(target);
+      return;
+    }
+    await player.play();
   }
 
   Future<void> seek(Duration d) async {
@@ -834,12 +1154,17 @@ class AppState extends ChangeNotifier {
     }
     if (repeat == NiRepeatMode.one && auto) {
       await player.seek(Duration.zero);
-      await player.resume();
+      await player.play();
       return;
     }
     int nextIndex;
-    if (shuffle) {
-      nextIndex = (queueIndex + 1 + _nextInt(queue.length)) % queue.length;
+    if (shuffle && queue.length > 1) {
+      // Avoid picking the same track we just ended on.
+      do {
+        nextIndex = _random.nextInt(queue.length);
+      } while (nextIndex == queueIndex);
+    } else if (shuffle) {
+      nextIndex = 0;
     } else {
       nextIndex = queueIndex + 1;
       if (nextIndex >= queue.length) {
@@ -937,6 +1262,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> clearAll() async {
     await player.stop();
+    _sourceLoaded = false;
     // Free downloaded audio files on disk before wiping metadata.
     for (final track in downloadedTracks()) {
       await downloadService.deleteFile(track.downloadPath);
@@ -955,6 +1281,13 @@ class AppState extends ChangeNotifier {
     _widgetArtist = null;
     _widgetPlaying = null;
     _volumeTimer?.cancel();
+    _equalizerTimer?.cancel();
+    sleepDeadline = null;
+    sleepMinutes = null;
+    _sleepTimer?.cancel();
+    playCounts.clear();
+    final prefs = await _getPrefs();
+    await prefs.remove(_keyPlayCounts);
     await _saveLibrary();
     await _savePlaylists();
     await _saveHistory();
@@ -998,32 +1331,17 @@ class AppState extends ChangeNotifier {
     await prefs.setString(_keyHistoryV2, jsonEncode(historyIds));
   }
 
-  void _rebuildIndexes() {
-    _libraryIndex.clear();
-    _lowerTitles.clear();
-    for (var i = 0; i < library.length; i++) {
-      _libraryIndex[library[i].id] = i;
-      _lowerTitles[library[i].id] = library[i].title.toLowerCase();
-    }
-  }
-
-  int _nextInt(int max) {
-    if (max <= 0) {
-      return 0;
-    }
-    return (DateTime.now().microsecondsSinceEpoch % max).abs();
-  }
-
   @override
   void dispose() {
     _volumeTimer?.cancel();
+    _equalizerTimer?.cancel();
     _scanDebounce?.cancel();
     _scanRetryTimer?.cancel();
     unawaited(_scanSub?.cancel());
-    unawaited(_completion?.cancel());
-    unawaited(_stateSub?.cancel());
+    unawaited(_playerStateSub?.cancel());
     unawaited(_positionSub?.cancel());
     unawaited(_durationSub?.cancel());
+    unawaited(_errorSub?.cancel());
     unawaited(player.dispose());
     streamService.dispose();
     downloadService.dispose();
@@ -1032,5 +1350,14 @@ class AppState extends ChangeNotifier {
     suggestionsService.dispose();
     _sleepTimer?.cancel();
     super.dispose();
+  }
+
+  void _rebuildIndexes() {
+    _libraryIndex.clear();
+    _lowerTitles.clear();
+    for (var i = 0; i < library.length; i++) {
+      _libraryIndex[library[i].id] = i;
+      _lowerTitles[library[i].id] = library[i].title.toLowerCase();
+    }
   }
 }

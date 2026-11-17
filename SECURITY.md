@@ -15,9 +15,10 @@ Out of scope: third-party services, the user's own media files, and social engin
 
 Only the latest stable release is supported. Fixes ship as a new release.
 
-## Known limitations at v2.4.1
+## Known limitations at v3.0.0
 
 - Release APK and Windows zip are not code-signed with a private key. They install from a direct download on Android and as a portable exe on Windows.
 - Online search uses public Piped instances and online playback uses Googlevideo URLs. Both can change or rate-limit.
+- Playback uses the just_audio engine. Equalizer and loudness enhancer are Android-only and not available on Windows.
 - EQ/effects, Discord presence, YouTube Music sync, and song recognition are not implemented. See `docs/GAPS.md`.
 - Media notification and home screen widget are Android-only. On Windows, the app runs without OS media controls or widget.

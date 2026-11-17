@@ -60,6 +60,7 @@ Niusic adalah pemutar musik local-first untuk Android dan Windows. Satu codebase
 | **Lompat dan volume** | Lompat di dalam lagu dan atur volume. |
 | **Acak dan ulangi** | Aktifkan acak dan ulangi mati, semua, atau satu. |
 | **Antrian** | Putar seluruh perpustakaan sebagai antrian, berurutan. |
+| **Equalizer** | Lima band dalam desibel, ditambah penguat volume. Hanya Android. |
 
 ### Perpustakaan
 
@@ -68,6 +69,8 @@ Niusic adalah pemutar musik local-first untuk Android dan Windows. Satu codebase
 | **Pindai otomatis** | Di Android, Niusic memindai file musik perangkat secara otomatis dan mendeteksi file baru secara langsung. Tidak perlu menambah manual. |
 | **Impor audio** | Pilih banyak file audio lewat pemilih file sistem. |
 | **Cari** | Saring perpustakaan berdasarkan teks judul. |
+| **Urutkan** | Urutkan berdasarkan nama, artis, durasi, atau terakhir diputar. |
+| **Paling sering diputar** | Lihat lagu yang paling sering kamu putar dengan jumlah pemutarannya di Beranda. Disimpan di perangkat. |
 | **Riwayat** | Simpan 100 lagu terakhir yang diputar di perangkat. |
 
 ### Streaming
@@ -91,6 +94,7 @@ Niusic adalah pemutar musik local-first untuk Android dan Windows. Satu codebase
 | **Browse kanal** | Buka kanal mana pun dari pencarian dan putar unggahannya. |
 | **Saran** | Lihat saran pencarian YouTube sebagai chip. |
 | **Kecepatan putar** | Atur 0,5x hingga 2,0x di Pengaturan. |
+| **Bagikan** | Bagikan lagu yang sedang diputar dari layar Now Playing. |
 | **Tema aksen** | Pilih aksen indigo, teal, ungu, atau oranye. |
 | **Playlist online** | Jelajahi playlist YouTube, putar, atau simpan lokal. |
 
@@ -99,7 +103,7 @@ Niusic adalah pemutar musik local-first untuk Android dan Windows. Satu codebase
 | Fitur | Deskripsi |
 |-------|-----------|
 | **Playlist** | Buat, ganti nama lewat kode, hapus, tambah, dan hapus lagu secara lokal. |
-| **Pengaturan** | Ganti bahasa, tema, aksen, volume, kecepatan putar, dan hapus data lokal. |
+| **Pengaturan** | Ganti bahasa, tema, aksen, volume, kecepatan putar, equalizer, dan hapus data lokal. |
 
 ---
 
@@ -202,7 +206,7 @@ flutter build apk --release --split-per-abi
 - **Perpustakaan:** Cari dan putar seluruh perpustakaan. File baru muncul otomatis.
 - **Streaming:** Cari online, ketuk untuk putar, atau tambah ke antrian atau playlist.
 - **Playlist:** Buat playlist, lalu tambah lagu dari menu Perpustakaan.
-- **Pengaturan:** Ubah bahasa, tema, aksen, volume, kecepatan putar, atau hapus data lokal.
+- **Pengaturan:** Ubah bahasa, tema, aksen, volume, kecepatan putar, equalizer, atau hapus data lokal.
 - **Pemutar mini:** Ketuk bar lagu di bawah untuk membuka pemutar penuh.
 
 ---
