@@ -297,6 +297,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final recent = state.recentTracks();
     final downloads = state.downloadedTracks();
     final current = state.current;
+    final topPlayed = state.topPlayed();
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
       children: [
@@ -555,12 +556,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 20),
         ],
-        if (state.topPlayed().isNotEmpty) ...[
+        if (topPlayed.isNotEmpty) ...[
           _sectionTitle(strings.mostPlayed, Icons.trending_up),
           const SizedBox(height: 12),
           Card(
             child: Column(
-              children: state.topPlayed().take(5).map((track) {
+              children: topPlayed.take(5).map((track) {
                 final plays = state.playCounts[track.id] ?? 0;
                 return ListTile(
                   leading: CircleAvatar(
