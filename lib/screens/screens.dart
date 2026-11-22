@@ -44,6 +44,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
       state.librarySort,
       state.historyIds,
     );
+    final queueIndexById = <String, int>{
+      for (var i = 0; i < state.queue.length; i++) state.queue[i].id: i,
+    };
     return Column(
       children: [
         Padding(
@@ -111,7 +114,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   separatorBuilder: (context, index) =>
                       const SizedBox(height: 4),
                   itemBuilder: (context, index) =>
-                      _libraryTile(filtered[index], context),
+                      _libraryTile(filtered[index], context, queueIndexById),
                 )
               : GridView.builder(
                   addRepaintBoundaries: true,
@@ -123,7 +126,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   ),
                   itemCount: filtered.length,
                   itemBuilder: (context, index) {
-                    return _libraryTile(filtered[index], context);
+                    return _libraryTile(
+                      filtered[index],
+                      context,
+                      queueIndexById,
+                    );
                   },
                 ),
         ),
@@ -131,10 +138,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
   }
 
-  Widget _libraryTile(Track track, BuildContext context) {
+  Widget _libraryTile(
+    Track track,
+    BuildContext context,
+    Map<String, int> queueIndexById,
+  ) {
     final state = widget.state;
     final theme = Theme.of(context);
-    final queueIndex = state.queueIndexOf(track);
+    final queueIndex = queueIndexById[track.id] ?? -1;
     return Card(
       clipBehavior: Clip.antiAlias,
       margin: const EdgeInsets.symmetric(horizontal: 8),
@@ -984,8 +995,8 @@ class SettingsScreen extends StatefulWidget {
   final AppStrings strings;
   final VoidCallback onChanged;
 
-  static const String version = '4.1.0';
-  static const String buildNumber = '32';
+  static const String version = '4.2.0';
+  static const String buildNumber = '33';
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();

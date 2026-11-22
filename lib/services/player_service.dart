@@ -126,6 +126,9 @@ class AppState extends ChangeNotifier {
   final List<Playlist> playlists = <Playlist>[];
   final List<String> historyIds = <String>[];
   List<Track> queue = <Track>[];
+  // Incremented whenever the queue content changes; lets _syncNotification
+  // skip rebuilding the media notification items every second.
+  int queueVersion = 0;
   int queueIndex = -1;
   bool shuffle = false;
   NiRepeatMode repeat = NiRepeatMode.off;
@@ -205,7 +208,7 @@ class AppState extends ChangeNotifier {
   }
 
   final List<MediaItem> _cachedItems = <MediaItem>[];
-  String _cachedQueueKey = '';
+  int _cachedQueueVersion = -1;
   String _lastSyncKey = '';
 
   void _syncNotification() {
@@ -217,12 +220,11 @@ class AppState extends ChangeNotifier {
     if (cur == null) {
       return;
     }
-    final queueKey = queue.map((t) => t.id).join('|');
-    if (_cachedItems.isEmpty || queueKey != _cachedQueueKey) {
+    if (queueVersion != _cachedQueueVersion || _cachedItems.isEmpty) {
       _cachedItems
         ..clear()
         ..addAll(queue.map(_toMediaItem));
-      _cachedQueueKey = queueKey;
+      _cachedQueueVersion = queueVersion;
     }
     final syncKey =
         '${cur.id}|$queueIndex|${isPlaying ? 1 : 0}|${position.inSeconds}';
@@ -363,12 +365,14 @@ class AppState extends ChangeNotifier {
         }
       }
       queue = restored.isEmpty ? List<Track>.of(library) : restored;
+      queueVersion++;
       final savedIndex = prefs.getInt('queue_index');
       if (savedIndex != null && savedIndex >= 0 && savedIndex < queue.length) {
         queueIndex = savedIndex;
       }
     } else {
       queue = List<Track>.of(library);
+      queueVersion++;
     }
     notifyListeners();
     unawaited(initScanner());
@@ -683,6 +687,7 @@ class AppState extends ChangeNotifier {
     }
     if (result.added > 0 || result.pruned > 0) {
       _rebuildIndexes();
+      queueVersion++;
       if (queue.isEmpty && library.isNotEmpty) {
         queue = List<Track>.of(library);
       }
@@ -743,6 +748,7 @@ class AppState extends ChangeNotifier {
     if (added) {
       await _saveLibrary();
       queue = List<Track>.of(library);
+      queueVersion++;
       notifyListeners();
     }
   }
@@ -796,6 +802,7 @@ class AppState extends ChangeNotifier {
     if (added > 0) {
       await _saveLibrary();
       queue = List<Track>.of(library);
+      queueVersion++;
       notifyListeners();
     }
     return added;
@@ -805,6 +812,7 @@ class AppState extends ChangeNotifier {
     if (index < 0 || index >= queue.length) {
       return;
     }
+    queueVersion++;
     queueIndex = index;
     final track = queue[index];
     historyIds.remove(track.id);
@@ -940,6 +948,7 @@ class AppState extends ChangeNotifier {
     library.add(track);
     _libraryIndex[track.id] = library.length - 1;
     _lowerTitles[track.id] = track.title.toLowerCase();
+    queueVersion++;
     unawaited(_saveLibrary());
     unawaited(playAt(queue.length - 1));
   }
@@ -970,6 +979,7 @@ class AppState extends ChangeNotifier {
     library.add(track);
     _libraryIndex[track.id] = library.length - 1;
     _lowerTitles[track.id] = track.title.toLowerCase();
+    queueVersion++;
     unawaited(_saveLibrary());
     unawaited(playAt(queue.length - 1));
   }
@@ -1017,8 +1027,8 @@ class AppState extends ChangeNotifier {
     await player.stop();
     _sourceLoaded = false;
     queue = <Track>[];
+    queueVersion++;
     queueIndex = -1;
-    _cachedQueueKey = '';
     _cachedItems.clear();
     _lastSyncKey = '';
     unawaited(_saveQueue());
@@ -1043,6 +1053,7 @@ class AppState extends ChangeNotifier {
       unawaited(_saveLibrary());
     }
     queue.add(track);
+    queueVersion++;
     notifyListeners();
   }
 
@@ -1116,6 +1127,7 @@ class AppState extends ChangeNotifier {
     } else if (oldIndex > queueIndex && target <= queueIndex) {
       queueIndex++;
     }
+    queueVersion++;
     unawaited(_saveQueue());
     notifyListeners();
   }
@@ -1130,6 +1142,7 @@ class AppState extends ChangeNotifier {
     } else if (index < queueIndex) {
       queueIndex--;
     }
+    queueVersion++;
     unawaited(_saveQueue());
     notifyListeners();
   }
@@ -1377,10 +1390,10 @@ class AppState extends ChangeNotifier {
     _libraryIndex.clear();
     _lowerTitles.clear();
     queue = <Track>[];
+    queueVersion++;
     playlists.clear();
     historyIds.clear();
     queueIndex = -1;
-    _cachedQueueKey = '';
     _cachedItems.clear();
     _lastSyncKey = '';
     _widgetTitle = null;

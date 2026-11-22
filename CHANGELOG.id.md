@@ -1,5 +1,20 @@
 # Changelog
 
+## v4.2.0
+
+Perehatan dan pengoptimalan jalan kerja.
+
+### Peningkatan
+
+- **Biaya notifikasi media.** `_syncNotification` sekarang membandingkan versi antrian sebagai ganti membangun ulang daftar item notifikasi pada setiap detikan tick per detik saat pemutaran berjalan.
+- **Lookup baris perpustakaan.** Baris perpustakaan memakai peta indeks antrian yang telah dipreset (O(1)) sebagai ganti pencarian linier per baris per render.
+- **Pembersihan.** Izin yang tidak dipakai lagi, WAKE_LOCK dan ACCESS_NETWORK_STATE, dihapus (sisa v4.1.0).
+- **Home build.** Most-played dibangun sekali per render, bukan per-notify.
+
+### Perbaikan bug
+
+- **Kerjaan di tes.** Tes baru: queueVersion naik pada playAt, moveQueueItem, removeQueueItem, dan clearQueue; moveQueueItem menjaga lagu saat ini konsisten.
+
 ## v4.1.0
 
 Optimalisasi dan pembersihan.

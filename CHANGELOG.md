@@ -1,5 +1,20 @@
 # Changelog
 
+## v4.2.0
+
+Smoothness and performance pass.
+
+### Improvements
+
+- **Media notification cost.** `_syncNotification` now compares queue versions instead of rebuilding the notification item list on every per-second tick while playback runs.
+- **Library row lookups.** Library rows use a precomputed queue index map (O(1)) instead of a linear scan per row per render.
+- **Cleanup.** Removed unused WAKE_LOCK and ACCESS_NETWORK_STATE permissions (carried over from v4.1.0).
+- **Home build.** Most-played is built once per render instead of on every notify.
+
+### Bug fixes
+
+- **Test coverage.** New unit tests: queueVersion increments on playAt, moveQueueItem, removeQueueItem and clearQueue; moveQueueItem keeps the current track consistent. Favorites tests cover toggle, pin, and persistence across restart.
+
 ## v4.1.0
 
 Optimizations and cleanup.
