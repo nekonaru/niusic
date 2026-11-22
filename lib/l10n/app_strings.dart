@@ -197,4 +197,19 @@ class AppStrings {
   String get playsCountSuffix => isId ? 'kali diputar' : 'plays';
   String get cancelSleep =>
       isId ? 'Batalkan timer tidur' : 'Cancel sleep timer';
+
+  String get favorites => isId ? 'Favorit' : 'Favorites';
+  String get addToFavorites => isId ? 'Tambah ke favorit' : 'Add to favorites';
+  String get removeFromFavorites =>
+      isId ? 'Hapus dari favorit' : 'Remove from favorites';
+  String get radioSearchHint =>
+      isId ? 'Cari stasiun radio...' : 'Search radio stations...';
+  String get noStations =>
+      isId ? 'Tidak ada stasiun ditemukan.' : 'No stations found.';
+  String get clearQueue => isId ? 'Bersihkan antrian' : 'Clear queue';
+  String get clearQueueConfirm =>
+      isId ? 'Bersihkan seluruh antrian?' : 'Clear the entire queue?';
+  String get saveAsPlaylist =>
+      isId ? 'Simpan sebagai playlist' : 'Save as playlist';
+  String get live => 'LIVE';
 }

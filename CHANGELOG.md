@@ -1,5 +1,23 @@
 # Changelog
 
+## v4.0.0
+
+Internet radio, Favorites, and queue improvements.
+
+### New features
+
+- **Internet radio.** Community radio directory from radio-browser.info. Search stations or browse top voted ones, tap to play. Streams play live with the same engine, continue after a restart, and show a LIVE chip in Now Playing. Unplayable codecs (ogg) are filtered out.
+- **Favorites.** A pinned Favorites playlist appears in the Playlists tab. Heart buttons in the Library, playlists, and Now Playing toggle tracks in and out of it. Kept on the device.
+- **Queue updates.** Save the current queue as a playlist, or clear the queue entirely. Queue rows highlight the current track and list duplicate tracks no longer cause key errors.
+
+### Improvements
+
+- **Library sorting menu.** Sorting is reachable from the toolbar anywhere in the Library tab.
+- **Playlists screen.** The Favorites playlist is pinned at the top with a heart icon, so you reach your favorites from anywhere.
+- **Radio instances.** The radio directory uses three regional instances with transparent failover on error.
+- **Now Playing.** For live radio tracks, the seek bar and position clock are replaced by a clean LIVE chip and the current radio name.
+- **Maintenance.** Version 4.0.0; service tests cover the radio directory parsing and the PLAY stations endpoint responses.
+
 ## v3.0.0
 
 Playback engine swap plus new features: equalizer, most played, library sorting, and share.

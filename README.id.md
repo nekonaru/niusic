@@ -71,6 +71,7 @@ Niusic adalah pemutar musik local-first untuk Android dan Windows. Satu codebase
 | **Cari** | Saring perpustakaan berdasarkan teks judul. |
 | **Urutkan** | Urutkan berdasarkan nama, artis, durasi, atau terakhir diputar. |
 | **Paling sering diputar** | Lihat lagu yang paling sering kamu putar dengan jumlah pemutarannya di Beranda. Disimpan di perangkat. |
+| **Favorit** | Bintangi lagu dari Perpustakaan atau Now Playing. Favorit dipin pada tab Playlist. |
 | **Riwayat** | Simpan 100 lagu terakhir yang diputar di perangkat. |
 
 ### Streaming
@@ -95,6 +96,8 @@ Niusic adalah pemutar musik local-first untuk Android dan Windows. Satu codebase
 | **Saran** | Lihat saran pencarian YouTube sebagai chip. |
 | **Kecepatan putar** | Atur 0,5x hingga 2,0x di Pengaturan. |
 | **Bagikan** | Bagikan lagu yang sedang diputar dari layar Now Playing. |
+| **Radio internet** | Telusuri stasiun komunitas dari radio-browser.info dan mainkan live. |
+| **Favorit** | Playlist dengan heart di tab Perpustakaan, playlist, dan Now Playing. Disimpan di perangkat. |
 | **Tema aksen** | Pilih aksen indigo, teal, ungu, atau oranye. |
 | **Playlist online** | Jelajahi playlist YouTube, putar, atau simpan lokal. |
 
@@ -103,6 +106,7 @@ Niusic adalah pemutar musik local-first untuk Android dan Windows. Satu codebase
 | Fitur | Deskripsi |
 |-------|-----------|
 | **Playlist** | Buat, ganti nama lewat kode, hapus, tambah, dan hapus lagu secara lokal. |
+| **Pembaruan antrian** | Simpan antrian sebagai playlist dan bersihkan seluruhnya. |
 | **Pengaturan** | Ganti bahasa, tema, aksen, volume, kecepatan putar, equalizer, dan hapus data lokal. |
 
 ---
@@ -203,9 +207,9 @@ flutter build apk --release --split-per-abi
 ### Pemakaian harian
 
 - **Beranda:** Lihat lagu baru diputar, chart harian, dan tambah musik.
-- **Perpustakaan:** Cari dan putar seluruh perpustakaan. File baru muncul otomatis.
-- **Streaming:** Cari online, ketuk untuk putar, atau tambah ke antrian atau playlist.
-- **Playlist:** Buat playlist, lalu tambah lagu dari menu Perpustakaan.
+- **Perpustakaan:** Cari dan putar seluruh perpustakaan. File baru muncul otomatis. Urutkan berdasarkan nama, artis, durasi, atau terakhir diputar.
+- **Streaming:** Cari online, ketuk untuk putar, atau tambah ke antrian atau playlist. Buka pill Radio untuk menelusuri radio komunitas.
+- **Playlist:** Buat playlist, lalu tambah lagu dari menu Perpustakaan. Favorit ada di urutan paling atas.
 - **Pengaturan:** Ubah bahasa, tema, aksen, volume, kecepatan putar, equalizer, atau hapus data lokal.
 - **Pemutar mini:** Ketuk bar lagu di bawah untuk membuka pemutar penuh.
 

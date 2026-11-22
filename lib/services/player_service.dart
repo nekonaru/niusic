@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../models/playlist.dart';
+import '../models/radio_station.dart';
 import '../models/track.dart';
 import '../models/video_result.dart';
 import 'audio_handler.dart';
@@ -20,6 +21,7 @@ import 'download_service.dart';
 import 'library_merge.dart';
 import 'library_sort.dart';
 import 'lyrics_service.dart';
+import 'radio_service.dart';
 import 'scanner_service.dart';
 import 'stream_service.dart';
 import 'suggestions_service.dart';
@@ -108,6 +110,7 @@ class AppState extends ChangeNotifier {
   final DownloadService downloadService;
   final LyricsService lyricsService;
   final ChartService chartService;
+  final RadioService radioService = RadioService();
   final SuggestionsService suggestionsService;
   final ScannerService scannerService = ScannerService();
 
@@ -868,6 +871,28 @@ class AppState extends ChangeNotifier {
       notifyListeners();
       return;
     }
+    if (videoId.startsWith('radio:')) {
+      // Live radio: the stream URL is stored on the track, no resolution.
+      final url = track.url;
+      if (url == null || url.isEmpty) {
+        lastError = 'stream_failed';
+        notifyListeners();
+        return;
+      }
+      try {
+        await player.setUrl(url);
+        await _applySessionPrefs();
+        await player.play();
+        _sourceLoaded = true;
+        unawaited(_ensureEqualizerApplied());
+        lastError = null;
+      } catch (e) {
+        debugPrint('radio failed: $e');
+        lastError = 'stream_failed';
+        notifyListeners();
+      }
+      return;
+    }
     try {
       final url = await streamService.resolveAudioUrl(videoId);
       if (queueIndex >= 0 && queueIndex < queue.length) {
@@ -917,6 +942,87 @@ class AppState extends ChangeNotifier {
     _lowerTitles[track.id] = track.title.toLowerCase();
     unawaited(_saveLibrary());
     unawaited(playAt(queue.length - 1));
+  }
+
+  /// Plays a live radio station. The station is queued and tracked like any
+  /// stream. The stream URL is stored on the track so restarts can replay it.
+  void playRadioStation(RadioStation station) {
+    final detail = <String?>[
+      station.country,
+      if (station.codec != null && station.codec!.isNotEmpty)
+        station.codec!.toUpperCase(),
+      if (station.bitrate != null && station.bitrate! > 0)
+        '${station.bitrate} kbps',
+    ].where((e) => e != null && e.isNotEmpty).join(' · ');
+    final track = Track.remote(
+      videoId: 'radio:${station.stationUuid}',
+      title: station.name,
+      author: detail.isEmpty ? null : detail,
+      thumbnailUrl: station.favicon,
+      url: station.streamUrl,
+    );
+    final existing = queue.indexWhere((t) => t.id == track.id);
+    if (existing >= 0) {
+      unawaited(playAt(existing));
+      return;
+    }
+    queue.add(track);
+    library.add(track);
+    _libraryIndex[track.id] = library.length - 1;
+    _lowerTitles[track.id] = track.title.toLowerCase();
+    unawaited(_saveLibrary());
+    unawaited(playAt(queue.length - 1));
+  }
+
+  /// The Favorites playlist is managed by the app under a fixed id and is
+  /// pinned in the Playlists screen.
+  Playlist? get favoritesPlaylist {
+    for (final playlist in playlists) {
+      if (playlist.id == 'favorites') {
+        return playlist;
+      }
+    }
+    return null;
+  }
+
+  bool isFavoriteId(String id) => favoritesPlaylist?.contains(id) ?? false;
+
+  Future<void> toggleFavorite(Track track) async {
+    var favorite = favoritesPlaylist;
+    if (favorite == null) {
+      favorite = Playlist(id: 'favorites', name: 'Favorites');
+      playlists.insert(0, favorite);
+    }
+    if (favorite.contains(track.id)) {
+      favorite.removeId(track.id);
+    } else {
+      favorite.add(track);
+    }
+    await _savePlaylists();
+    notifyListeners();
+  }
+
+  /// Saves the current queue as a new playlist.
+  Future<void> saveQueueAsPlaylist(String name) async {
+    final playlist = await createPlaylist(name);
+    for (final track in queue) {
+      playlist.add(track);
+    }
+    await _savePlaylists();
+    notifyListeners();
+  }
+
+  /// Stops playback and empties the queue.
+  Future<void> clearQueue() async {
+    await player.stop();
+    _sourceLoaded = false;
+    queue = <Track>[];
+    queueIndex = -1;
+    _cachedQueueKey = '';
+    _cachedItems.clear();
+    _lastSyncKey = '';
+    unawaited(_saveQueue());
+    notifyListeners();
   }
 
   void addToQueue(VideoResult video) {
@@ -1348,6 +1454,7 @@ class AppState extends ChangeNotifier {
     lyricsService.dispose();
     chartService.dispose();
     suggestionsService.dispose();
+    radioService.dispose();
     _sleepTimer?.cancel();
     super.dispose();
   }

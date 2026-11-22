@@ -8,6 +8,7 @@ import 'package:just_audio/just_audio.dart';
 import '../l10n/app_strings.dart';
 import '../models/lyrics.dart';
 import '../models/playlist.dart';
+import '../models/radio_station.dart';
 import '../models/track.dart';
 import '../models/video_result.dart';
 import '../services/lyrics_service.dart';
@@ -162,6 +163,28 @@ class _LibraryScreenState extends State<LibraryScreen> {
         trailing: PopupMenuButton<Track>(
           onSelected: (value) => _addToPlaylist(value),
           itemBuilder: (context) => [
+            PopupMenuItem(
+              onTap: () => state.toggleFavorite(track),
+              child: Row(
+                children: [
+                  Icon(
+                    state.isFavoriteId(track.id)
+                        ? Icons.favorite
+                        : Icons.favorite_border,
+                    size: 18,
+                    color: state.isFavoriteId(track.id)
+                        ? Theme.of(context).colorScheme.error
+                        : null,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    state.isFavoriteId(track.id)
+                        ? widget.strings.removeFromFavorites
+                        : widget.strings.addToFavorites,
+                  ),
+                ],
+              ),
+            ),
             PopupMenuItem(child: Text(widget.strings.addToPlaylist)),
           ],
         ),
@@ -686,8 +709,25 @@ class QueueScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(strings.queue)),
+      appBar: AppBar(
+        title: Text(strings.queue),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.playlist_add),
+            tooltip: strings.saveAsPlaylist,
+            onPressed: state.queue.isEmpty
+                ? null
+                : () => _saveAsPlaylist(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_sweep),
+            tooltip: strings.clearQueue,
+            onPressed: state.queue.isEmpty ? null : () => _clearQueue(context),
+          ),
+        ],
+      ),
       body: state.queue.isEmpty
           ? Center(child: Text(strings.noTrack))
           : ReorderableListView.builder(
@@ -699,11 +739,26 @@ class QueueScreen extends StatelessWidget {
                 final track = state.queue[index];
                 final isCurrent = index == state.queueIndex;
                 return ListTile(
-                  key: ValueKey<String>(track.id),
+                  // Include the index so duplicate tracks get distinct keys.
+                  key: ValueKey<String>('${track.id}#$index'),
+                  tileColor: isCurrent
+                      ? theme.colorScheme.primaryContainer.withValues(
+                          alpha: 0.5,
+                        )
+                      : null,
                   leading: Icon(
                     isCurrent ? Icons.graphic_eq : Icons.audiotrack,
+                    color: isCurrent ? theme.colorScheme.primary : null,
                   ),
-                  title: Text(track.title),
+                  title: Text(
+                    track.title,
+                    style: isCurrent
+                        ? TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: theme.colorScheme.primary,
+                          )
+                        : null,
+                  ),
                   subtitle: Text(track.subtitle ?? ''),
                   trailing: IconButton(
                     icon: Icon(Icons.remove_circle_outline),
@@ -714,6 +769,61 @@ class QueueScreen extends StatelessWidget {
               },
             ),
     );
+  }
+
+  Future<void> _saveAsPlaylist(BuildContext context) async {
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(strings.saveAsPlaylist),
+          content: TextField(
+            controller: controller,
+            decoration: InputDecoration(hintText: strings.playlistName),
+            autofocus: true,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(strings.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, controller.text),
+              child: Text(strings.save),
+            ),
+          ],
+        );
+      },
+    );
+    if (name != null && name.trim().isNotEmpty) {
+      await state.saveQueueAsPlaylist(name.trim());
+    }
+  }
+
+  Future<void> _clearQueue(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(strings.clearQueue),
+          content: Text(strings.clearQueueConfirm),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(strings.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(strings.delete),
+            ),
+          ],
+        );
+      },
+    );
+    if (ok == true) {
+      await state.clearQueue();
+    }
   }
 }
 
@@ -740,26 +850,47 @@ class PlaylistsScreen extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: state.playlists.isEmpty
-              ? Center(child: Text(strings.emptyPlaylist))
-              : ListView.builder(
-                  itemCount: state.playlists.length,
-                  itemBuilder: (context, index) {
-                    final playlist = state.playlists[index];
-                    return ListTile(
-                      leading: Icon(Icons.queue_music),
-                      title: Text(playlist.name),
-                      subtitle: Text(
-                        '${playlist.length} ${strings.tracksCount}',
-                      ),
-                      trailing: IconButton(
-                        icon: Icon(Icons.delete_outline),
-                        onPressed: () => state.deletePlaylist(playlist),
-                      ),
-                      onTap: () => _openPlaylist(context, playlist),
-                    );
-                  },
-                ),
+          child: () {
+            final favorite = state.favoritesPlaylist;
+            final normal = state.playlists
+                .where((p) => p.id != 'favorites')
+                .toList();
+            if (favorite == null && normal.isEmpty) {
+              return Center(child: Text(strings.emptyPlaylist));
+            }
+            final offset = favorite != null ? 1 : 0;
+            return ListView.builder(
+              itemCount: normal.length + offset,
+              itemBuilder: (context, index) {
+                if (favorite != null && index == 0) {
+                  return ListTile(
+                    leading: Icon(
+                      Icons.favorite,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    title: Text(strings.favorites),
+                    subtitle: Text('${favorite.length} ${strings.tracksCount}'),
+                    onTap: () => _openPlaylist(
+                      context,
+                      favorite,
+                      title: strings.favorites,
+                    ),
+                  );
+                }
+                final playlist = normal[index - offset];
+                return ListTile(
+                  leading: Icon(Icons.queue_music),
+                  title: Text(playlist.name),
+                  subtitle: Text('${playlist.length} ${strings.tracksCount}'),
+                  trailing: IconButton(
+                    icon: Icon(Icons.delete_outline),
+                    onPressed: () => state.deletePlaylist(playlist),
+                  ),
+                  onTap: () => _openPlaylist(context, playlist),
+                );
+              },
+            );
+          }(),
         ),
       ],
     );
@@ -795,14 +926,14 @@ class PlaylistsScreen extends StatelessWidget {
     }
   }
 
-  void _openPlaylist(BuildContext context, Playlist playlist) {
+  void _openPlaylist(BuildContext context, Playlist playlist, {String? title}) {
     final byId = <String, Track>{for (final t in state.library) t.id: t};
     Navigator.push(
       context,
       MaterialPageRoute<void>(
         builder: (context) {
           return Scaffold(
-            appBar: AppBar(title: Text(playlist.name)),
+            appBar: AppBar(title: Text(title ?? playlist.name)),
             body: playlist.trackIds.isEmpty
                 ? Center(child: Text(strings.emptyPlaylist))
                 : ListView.builder(
@@ -852,8 +983,8 @@ class SettingsScreen extends StatefulWidget {
   final AppStrings strings;
   final VoidCallback onChanged;
 
-  static const String version = '3.0.0';
-  static const String buildNumber = '30';
+  static const String version = '4.0.0';
+  static const String buildNumber = '31';
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -1602,22 +1733,26 @@ class _SearchScreenState extends State<SearchScreen> {
     final theme = Theme.of(context);
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-          child: TextField(
-            controller: _controller,
-            style: theme.textTheme.bodyLarge,
-            decoration: InputDecoration(
-              hintText: strings.searchOnlineHint,
-              prefixIcon: const Icon(Icons.search),
+        if (filter != 'radio')
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            child: TextField(
+              controller: _controller,
+              style: theme.textTheme.bodyLarge,
+              decoration: InputDecoration(
+                hintText: strings.searchOnlineHint,
+                prefixIcon: const Icon(Icons.search),
+              ),
+              onChanged: _onChanged,
+              textInputAction: TextInputAction.search,
+              onSubmitted: (v) => _onChanged(v),
             ),
-            onChanged: _onChanged,
-            textInputAction: TextInputAction.search,
-            onSubmitted: (v) => _onChanged(v),
           ),
-        ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: filter == 'radio' ? 16 : 0,
+          ),
           child: Row(
             children: [
               _filterChip(context, 'videos', strings.videos, Icons.music_note),
@@ -1630,11 +1765,17 @@ class _SearchScreenState extends State<SearchScreen> {
                 strings.playlists,
                 Icons.playlist_play,
               ),
+              const SizedBox(width: 8),
+              _filterChip(context, 'radio', strings.radio, Icons.radio),
             ],
           ),
         ),
         const SizedBox(height: 8),
-        if (loading)
+        if (filter == 'radio')
+          Expanded(
+            child: RadioOnlineView(state: widget.state, strings: strings),
+          )
+        else if (loading)
           Expanded(child: Center(child: CircularProgressIndicator()))
         else if (failed)
           Expanded(
@@ -2257,6 +2398,25 @@ class NowPlayingScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(strings.nowPlaying),
         actions: [
+          Builder(
+            builder: (context) {
+              final current = state.current;
+              final favorite =
+                  current != null && state.isFavoriteId(current.id);
+              return IconButton(
+                icon: Icon(
+                  favorite ? Icons.favorite : Icons.favorite_border,
+                  color: favorite ? Theme.of(context).colorScheme.error : null,
+                ),
+                tooltip: favorite
+                    ? strings.removeFromFavorites
+                    : strings.addToFavorites,
+                onPressed: current == null
+                    ? null
+                    : () => state.toggleFavorite(current),
+              );
+            },
+          ),
           IconButton(
             icon: Icon(Icons.share),
             tooltip: strings.share,
@@ -2376,6 +2536,8 @@ class NowPlayingScreen extends StatelessWidget {
     );
   }
 
+  bool _isRadio(Track? track) => track?.videoId?.startsWith('radio:') ?? false;
+
   Widget _artwork(Track? track, {double size = 300}) {
     final radius = 28.0;
     if (track?.thumbnailUrl != null &&
@@ -2465,15 +2627,31 @@ class NowPlayingScreen extends StatelessWidget {
           ),
         ],
         SizedBox(height: 16),
-        Slider(
-          value: value,
-          max: max,
-          onChanged: (v) => state.seek(Duration(seconds: v.toInt())),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [Text(fmt(state.position)), Text(fmt(state.duration))],
-        ),
+        if (_isRadio(track))
+          Chip(
+            avatar: const Icon(Icons.radio, size: 18, color: Colors.white),
+            label: Text(
+              '${strings.live} · ${strings.radio}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.2,
+              ),
+            ),
+            backgroundColor: Colors.redAccent.shade400,
+            side: BorderSide.none,
+          )
+        else ...[
+          Slider(
+            value: value,
+            max: max,
+            onChanged: (v) => state.seek(Duration(seconds: v.toInt())),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [Text(fmt(state.position)), Text(fmt(state.duration))],
+          ),
+        ],
         SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -2690,6 +2868,193 @@ class _SleepCountdownState extends State<_SleepCountdown> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class RadioOnlineView extends StatefulWidget {
+  const RadioOnlineView({
+    required this.state,
+    required this.strings,
+    super.key,
+  });
+
+  final AppState state;
+  final AppStrings strings;
+
+  @override
+  State<RadioOnlineView> createState() => _RadioOnlineViewState();
+}
+
+class _RadioOnlineViewState extends State<RadioOnlineView> {
+  final TextEditingController _controller = TextEditingController();
+  List<RadioStation> stations = <RadioStation>[];
+  bool loading = true;
+  bool failed = false;
+  Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTop();
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadTop() async {
+    setState(() {
+      loading = true;
+      failed = false;
+    });
+    try {
+      final found = await widget.state.radioService.topStations();
+      if (!mounted) return;
+      setState(() {
+        stations = found;
+        loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        loading = false;
+        failed = true;
+      });
+    }
+  }
+
+  void _onChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () async {
+      final q = value.trim();
+      if (q.isEmpty) {
+        await _loadTop();
+        return;
+      }
+      setState(() {
+        loading = true;
+        failed = false;
+      });
+      try {
+        final found = await widget.state.radioService.search(q);
+        if (!mounted) return;
+        setState(() {
+          stations = found;
+          loading = false;
+        });
+      } catch (_) {
+        if (!mounted) return;
+        setState(() {
+          loading = false;
+          failed = true;
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = widget.strings;
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: TextField(
+            controller: _controller,
+            style: theme.textTheme.bodyLarge,
+            decoration: InputDecoration(
+              hintText: strings.radioSearchHint,
+              prefixIcon: const Icon(Icons.search),
+            ),
+            onChanged: _onChanged,
+            textInputAction: TextInputAction.search,
+            onSubmitted: (v) => _onChanged(v),
+          ),
+        ),
+        if (loading)
+          Expanded(child: Center(child: CircularProgressIndicator()))
+        else if (failed)
+          Expanded(
+            child: Center(
+              child: Text(strings.searchError, textAlign: TextAlign.center),
+            ),
+          )
+        else if (stations.isEmpty)
+          Expanded(child: Center(child: Text(strings.noStations)))
+        else
+          Expanded(
+            child: ListView.separated(
+              padding: const EdgeInsets.all(8),
+              itemCount: stations.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 4),
+              itemBuilder: (context, index) =>
+                  _stationTile(stations[index], strings),
+            ),
+          ),
+      ],
+    );
+  }
+
+  String _subtitle(RadioStation station) {
+    return <String?>[
+      station.country,
+      if (station.codec != null && station.codec!.isNotEmpty)
+        station.codec!.toUpperCase(),
+      if (station.bitrate != null && station.bitrate! > 0)
+        '${station.bitrate} kbps',
+    ].where((e) => e != null && e.isNotEmpty).join(' · ');
+  }
+
+  Widget _stationTile(RadioStation station, AppStrings strings) {
+    final theme = Theme.of(context);
+    final favicon = station.favicon;
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(8),
+        leading: CircleAvatar(
+          radius: 28,
+          backgroundColor: theme.colorScheme.primaryContainer,
+          child: favicon == null
+              ? Icon(Icons.radio, color: theme.colorScheme.onPrimaryContainer)
+              : ClipOval(
+                  child: Image.network(
+                    favicon,
+                    width: 56,
+                    height: 56,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Icon(
+                      Icons.radio,
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                ),
+        ),
+        title: Text(
+          station.name,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        subtitle: Text(
+          _subtitle(station),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: Icon(
+          Icons.play_circle_fill,
+          size: 40,
+          color: theme.colorScheme.primary,
+        ),
+        onTap: () => widget.state.playRadioStation(station),
       ),
     );
   }

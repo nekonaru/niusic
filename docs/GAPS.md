@@ -1,6 +1,6 @@
 # Feature Gap Analysis
 
-Date: 2026-11-18. Comparison: Niusic v3.0.0 against Auralys (Android Kotlin/Metrolist fork and Windows JavaFX).
+Date: 2026-11-22. Comparison: Niusic v4.0.0 against Auralys (Android Kotlin/Metrolist fork and Windows JavaFX).
 
 ## Implemented
 
@@ -19,6 +19,9 @@ Date: 2026-11-18. Comparison: Niusic v3.0.0 against Auralys (Android Kotlin/Metr
 - **Search suggestions.** YouTube suggest endpoint.
 - **Themes.** Light, dark, system, plus 4 accent colors.
 - **Equalizer.** Five-band equalizer and loudness enhancer via the AudioPipeline of just_audio (Android only). Set gains in dB, persisted, restored on next launch, applied live during playback.
+- **Live internet radio.** Community radio from radio-browser.info. Search or browse top voted stations, tap to play. Streamed live via just_audio, stored in the queue and library, replays after restart.
+- **Favorites.** The Favorites playlist is pinned at the top of Playlists. Heart buttons appear in the Library, in playlists, and in the Now Playing screen. Kept on the device.
+- **Queue improvements.** Drag to reorder, save the queue as a playlist, and clear the queue. Duplicate queue keys cannot happen anymore (even with duplicate tracks).
 - **Adaptive UI.** Sidebar desktop, bottom bar mobile, two-pane now playing.
 - **Share.** Share the current track from Now Playing.
 - **Most played.** On-device play counts, shown on Home.

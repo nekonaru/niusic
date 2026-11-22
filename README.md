@@ -71,6 +71,7 @@ Niusic is a local-first music player for Android and Windows. One Flutter codeba
 | **Search** | Filter the library by title text. |
 | **Sort** | Sort by name, artist, duration, or last played. |
 | **Most played** | See your most played tracks with play counts on Home. Kept on the device. |
+| **Favorites** | Heart a track from the Library or Now Playing. Favorites are pinned in Playlists. |
 | **History** | Keep the last 100 played tracks on the device. |
 
 ### Streaming
@@ -97,12 +98,15 @@ Niusic is a local-first music player for Android and Windows. One Flutter codeba
 | **Share** | Share the current track from the Now Playing screen. |
 | **Accent themes** | Pick indigo, teal, purple, or orange accent. |
 | **Online playlists** | Browse YouTube playlists, play them, or save them locally. |
+| **Live internet radio** | Browse community stations from radio-browser.info and play them live. |
+| **Favorites** | Pinned playlist with heart buttons in Library, playlists, and Now Playing. Kept on the device. |
 
 ### Organization
 
 | Feature | Description |
 |---------|-------------|
 | **Playlists** | Create, rename in code, delete, add, and remove tracks locally. |
+| **Queue updates** | Save the queue as a playlist and clear it entirely. |
 | **Settings** | Switch language, theme, accent, volume, playback speed, equalizer, and clear local data. |
 
 ---
@@ -203,9 +207,9 @@ flutter build apk --release --split-per-abi
 ### Everyday use
 
 - **Home:** See recent tracks, the daily chart, and add more music.
-- **Library:** Search and play the full library. New files appear automatically.
-- **Stream:** Search online, tap to play, or add to queue or a playlist.
-- **Playlists:** Create a playlist, then add tracks from the Library menu.
+- **Library:** Search and play the full library. New files appear automatically. Sort by name, artist, duration, or last played.
+- **Stream:** Search online, tap to play, or add to queue or a playlist. Open the Radio pill to browse community radio.
+- **Playlists:** Create a playlist, then add tracks from the Library menu. Favorites sit at the top.
 - **Settings:** Change language, theme, accent, volume, playback speed, equalizer, or clear local data.
 - **Mini player:** Tap the bottom track bar to open the full player.
 

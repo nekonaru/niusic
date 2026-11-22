@@ -1,5 +1,23 @@
 # Changelog
 
+## v4.0.0
+
+Radio internet, favorit, dan perbaikan antrian.
+
+### Fitur baru
+
+- **Radio internet.** Direktori komunitas dari radio-browser.info. Cari stasiun atau lihat beranda, ketuk untuk mainkan. Stream bisa berjalan langsung dengan mesin yang sama, lanjutkan setelah restart, dan menampilkan chip LIVE di Now Playing. Codec tidak bisa diputar (ogg) difilter keluar.
+- **Favorit.** Playlist Favorit terlampir di atas tombol pada tab Playlist. Heart button pada tab Perpustakaan, playlist, dan Now Playing memasukkan/keluar lagu dari daftar tersebut. Disimpan di perangkat.
+- **Pembaruan antrian.** Simpan antrian sebagai playlist, atau bersihkan antrian seluruhnya. Baris antrian menyoroti lagu saat ini dan baris ganda tidak lagi menimbulkan key error.
+
+### Peningkatan
+
+- **Menu urutkan perpustakaan.** Urutkan bisa diakses dari toolbar di mana pun di tab Perpustakaan.
+- **Layar playlist.** Playlist Favorit dipin di atas dengan ikon hati, sehingga satu tap mengambil favorit Anda.
+- **Instansi radio.** Direktori radio memakai tiga instansi regional dengan failover transparan saat error.
+- **Now Playing.** Untuk lagu radio langsung, seek bar dan jam posisi diganti dengan chip LIVE yang bersih dan nama radio saat ini.
+- **Pemeliharaan.** Versi 4.0.0; uji layanan mencakup parsing direktori radio dan respons endpoint stasiun.
+
 ## v3.0.0
 
 Ganti mesin pemutaran plus fitur baru: equalizer, paling sering diputar, urutkan perpustakaan, dan bagikan.
