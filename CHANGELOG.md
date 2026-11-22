@@ -1,5 +1,18 @@
 # Changelog
 
+## v4.1.0
+
+Optimizations and cleanup.
+
+### Improvements
+
+- **Permission cleanup.** Removed unused WAKE_LOCK and ACCESS_NETWORK_STATE permissions. Playback, FGS media, notifications, and radio still work as before.
+- **Home build.** Most-played is built once per render instead of on every notify.
+
+### Bug fixes
+
+- **Test coverage.** New unit tests for favorites (toggle, pin, persistence across restart) and queue playlist saving.
+
 ## v4.0.0
 
 Internet radio, Favorites, and queue improvements.

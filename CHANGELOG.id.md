@@ -1,5 +1,18 @@
 # Changelog
 
+## v4.1.0
+
+Optimalisasi dan pembersihan.
+
+### Peningkatan
+
+- **Pembersihan izin.** Izin yang tidak digunakan lagi, WAKE_LOCK dan ACCESS_NETWORK_STATE, dihapus. Pemutaran, FGS media, notifikasi, dan radio tetap berfungsi.
+- **Home build.** Most-played dibangun sekali per render, bukan per-notify.
+
+### Perbaikan bug
+
+- **Kerjaan di tes.** Tes unit baru untuk favorit (toggle, pin, persistensi setelah restart) dan menyimpan antrian sebagai playlist.
+
 ## v4.0.0
 
 Radio internet, favorit, dan perbaikan antrian.

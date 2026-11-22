@@ -984,8 +984,8 @@ class SettingsScreen extends StatefulWidget {
   final AppStrings strings;
   final VoidCallback onChanged;
 
-  static const String version = '4.0.0';
-  static const String buildNumber = '31';
+  static const String version = '4.1.0';
+  static const String buildNumber = '32';
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
