@@ -60,6 +60,7 @@ Niusic adalah pemutar musik local-first untuk Android dan Windows. Satu codebase
 | **Lompat dan volume** | Lompat di dalam lagu dan atur volume. |
 | **Acak dan ulangi** | Aktifkan acak dan ulangi mati, semua, atau satu. |
 | **Antrian** | Putar seluruh perpustakaan sebagai antrian, berurutan. |
+| **Bar seek waveform** | Di Android tampilan waveform dalam pemain berputar untuk file lokal. |
 | **Equalizer** | Lima band dalam desibel, ditambah penguat volume. Hanya Android. |
 
 ### Perpustakaan

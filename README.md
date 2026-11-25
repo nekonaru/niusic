@@ -60,6 +60,7 @@ Niusic is a local-first music player for Android and Windows. One Flutter codeba
 | **Seek and volume** | Seek within a track and adjust volume. |
 | **Shuffle and repeat** | Toggle shuffle and repeat off, all, or one. |
 | **Queue** | Play the full library as a queue, in order. |
+| **Waveform seek bar** | Android shows a real waveform under the playhead for local files. |
 | **Equalizer** | Five bands in decibels, plus a loudness enhancer. Android only. |
 
 ### Library

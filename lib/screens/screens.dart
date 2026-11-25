@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:just_waveform/just_waveform.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../l10n/app_strings.dart';
 import '../models/lyrics.dart';
@@ -995,8 +997,8 @@ class SettingsScreen extends StatefulWidget {
   final AppStrings strings;
   final VoidCallback onChanged;
 
-  static const String version = '4.2.0';
-  static const String buildNumber = '33';
+  static const String version = '5.0.0';
+  static const String buildNumber = '34';
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -2653,17 +2655,17 @@ class NowPlayingScreen extends StatelessWidget {
             backgroundColor: Colors.redAccent.shade400,
             side: BorderSide.none,
           )
-        else ...[
-          Slider(
-            value: value,
-            max: max,
-            onChanged: (v) => state.seek(Duration(seconds: v.toInt())),
+        else
+          _WaveformBar(
+            state: state,
+            track: track,
+            duration: max,
+            onSeek: (v) => state.seek(v),
           ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [Text(fmt(state.position)), Text(fmt(state.duration))],
-          ),
-        ],
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [Text(fmt(state.position)), Text(fmt(state.duration))],
+        ),
         SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -3069,5 +3071,138 @@ class _RadioOnlineViewState extends State<RadioOnlineView> {
         onTap: () => widget.state.playRadioStation(station),
       ),
     );
+  }
+}
+
+/// Seekable waveform bar for Android local files. Falls back to a plain
+/// slider while the waveform is unavailable (remote streams, missing
+/// playback metadata, unsupported devices).
+class _WaveformBar extends StatefulWidget {
+  const _WaveformBar({
+    required this.state,
+    required this.track,
+    required this.duration,
+    required this.onSeek,
+  });
+
+  final AppState state;
+  final Track? track;
+  final double duration;
+  final ValueChanged<Duration> onSeek;
+
+  @override
+  State<_WaveformBar> createState() => _WaveformBarState();
+}
+
+class _WaveformBarState extends State<_WaveformBar> {
+  List<int>? _data;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(_WaveformBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.track != widget.track) {
+      _data = null;
+      _load();
+    }
+  }
+
+  Future<void> _load() async {
+    final track = widget.track;
+    final path = track?.path;
+    if (track == null || path == null || !Platform.isAndroid) {
+      return;
+    }
+    try {
+      final tmp = await getTemporaryDirectory();
+      final waveFile = File('${tmp.path}/niusic_${track.id}.wave');
+      final done = await JustWaveform.extract(
+        audioInFile: File(path),
+        waveOutFile: waveFile,
+      ).firstWhere((p) => p.waveform != null);
+      if (!mounted) return;
+      setState(() => _data = done.waveform!.data);
+    } catch (e) {
+      debugPrint('waveform extraction failed: $e');
+    }
+  }
+
+  void _seekTo(BuildContext context, Offset local) {
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null || box.size.width <= 0) return;
+    final fraction = (local.dx / box.size.width).clamp(0.0, 1.0);
+    final duration = widget.duration <= 0 ? 1.0 : widget.duration;
+    widget.onSeek(Duration(seconds: (fraction * duration).toInt()));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final data = _data;
+    if (data == null || data.isEmpty) {
+      // Fallback to the classic slider.
+      return SizedBox(
+        height: 34,
+        child: Slider(
+          value: widget.state.position.inSeconds.toDouble(),
+          max: widget.duration,
+          onChanged: (v) => widget.onSeek(Duration(seconds: v.toInt())),
+        ),
+      );
+    }
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapUp: (e) => _seekTo(context, e.localPosition),
+      onPanStart: (d) => _seekTo(context, d.localPosition),
+      onPanUpdate: (d) => _seekTo(context, d.localPosition),
+      child: SizedBox(
+        height: 36,
+        width: double.infinity,
+        child: CustomPaint(
+          painter: _WaveformPainter(
+            data: data,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WaveformPainter extends CustomPainter {
+  const _WaveformPainter({required this.data, required this.color});
+
+  final List<int> data;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final n = data.length;
+    if (n < 2 || size.width <= 0 || size.height <= 0) return;
+    final paint = Paint()
+      ..color = color.withValues(alpha: 0.85)
+      ..strokeWidth = 0.8
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    final half = size.height / 2;
+    for (var i = 0; i < n; i += 2) {
+      final x = i.toDouble() / (n - 1) * size.width;
+      final up = (data[i] / 32768).abs().clamp(0.0, 1.0);
+      final down = (data[i + 1] / 32768).abs().clamp(0.0, 1.0);
+      canvas.drawLine(
+        Offset(x, half - half * up),
+        Offset(x, half + half * down),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _WaveformPainter old) {
+    return identical(old.data, data) == false || old.color != color;
   }
 }

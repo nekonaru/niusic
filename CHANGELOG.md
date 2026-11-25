@@ -1,5 +1,13 @@
 # Changelog
 
+## v5.0.0
+
+Waveform seek bar in Now Playing (Android).
+
+### New features
+
+- **Waveform seek bar.** Now Playing on Android draws a real waveform bar under the track via the official ryanheise.com just_waveform plugin. Tap or drag the bar to seek. Falls back to a slider when waveform is unavailable (Windows, remote streams, extraction errors).
+
 ## v4.2.0
 
 Smoothness and performance pass.

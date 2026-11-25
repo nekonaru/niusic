@@ -1,5 +1,13 @@
 # Changelog
 
+## v5.0.0
+
+Bar seek hingga menggunakan waveform di Now Playing (Android).
+
+### Fitur baru
+
+- **Bar seek waveform.** Now Playing di Android menggambar bar waveform nyata via plugin resmi ryanheise.com just_waveform. Ketuk atau seret untuk melompat ke posisi. Jatuh ke slider saat waveform tidak tersedia (Windows, stream remote, kesalahan ekstraksi).
+
 ## v4.2.0
 
 Perehatan dan pengoptimalan jalan kerja.

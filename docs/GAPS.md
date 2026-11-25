@@ -1,6 +1,6 @@
 # Feature Gap Analysis
 
-Date: 2026-11-22. Comparison: Niusic v4.0.0 against Auralys (Android Kotlin/Metrolist fork and Windows JavaFX).
+Date: 2026-11-26. Comparison: Niusic v5.0.0 against Auralys (Android Kotlin/Metrolist fork and Windows JavaFX).
 
 ## Implemented
 
@@ -25,6 +25,7 @@ Date: 2026-11-22. Comparison: Niusic v4.0.0 against Auralys (Android Kotlin/Metr
 - **Adaptive UI.** Sidebar desktop, bottom bar mobile, two-pane now playing.
 - **Share.** Share the current track from Now Playing.
 - **Most played.** On-device play counts, shown on Home.
+- **Waveform seek bar.** Android local tracks show a real waveform bar in Now Playing. Tap or drag to seek. Falls back to the slider when extraction is not possible.
 
 ## Not implemented
 
