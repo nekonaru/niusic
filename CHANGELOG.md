@@ -1,5 +1,18 @@
 # Changelog
 
+## v8.1.0
+
+Audio controls and radio extras.
+
+### New features
+
+- **Skip silence and pitch.** Android-only controls for local audio, persisted in Settings.
+- **Speed presets.** Chips for 0.75x, 1x, 1.25x, 1.5x and 2x in Now Playing.
+- **Radio country filters.** Top stations for Indonesia, United States, United Kingdom, Germany and France.
+- **Favorite stations.** Heart a station in the Radio tab; the list is pinned in Playlists.
+- **ICY metadata.** Live song title from the stream shown in Now Playing when available.
+- **Online audio cache.** Optional caching of streamed audio for offline replay.
+
 ## v8.0.0
 
 Smart library and data portability.

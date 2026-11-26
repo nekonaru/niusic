@@ -1,5 +1,18 @@
 # Changelog
 
+## v8.1.0
+
+Kontrol audio dan tambahan radio.
+
+### Fitur baru
+
+- **Lewati hening dan nada dasar.** Kontrol Android untuk audio lokal, tersimpan di Pengaturan.
+- **Preset kecepatan.** Chip 0,75x, 1x, 1,25x, 1,5x, dan 2x di Now Playing.
+- **Filter negara radio.** Stasiun teratas Indonesia, Amerika Serikat, Inggris, Jerman, dan Prancis.
+- **Stasiun favorit.** Tandai stasiun di tab Radio; daftarnya tampil di Playlist.
+- **Metadata ICY.** Judul lagu langsung dari stream tampil di Now Playing bila tersedia.
+- **Cache audio online.** Opsi menyimpan audio streaming untuk putar ulang offline.
+
 ## v8.0.0
 
 Perpustakaan pintar dan portabilitas data.

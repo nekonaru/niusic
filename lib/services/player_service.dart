@@ -46,6 +46,10 @@ const String _keyPlayCounts = 'play_counts_v1';
 const String _keySleepFade = 'sleep_fade_enabled';
 const String _keyMetaOverrides = 'meta_overrides_v1';
 const String _keyStats = 'stats_v1';
+const String _keySkipSilence = 'skip_silence_enabled';
+const String _keyPitch = 'pitch';
+const String _keyCacheOnline = 'cache_online_audio';
+const String _keyFavoriteStations = 'favorite_stations_v1';
 const String _keyLibrarySort = 'library_sort';
 const String _keyEqEnabled = 'equalizer_enabled';
 const String _keyEqGains = 'equalizer_gains';
@@ -101,6 +105,13 @@ class AppState extends ChangeNotifier {
       lastError = 'playback_failed';
       notifyListeners();
     });
+    _icySub = player.icyMetadataStream.listen((metadata) {
+      final title = metadata?.info?.title;
+      if (title != null && title != icyTitle) {
+        icyTitle = title;
+        notifyListeners();
+      }
+    });
   }
 
   final AndroidEqualizer equalizer = AndroidEqualizer();
@@ -151,6 +162,11 @@ class AppState extends ChangeNotifier {
   int? sleepMinutes;
   DateTime? sleepDeadline;
   bool sleepFade = true;
+  bool skipSilence = false;
+  double pitch = 1.0;
+  bool cacheOnlineAudio = false;
+  String? icyTitle;
+  final List<Track> favoriteStations = <Track>[];
   LibrarySort librarySort = LibrarySort.name;
   final Map<String, String> metaTitle = <String, String>{};
   final Map<String, String> metaArtist = <String, String>{};
@@ -173,6 +189,7 @@ class AppState extends ChangeNotifier {
   StreamSubscription<Duration>? _positionSub;
   StreamSubscription<Duration?>? _durationSub;
   StreamSubscription<PlayerException>? _errorSub;
+  StreamSubscription<IcyMetadata?>? _icySub;
   StreamSubscription<void>? _scanSub;
   Timer? _scanDebounce;
   Timer? _scanRetryTimer;
@@ -348,6 +365,22 @@ class AppState extends ChangeNotifier {
     playbackRate = prefs.getDouble(_keyRate) ?? 1;
     accent = prefs.getString(_keyAccent) ?? 'indigo';
     sleepFade = prefs.getBool(_keySleepFade) ?? true;
+    skipSilence = prefs.getBool(_keySkipSilence) ?? false;
+    pitch = prefs.getDouble(_keyPitch) ?? 1;
+    cacheOnlineAudio = prefs.getBool(_keyCacheOnline) ?? false;
+    final stationsRaw = prefs.getString(_keyFavoriteStations);
+    if (stationsRaw != null) {
+      try {
+        final decoded = jsonDecode(stationsRaw) as List<dynamic>;
+        favoriteStations
+          ..clear()
+          ..addAll(
+            decoded.whereType<Map<String, dynamic>>().map(Track.fromJson),
+          );
+      } catch (_) {
+        favoriteStations.clear();
+      }
+    }
     librarySort =
         LibrarySort.values.asNameMap()[prefs.getString(_keyLibrarySort)] ??
         LibrarySort.name;
@@ -1054,7 +1087,17 @@ class AppState extends ChangeNotifier {
       if (queueIndex >= 0 && queueIndex < queue.length) {
         queue[queueIndex] = queue[queueIndex].copyWithUrl(url);
       }
-      await player.setUrl(url);
+      try {
+        if (cacheOnlineAudio) {
+          // ignore: experimental_member_use
+          await player.setAudioSource(LockCachingAudioSource(Uri.parse(url)));
+        } else {
+          await player.setUrl(url);
+        }
+      } catch (_) {
+        // Cache proxy unavailable (for example on Windows). Play directly.
+        await player.setUrl(url);
+      }
       await _applySessionPrefs();
       await player.play();
       _sourceLoaded = true;
@@ -1074,6 +1117,8 @@ class AppState extends ChangeNotifier {
     try {
       await player.setVolume(volume);
       await player.setSpeed(playbackRate);
+      await player.setPitch(pitch);
+      await player.setSkipSilenceEnabled(skipSilence);
     } catch (_) {
       // Platform not ready yet. Defaults are used until the next play.
     }
@@ -1559,6 +1604,66 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  Future<void> setSkipSilence(bool value) async {
+    skipSilence = value;
+    try {
+      await player.setSkipSilenceEnabled(value);
+    } catch (_) {
+      // Not supported on this platform.
+    }
+    final prefs = await _getPrefs();
+    await prefs.setBool(_keySkipSilence, value);
+    notifyListeners();
+  }
+
+  Future<void> setPitch(double value) async {
+    pitch = value.clamp(0.5, 2.0).toDouble();
+    try {
+      await player.setPitch(pitch);
+    } catch (_) {
+      // Not supported on this platform.
+    }
+    final prefs = await _getPrefs();
+    await prefs.setDouble(_keyPitch, pitch);
+    notifyListeners();
+  }
+
+  Future<void> setCacheOnlineAudio(bool value) async {
+    cacheOnlineAudio = value;
+    final prefs = await _getPrefs();
+    await prefs.setBool(_keyCacheOnline, value);
+    notifyListeners();
+  }
+
+  bool isFavoriteStation(String uuid) =>
+      favoriteStations.any((t) => t.videoId == 'radio:$uuid');
+
+  Future<void> toggleFavoriteStation(RadioStation station) async {
+    final id = 'radio:${station.stationUuid}';
+    final existing = favoriteStations.where((t) => t.videoId == id).toList();
+    if (existing.isNotEmpty) {
+      for (final track in existing) {
+        favoriteStations.remove(track);
+      }
+    } else {
+      favoriteStations.add(
+        Track.remote(
+          videoId: id,
+          title: station.name,
+          author: station.country ?? station.codec,
+          thumbnailUrl: station.favicon,
+          url: station.streamUrl,
+        ),
+      );
+    }
+    final prefs = await _getPrefs();
+    await prefs.setString(
+      _keyFavoriteStations,
+      jsonEncode(favoriteStations.map((t) => t.toJson()).toList()),
+    );
+    notifyListeners();
+  }
+
   Future<void> setPlaybackRate(double value) async {
     playbackRate = value.clamp(0.5, 2.0);
     await player.setSpeed(playbackRate);
@@ -1872,6 +1977,7 @@ class AppState extends ChangeNotifier {
     unawaited(_positionSub?.cancel());
     unawaited(_durationSub?.cancel());
     unawaited(_errorSub?.cancel());
+    unawaited(_icySub?.cancel());
     unawaited(player.dispose());
     streamService.dispose();
     downloadService.dispose();

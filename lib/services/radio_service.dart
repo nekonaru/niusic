@@ -28,6 +28,14 @@ class RadioService {
     );
   }
 
+  /// Top voted stations from a country name.
+  Future<List<RadioStation>> byCountry(String country, {int limit = 40}) {
+    final encoded = Uri.encodeQueryComponent(country.trim());
+    return _getStations(
+      '/json/stations/search?country=$encoded&hidebroken=true&order=votes&reverse=true&limit=$limit',
+    );
+  }
+
   Future<List<RadioStation>> _getStations(String path) async {
     Object? lastError;
     for (final base in _instances) {

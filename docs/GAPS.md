@@ -1,6 +1,6 @@
 # Feature Gap Analysis
 
-Date: 2026-11-26. Comparison: Niusic v8.0.0 against Auralys (Android Kotlin/Metrolist fork and Windows JavaFX).
+Date: 2026-11-26. Comparison: Niusic v8.1.0 against Auralys (Android Kotlin/Metrolist fork and Windows JavaFX).
 
 ## Implemented
 

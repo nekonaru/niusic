@@ -268,4 +268,17 @@ class AppStrings {
       : 'Disable all network requests.';
   String get all => isId ? 'Semua' : 'All';
   String get editInfoSaved => isId ? 'Info disimpan.' : 'Info saved.';
+
+  String get skipSilence => isId ? 'Lewati hening' : 'Skip silence';
+  String get skipSilenceDesc => isId
+      ? 'Potong bagian senyap pada audio lokal.'
+      : 'Cut silent parts in local audio.';
+  String get pitch => isId ? 'Nada dasar' : 'Pitch';
+  String get cacheOnline => isId ? 'Cache audio online' : 'Cache online audio';
+  String get cacheOnlineDesc => isId
+      ? 'Simpan audio streaming saat diputar untuk putar ulang offline.'
+      : 'Cache streaming audio while playing for offline replay.';
+  String get topStations => isId ? 'Terpopuler' : 'Top stations';
+  String get stationFavorites => isId ? 'Stasiun favorit' : 'Favorite stations';
+  String get nowOnRadio => isId ? 'Sedang diputar' : 'Now playing';
 }

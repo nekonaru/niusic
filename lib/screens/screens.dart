@@ -1165,6 +1165,21 @@ class PlaylistsScreen extends StatelessWidget {
                   _openSmartList(context, strings.neverPlayed, tracks);
                 },
               ),
+              if (state.favoriteStations.isNotEmpty) ...[
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.radio),
+                  title: Text(strings.stationFavorites),
+                  subtitle: Text(
+                    '${state.favoriteStations.length} ${strings.tracksCount}',
+                  ),
+                  onTap: () => _openSmartList(
+                    context,
+                    strings.stationFavorites,
+                    state.favoriteStations,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -1472,8 +1487,8 @@ class SettingsScreen extends StatefulWidget {
   final AppStrings strings;
   final VoidCallback onChanged;
 
-  static const String version = '8.0.0';
-  static const String buildNumber = '37';
+  static const String version = '8.1.0';
+  static const String buildNumber = '38';
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -1790,6 +1805,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: Text(strings.fadeOutSleepDesc),
                 value: state.sleepFade,
                 onChanged: (value) => state.setSleepFade(value),
+              ),
+              _divider(),
+              SwitchListTile(
+                secondary: const Icon(Icons.graphic_eq),
+                title: Text(strings.skipSilence),
+                subtitle: Text(strings.skipSilenceDesc),
+                value: state.skipSilence,
+                onChanged: (value) => state.setSkipSilence(value),
+              ),
+              _divider(),
+              SwitchListTile(
+                secondary: const Icon(Icons.cached),
+                title: Text(strings.cacheOnline),
+                subtitle: Text(strings.cacheOnlineDesc),
+                value: state.cacheOnlineAudio,
+                onChanged: (value) => state.setCacheOnlineAudio(value),
+              ),
+              _settingRow(
+                icon: Icons.tune,
+                title: strings.pitch,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Slider(
+                        min: 0.5,
+                        max: 2,
+                        divisions: 6,
+                        value: state.pitch,
+                        onChanged: state.setPitch,
+                      ),
+                    ),
+                    Text('${state.pitch.toStringAsFixed(2)}x'),
+                  ],
+                ),
               ),
             ],
           ),
@@ -3221,6 +3270,33 @@ class NowPlayingScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [Text(fmt(state.position)), Text(fmt(state.duration))],
         ),
+        if (_isRadio(track) && state.icyTitle != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              '${strings.nowOnRadio}: ${state.icyTitle}',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: Theme.of(context).colorScheme.primary),
+            ),
+          )
+        else if (!_isRadio(track))
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final rate in <double>[0.75, 1, 1.25, 1.5, 2])
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: FilterChip(
+                      label: Text('${rate}x'),
+                      selected: (state.playbackRate - rate).abs() < 0.01,
+                      onSelected: (_) => state.setPlaybackRate(rate),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -3462,6 +3538,7 @@ class _RadioOnlineViewState extends State<RadioOnlineView> {
   bool loading = true;
   bool failed = false;
   Timer? _debounce;
+  String? countryFilter;
 
   @override
   void initState() {
@@ -3480,9 +3557,32 @@ class _RadioOnlineViewState extends State<RadioOnlineView> {
     setState(() {
       loading = true;
       failed = false;
+      countryFilter = null;
     });
     try {
       final found = await widget.state.radioService.topStations();
+      if (!mounted) return;
+      setState(() {
+        stations = found;
+        loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        loading = false;
+        failed = true;
+      });
+    }
+  }
+
+  Future<void> _loadCountry(String country) async {
+    setState(() {
+      loading = true;
+      failed = false;
+      countryFilter = country;
+    });
+    try {
+      final found = await widget.state.radioService.byCountry(country);
       if (!mounted) return;
       setState(() {
         stations = found;
@@ -3544,6 +3644,34 @@ class _RadioOnlineViewState extends State<RadioOnlineView> {
             onChanged: _onChanged,
             textInputAction: TextInputAction.search,
             onSubmitted: (v) => _onChanged(v),
+          ),
+        ),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            children: [
+              FilterChip(
+                label: Text(strings.topStations),
+                selected: countryFilter == null,
+                onSelected: (_) => _loadTop(),
+              ),
+              for (final country in <String>[
+                'Indonesia',
+                'United States',
+                'United Kingdom',
+                'Germany',
+                'France',
+              ])
+                Padding(
+                  padding: const EdgeInsets.only(left: 6),
+                  child: FilterChip(
+                    label: Text(country),
+                    selected: countryFilter == country,
+                    onSelected: (_) => _loadCountry(country),
+                  ),
+                ),
+            ],
           ),
         ),
         if (loading)
@@ -3618,10 +3746,27 @@ class _RadioOnlineViewState extends State<RadioOnlineView> {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        trailing: Icon(
-          Icons.play_circle_fill,
-          size: 40,
-          color: theme.colorScheme.primary,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: Icon(
+                widget.state.isFavoriteStation(station.stationUuid)
+                    ? Icons.favorite
+                    : Icons.favorite_border,
+                color: widget.state.isFavoriteStation(station.stationUuid)
+                    ? theme.colorScheme.error
+                    : null,
+              ),
+              tooltip: strings.favorites,
+              onPressed: () => widget.state.toggleFavoriteStation(station),
+            ),
+            Icon(
+              Icons.play_circle_fill,
+              size: 40,
+              color: theme.colorScheme.primary,
+            ),
+          ],
         ),
         onTap: () => widget.state.playRadioStation(station),
       ),
