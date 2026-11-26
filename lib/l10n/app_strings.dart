@@ -212,4 +212,16 @@ class AppStrings {
   String get saveAsPlaylist =>
       isId ? 'Simpan sebagai playlist' : 'Save as playlist';
   String get live => 'LIVE';
+  String get seeAll => isId ? 'Lihat semua' : 'See all';
+  String get selectedCount => isId ? 'dipilih' : 'selected';
+  String get clearSelection => isId ? 'Batal pilih' : 'Cancel selection';
+  String get trackDetails => isId ? 'Detail lagu' : 'Track details';
+  String get sourceKind => isId ? 'Sumber' : 'Source';
+  String get sourceLocal => isId ? 'File lokal' : 'Local file';
+  String get sourceDownloaded => isId ? 'Unduhan' : 'Downloaded';
+  String get sourceOnline => isId ? 'Online' : 'Online';
+  String get sourceRadio => isId ? 'Radio' : 'Radio';
+  String get playNext => isId ? 'Putar berikutnya' : 'Play next';
+  String get emptyHistory =>
+      isId ? 'Belum ada riwayat putar.' : 'No playback history yet.';
 }

@@ -71,6 +71,8 @@ Niusic is a local-first music player for Android and Windows. One Flutter codeba
 | **Import audio** | Pick multiple audio files with the system file picker. |
 | **Search** | Filter the library by title text. |
 | **Sort** | Sort by name, artist, duration, or last played. |
+| **Multi-select** | Long press to select tracks for queue, Favorites, or playlist actions. |
+| **Details** | Track details: source, duration, play count, local path, and actions. |
 | **Most played** | See your most played tracks with play counts on Home. Kept on the device. |
 | **Favorites** | Heart a track from the Library or Now Playing. Favorites are pinned in Playlists. |
 | **History** | Keep the last 100 played tracks on the device. |

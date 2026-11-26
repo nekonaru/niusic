@@ -1,5 +1,15 @@
 # Changelog
 
+## v6.0.0
+
+Library and queue management.
+
+### New features
+
+- **Multi-select in Library.** Long press any song to enter selection mode. Add selected songs to the queue, Favorites, or a playlist in one action.
+- **Full history screen.** Tap See all next to Recently played on Home to open the full listening history.
+- **Track details.** The three-dot menu in Library, Now Playing and History opens track details: source, duration, play count and local path, with Play next, Favorite and Share actions.
+
 ## v5.0.0
 
 Waveform seek bar in Now Playing (Android).

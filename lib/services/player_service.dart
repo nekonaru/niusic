@@ -580,21 +580,33 @@ class AppState extends ChangeNotifier {
   /// Shares the current track. Uses the platform share sheet.
   Future<void> shareCurrent() async {
     final cur = current;
-    if (cur == null) {
-      return;
+    if (cur != null) {
+      await shareTrack(cur);
     }
+  }
+
+  /// Shares any track, with a YouTube link for online tracks.
+  Future<void> shareTrack(Track track) async {
     final parts = <String>[
-      if (cur.author != null && cur.author!.isNotEmpty)
-        '${cur.title} - ${cur.author}'
+      if (track.author != null && track.author!.isNotEmpty)
+        '${track.title} - ${track.author}'
       else
-        cur.title,
+        track.title,
     ];
-    if (cur.isRemote && cur.videoId != null) {
-      parts.add('https://www.youtube.com/watch?v=${cur.videoId}');
+    if (track.isRemote &&
+        track.videoId != null &&
+        !track.videoId!.startsWith('radio:')) {
+      parts.add('https://www.youtube.com/watch?v=${track.videoId}');
+    }
+    if (track.isRemote && track.videoId?.startsWith('radio:') == true) {
+      final url = track.url;
+      if (url != null) {
+        parts.add(url);
+      }
     }
     try {
       await SharePlus.instance.share(
-        ShareParams(text: parts.join('\n'), subject: cur.title),
+        ShareParams(text: parts.join('\n'), subject: track.title),
       );
     } catch (_) {
       // Share sheet is not available on this platform.
@@ -1007,6 +1019,74 @@ class AppState extends ChangeNotifier {
       favorite.removeId(track.id);
     } else {
       favorite.add(track);
+    }
+    await _savePlaylists();
+    notifyListeners();
+  }
+
+  /// Adds several tracks to the queue without duplicating ids.
+  Future<void> addTracksToQueue(List<Track> tracks) async {
+    var changed = false;
+    for (final track in tracks) {
+      if (queue.any((t) => t.id == track.id)) {
+        continue;
+      }
+      queue.add(track);
+      if (!library.any((t) => t.id == track.id)) {
+        library.add(track);
+        _libraryIndex[track.id] = library.length - 1;
+        _lowerTitles[track.id] = track.title.toLowerCase();
+      }
+      changed = true;
+    }
+    if (!changed) {
+      return;
+    }
+    queueVersion++;
+    unawaited(_saveLibrary());
+    await _saveQueue();
+    notifyListeners();
+  }
+
+  /// Inserts a track right after the current one.
+  Future<void> playNext(Track track) async {
+    var insertAt = queueIndex + 1;
+    if (insertAt <= 0 || insertAt > queue.length) {
+      insertAt = queue.isEmpty ? 0 : queue.length;
+    }
+    queue.insert(insertAt, track);
+    if (!library.any((t) => t.id == track.id)) {
+      library.add(track);
+      _libraryIndex[track.id] = library.length - 1;
+      _lowerTitles[track.id] = track.title.toLowerCase();
+    }
+    queueVersion++;
+    unawaited(_saveLibrary());
+    await _saveQueue();
+    notifyListeners();
+  }
+
+  /// Adds several tracks to Favorites in one write.
+  Future<void> addManyToFavorites(List<Track> tracks) async {
+    var favorite = favoritesPlaylist;
+    if (favorite == null) {
+      favorite = Playlist(id: 'favorites', name: 'Favorites');
+      playlists.insert(0, favorite);
+    }
+    for (final track in tracks) {
+      favorite.add(track);
+    }
+    await _savePlaylists();
+    notifyListeners();
+  }
+
+  /// Adds several tracks to any playlist in one write.
+  Future<void> addTracksToPlaylist(
+    Playlist playlist,
+    List<Track> tracks,
+  ) async {
+    for (final track in tracks) {
+      playlist.add(track);
     }
     await _savePlaylists();
     notifyListeners();

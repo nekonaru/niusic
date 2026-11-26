@@ -71,6 +71,8 @@ Niusic adalah pemutar musik local-first untuk Android dan Windows. Satu codebase
 | **Impor audio** | Pilih banyak file audio lewat pemilih file sistem. |
 | **Cari** | Saring perpustakaan berdasarkan teks judul. |
 | **Urutkan** | Urutkan berdasarkan nama, artis, durasi, atau terakhir diputar. |
+| **Pilih banyak** | Tahan lama untuk memilih lagu dan memasukkan ke antrian, Favorit, atau playlist. |
+| **Detail lagu** | Sumber, durasi, jumlah putar, path lokal, dan aksi cepat. |
 | **Paling sering diputar** | Lihat lagu yang paling sering kamu putar dengan jumlah pemutarannya di Beranda. Disimpan di perangkat. |
 | **Favorit** | Bintangi lagu dari Perpustakaan atau Now Playing. Favorit dipin pada tab Playlist. |
 | **Riwayat** | Simpan 100 lagu terakhir yang diputar di perangkat. |

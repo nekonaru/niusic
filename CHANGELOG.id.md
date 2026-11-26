@@ -1,5 +1,15 @@
 # Changelog
 
+## v6.0.0
+
+Pengelolaan perpustakaan dan antrian.
+
+### Fitur baru
+
+- **Pilih banyak di Perpustakaan.** Tahan lama lagu apa pun untuk masuk mode pilih. Tambahkan lagu terpilih ke antrian, Favorit, atau playlist dalam satu aksi.
+- **Layar riwayat penuh.** Ketuk Lihat semua di samping Baru diputar di Beranda untuk membuka seluruh riwayat dengar.
+- **Detail lagu.** Menu titik tiga di Perpustakaan, Now Playing, dan Riwayat menampilkan detail lagu: sumber, durasi, jumlah putar, dan path lokal, dengan aksi Putar berikutnya, Favorit, dan Bagikan.
+
 ## v5.0.0
 
 Bar seek hingga menggunakan waveform di Now Playing (Android).

@@ -36,6 +36,69 @@ class LibraryScreen extends StatefulWidget {
 
 class _LibraryScreenState extends State<LibraryScreen> {
   String query = '';
+  final Set<String> _selected = <String>{};
+
+  bool get _selecting => _selected.isNotEmpty;
+
+  void _toggleSelection(String id) {
+    setState(() {
+      if (_selected.contains(id)) {
+        _selected.remove(id);
+      } else {
+        _selected.add(id);
+      }
+    });
+  }
+
+  List<Track> _selectedTracks() {
+    return widget.state.library
+        .where((track) => _selected.contains(track.id))
+        .toList();
+  }
+
+  Future<void> _addSelectedToQueue() async {
+    await widget.state.addTracksToQueue(_selectedTracks());
+    setState(_selected.clear);
+  }
+
+  Future<void> _addSelectedToFavorites() async {
+    await widget.state.addManyToFavorites(_selectedTracks());
+    setState(_selected.clear);
+  }
+
+  Future<void> _addSelectedToPlaylist() async {
+    final state = widget.state;
+    final strings = widget.strings;
+    final playlists = state.playlists
+        .where((playlist) => playlist.id != 'favorites')
+        .toList();
+    Playlist? target;
+    if (playlists.isEmpty) {
+      target = await state.createPlaylist(strings.newPlaylist);
+    } else if (playlists.length == 1) {
+      target = playlists.first;
+    } else {
+      target = await showModalBottomSheet<Playlist>(
+        context: context,
+        builder: (context) {
+          return ListView.builder(
+            shrinkWrap: true,
+            itemCount: playlists.length,
+            itemBuilder: (context, index) {
+              return ListTile(
+                title: Text(playlists[index].name),
+                onTap: () => Navigator.pop(context, playlists[index]),
+              );
+            },
+          );
+        },
+      );
+    }
+    if (target != null) {
+      await state.addTracksToPlaylist(target, _selectedTracks());
+    }
+    setState(_selected.clear);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -95,6 +158,45 @@ class _LibraryScreenState extends State<LibraryScreen> {
             ],
           ),
         ),
+        if (_selecting)
+          Container(
+            margin: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                Text(
+                  '${_selected.length} ${strings.selectedCount}',
+                  style: Theme.of(context).textTheme.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.queue_music),
+                  tooltip: strings.enqueue,
+                  onPressed: _addSelectedToQueue,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.favorite_border),
+                  tooltip: strings.addToFavorites,
+                  onPressed: _addSelectedToFavorites,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.playlist_add),
+                  tooltip: strings.addToPlaylist,
+                  onPressed: _addSelectedToPlaylist,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  tooltip: strings.clearSelection,
+                  onPressed: () => setState(_selected.clear),
+                ),
+              ],
+            ),
+          ),
         Expanded(
           child: filtered.isEmpty
               ? Center(
@@ -154,10 +256,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         leading: CircleAvatar(
-          backgroundColor: theme.colorScheme.primaryContainer,
+          backgroundColor: _selected.contains(track.id)
+              ? theme.colorScheme.primary
+              : theme.colorScheme.primaryContainer,
           child: Icon(
-            Icons.music_note,
-            color: theme.colorScheme.onPrimaryContainer,
+            _selected.contains(track.id) ? Icons.check : Icons.music_note,
+            color: _selected.contains(track.id)
+                ? theme.colorScheme.onPrimary
+                : theme.colorScheme.onPrimaryContainer,
           ),
         ),
         title: Text(
@@ -199,9 +305,21 @@ class _LibraryScreenState extends State<LibraryScreen> {
               ),
             ),
             PopupMenuItem(child: Text(widget.strings.addToPlaylist)),
+            PopupMenuItem(
+              onTap: () =>
+                  showTrackDetails(context, state, widget.strings, track),
+              child: Text(widget.strings.trackDetails),
+            ),
           ],
         ),
-        onTap: () => state.playAt(queueIndex),
+        onTap: () {
+          if (_selecting) {
+            _toggleSelection(track.id);
+          } else if (queueIndex >= 0) {
+            state.playAt(queueIndex);
+          }
+        },
+        onLongPress: () => _toggleSelection(track.id),
       ),
     );
   }
@@ -528,7 +646,23 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 20),
         ],
         if (recent.isNotEmpty) ...[
-          _sectionTitle(strings.recent, Icons.history),
+          Row(
+            children: [
+              Expanded(child: _sectionTitle(strings.recent, Icons.history)),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (context) =>
+                          HistoryScreen(state: state, strings: strings),
+                    ),
+                  );
+                },
+                child: Text(strings.seeAll),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           Card(
             child: Column(
@@ -997,8 +1131,8 @@ class SettingsScreen extends StatefulWidget {
   final AppStrings strings;
   final VoidCallback onChanged;
 
-  static const String version = '5.0.0';
-  static const String buildNumber = '34';
+  static const String version = '6.0.0';
+  static const String buildNumber = '35';
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -2507,6 +2641,13 @@ class NowPlayingScreen extends StatelessWidget {
               );
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.more_vert),
+            tooltip: strings.trackDetails,
+            onPressed: track == null
+                ? null
+                : () => showTrackDetails(context, state, strings, track),
+          ),
         ],
       ),
       body: Container(
@@ -3204,5 +3345,172 @@ class _WaveformPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _WaveformPainter old) {
     return identical(old.data, data) == false || old.color != color;
+  }
+}
+
+void showTrackDetails(
+  BuildContext context,
+  AppState state,
+  AppStrings strings,
+  Track track,
+) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (context) {
+      final theme = Theme.of(context);
+      final plays = state.playCounts[track.id] ?? 0;
+      final isRadio = track.videoId?.startsWith('radio:') == true;
+      final source = isRadio
+          ? strings.sourceRadio
+          : track.isDownloaded
+          ? strings.sourceDownloaded
+          : track.isLocal
+          ? strings.sourceLocal
+          : strings.sourceOnline;
+
+      Widget info(IconData icon, String text) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            children: [
+              Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  text,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium,
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.4,
+                    ),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                track.title,
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(track.subtitle ?? '', style: theme.textTheme.bodyMedium),
+              const SizedBox(height: 20),
+              info(Icons.category, '${strings.sourceKind}: $source'),
+              info(Icons.play_arrow, '$plays ${strings.playsCountSuffix}'),
+              if (track.durationSeconds != null)
+                info(
+                  Icons.schedule,
+                  fmt(Duration(seconds: track.durationSeconds!)),
+                ),
+              if (track.isLocal && track.path != null)
+                info(Icons.folder_outlined, track.path!),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () {
+                        state.playNext(track);
+                        Navigator.pop(context);
+                      },
+                      icon: const Icon(Icons.skip_next),
+                      label: Text(strings.playNext),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: Icon(
+                      state.isFavoriteId(track.id)
+                          ? Icons.favorite
+                          : Icons.favorite_border,
+                    ),
+                    tooltip: strings.favorites,
+                    onPressed: () => state.toggleFavorite(track),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.share),
+                    tooltip: strings.share,
+                    onPressed: () => state.shareTrack(track),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+class HistoryScreen extends StatelessWidget {
+  const HistoryScreen({required this.state, required this.strings, super.key});
+
+  final AppState state;
+  final AppStrings strings;
+
+  @override
+  Widget build(BuildContext context) {
+    final tracks = state.recentTracks();
+    return Scaffold(
+      appBar: AppBar(title: Text(strings.recent)),
+      body: tracks.isEmpty
+          ? Center(child: Text(strings.emptyHistory))
+          : ListView.separated(
+              itemCount: tracks.length,
+              separatorBuilder: (context, index) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final track = tracks[index];
+                return ListTile(
+                  leading: const CircleAvatar(child: Icon(Icons.history)),
+                  title: Text(
+                    track.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(
+                    track.subtitle ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.more_vert),
+                    tooltip: strings.trackDetails,
+                    onPressed: () =>
+                        showTrackDetails(context, state, strings, track),
+                  ),
+                  onTap: () {
+                    final queueIndex = state.queueIndexOf(track);
+                    if (queueIndex >= 0) {
+                      state.playAt(queueIndex);
+                    }
+                    Navigator.pop(context);
+                  },
+                );
+              },
+            ),
+    );
   }
 }

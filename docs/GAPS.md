@@ -1,6 +1,6 @@
 # Feature Gap Analysis
 
-Date: 2026-11-26. Comparison: Niusic v5.0.0 against Auralys (Android Kotlin/Metrolist fork and Windows JavaFX).
+Date: 2026-11-26. Comparison: Niusic v6.0.0 against Auralys (Android Kotlin/Metrolist fork and Windows JavaFX).
 
 ## Implemented
 
@@ -26,6 +26,8 @@ Date: 2026-11-26. Comparison: Niusic v5.0.0 against Auralys (Android Kotlin/Metr
 - **Share.** Share the current track from Now Playing.
 - **Most played.** On-device play counts, shown on Home.
 - **Waveform seek bar.** Android local tracks show a real waveform bar in Now Playing. Tap or drag to seek. Falls back to the slider when extraction is not possible.
+- **Library multi-select.** Long press to select multiple tracks, then add to queue, Favorites, or a playlist.
+- **Full history and track details.** See all recently played tracks and inspect details (source, duration, play count, path) with play-next, favorite, and share actions.
 
 ## Not implemented
 
