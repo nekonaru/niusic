@@ -108,7 +108,8 @@ Niusic adalah pemutar musik local-first untuk Android dan Windows. Satu codebase
 
 | Fitur | Deskripsi |
 |-------|-----------|
-| **Playlist** | Buat, ganti nama lewat kode, hapus, tambah, dan hapus lagu secara lokal. |
+| **Playlist** | Buat, ganti nama, hapus, seret urutan, putar semua atau acak. |
+| **Timer tidur** | Jeda setelah waktu tertentu, dengan opsi volume pelan di akhir. |
 | **Pembaruan antrian** | Simpan antrian sebagai playlist dan bersihkan seluruhnya. |
 | **Pengaturan** | Ganti bahasa, tema, aksen, volume, kecepatan putar, equalizer, dan hapus data lokal. |
 

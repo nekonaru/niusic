@@ -43,6 +43,7 @@ const String _keyLibraryV2 = 'library_v2';
 const String _keyHistoryV2 = 'history_v2';
 const String _keyScanAsked = 'scan_permission_asked';
 const String _keyPlayCounts = 'play_counts_v1';
+const String _keySleepFade = 'sleep_fade_enabled';
 const String _keyLibrarySort = 'library_sort';
 const String _keyEqEnabled = 'equalizer_enabled';
 const String _keyEqGains = 'equalizer_gains';
@@ -143,8 +144,10 @@ class AppState extends ChangeNotifier {
   double playbackRate = 1;
   String accent = 'indigo';
   Timer? _sleepTimer;
+  Timer? _fadeTimer;
   int? sleepMinutes;
   DateTime? sleepDeadline;
+  bool sleepFade = true;
   LibrarySort librarySort = LibrarySort.name;
   final Map<String, int> playCounts = <String, int>{};
   bool equalizerEnabled = false;
@@ -285,6 +288,15 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> load() async {
+    // load() must be idempotent: reloading (for example in tests or after a
+    // settings change) must not duplicate stored tracks or playlists.
+    library.clear();
+    playlists.clear();
+    historyIds.clear();
+    _libraryIndex.clear();
+    _lowerTitles.clear();
+    _cachedItems.clear();
+    _lastSyncKey = '';
     final prefs = await _getPrefs();
     final libRaw =
         prefs.getString(_keyLibraryV2) ?? prefs.getString(_keyLibrary);
@@ -328,6 +340,7 @@ class AppState extends ChangeNotifier {
     streamService.audioQuality = prefs.getString(_keyQuality) ?? 'high';
     playbackRate = prefs.getDouble(_keyRate) ?? 1;
     accent = prefs.getString(_keyAccent) ?? 'indigo';
+    sleepFade = prefs.getBool(_keySleepFade) ?? true;
     librarySort =
         LibrarySort.values.asNameMap()[prefs.getString(_keyLibrarySort)] ??
         LibrarySort.name;
@@ -1229,20 +1242,48 @@ class AppState extends ChangeNotifier {
 
   void setSleepTimer(int? minutes) {
     _sleepTimer?.cancel();
+    _fadeTimer?.cancel();
     sleepMinutes = minutes;
     if (minutes != null && minutes > 0) {
       sleepDeadline = DateTime.now().add(Duration(minutes: minutes));
+      if (sleepFade && minutes > 1) {
+        _fadeTimer = Timer(
+          Duration(seconds: minutes * 60 - 10),
+          _startSleepFade,
+        );
+      }
       _sleepTimer = Timer(Duration(minutes: minutes), () {
         if (isPlaying) {
           unawaited(player.pause());
         }
         sleepMinutes = null;
         sleepDeadline = null;
+        // Restore the user's volume after the fade out.
+        unawaited(player.setVolume(volume));
         notifyListeners();
       });
     } else {
       sleepDeadline = null;
+      unawaited(player.setVolume(volume));
     }
+    notifyListeners();
+  }
+
+  void _startSleepFade() {
+    var tick = 0;
+    _fadeTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      tick++;
+      unawaited(player.setVolume((volume * (1 - tick / 10)).clamp(0.0, 1.0)));
+      if (tick >= 10) {
+        timer.cancel();
+      }
+    });
+  }
+
+  Future<void> setSleepFade(bool value) async {
+    sleepFade = value;
+    final prefs = await _getPrefs();
+    await prefs.setBool(_keySleepFade, value);
     notifyListeners();
   }
 
@@ -1447,6 +1488,53 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Reorders playlists. [oldIndex] and [newIndex] are relative to the
+  /// reorderable list, which excludes the pinned Favorites playlist.
+  void reorderPlaylists(int oldIndex, int newIndex) {
+    final favorite = favoritesPlaylist;
+    final normal = playlists.where((p) => p.id != 'favorites').toList();
+    if (oldIndex < 0 ||
+        oldIndex >= normal.length ||
+        newIndex < 0 ||
+        newIndex >= normal.length) {
+      return;
+    }
+    var target = newIndex;
+    if (oldIndex < newIndex) {
+      target = newIndex - 1;
+    }
+    final item = normal.removeAt(oldIndex);
+    normal.insert(target, item);
+    playlists
+      ..clear()
+      ..addAll([?favorite, ...normal]);
+    unawaited(_savePlaylists());
+    notifyListeners();
+  }
+
+  /// Replaces the queue with the playlist's tracks and starts playback.
+  Future<void> playAllFromPlaylist(
+    Playlist playlist, {
+    bool shuffleAll = false,
+  }) async {
+    final byId = <String, Track>{for (final track in library) track.id: track};
+    final tracks = playlist.trackIds
+        .map((id) => byId[id])
+        .whereType<Track>()
+        .toList();
+    if (tracks.isEmpty) {
+      return;
+    }
+    queue = tracks;
+    queueIndex = 0;
+    queueVersion++;
+    if (shuffleAll) {
+      shuffle = true;
+    }
+    await _saveQueue();
+    await playAt(0);
+  }
+
   Future<void> addToPlaylist(Playlist playlist, Track track) async {
     playlist.add(track);
     await _savePlaylists();
@@ -1484,6 +1572,8 @@ class AppState extends ChangeNotifier {
     sleepDeadline = null;
     sleepMinutes = null;
     _sleepTimer?.cancel();
+    _fadeTimer?.cancel();
+    unawaited(player.setVolume(volume));
     playCounts.clear();
     final prefs = await _getPrefs();
     await prefs.remove(_keyPlayCounts);
@@ -1549,6 +1639,7 @@ class AppState extends ChangeNotifier {
     suggestionsService.dispose();
     radioService.dispose();
     _sleepTimer?.cancel();
+    _fadeTimer?.cancel();
     super.dispose();
   }
 

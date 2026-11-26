@@ -987,70 +987,103 @@ class PlaylistsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final favorite = state.favoritesPlaylist;
+    final normal = state.playlists
+        .where((playlist) => playlist.id != 'favorites')
+        .toList();
+    final byId = <String, Track>{
+      for (final track in state.library) track.id: track,
+    };
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.all(16),
           child: FilledButton.icon(
-            onPressed: () => _createDialog(context),
-            icon: Icon(Icons.playlist_add),
+            onPressed: () => _nameDialog(context, create: true),
+            icon: const Icon(Icons.playlist_add),
             label: Text(strings.newPlaylist),
           ),
         ),
+        if (favorite != null)
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            child: ListTile(
+              leading: Icon(Icons.favorite, color: theme.colorScheme.error),
+              title: Text(strings.favorites),
+              subtitle: Text('${favorite.length} ${strings.tracksCount}'),
+              trailing: Icon(
+                Icons.push_pin,
+                size: 18,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              onTap: () =>
+                  _openPlaylist(context, favorite, title: strings.favorites),
+            ),
+          ),
         Expanded(
-          child: () {
-            final favorite = state.favoritesPlaylist;
-            final normal = state.playlists
-                .where((p) => p.id != 'favorites')
-                .toList();
-            if (favorite == null && normal.isEmpty) {
-              return Center(child: Text(strings.emptyPlaylist));
-            }
-            final offset = favorite != null ? 1 : 0;
-            return ListView.builder(
-              itemCount: normal.length + offset,
-              itemBuilder: (context, index) {
-                if (favorite != null && index == 0) {
-                  return ListTile(
-                    leading: Icon(
-                      Icons.favorite,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                    title: Text(strings.favorites),
-                    subtitle: Text('${favorite.length} ${strings.tracksCount}'),
-                    onTap: () => _openPlaylist(
-                      context,
-                      favorite,
-                      title: strings.favorites,
-                    ),
-                  );
-                }
-                final playlist = normal[index - offset];
-                return ListTile(
-                  leading: Icon(Icons.queue_music),
-                  title: Text(playlist.name),
-                  subtitle: Text('${playlist.length} ${strings.tracksCount}'),
-                  trailing: IconButton(
-                    icon: Icon(Icons.delete_outline),
-                    onPressed: () => state.deletePlaylist(playlist),
-                  ),
-                  onTap: () => _openPlaylist(context, playlist),
-                );
-              },
-            );
-          }(),
+          child: normal.isEmpty
+              ? favorite == null
+                    ? Center(child: Text(strings.emptyPlaylist))
+                    : const SizedBox.shrink()
+              : ReorderableListView.builder(
+                  itemCount: normal.length,
+                  onReorderItem: (oldIndex, newIndex) {
+                    state.reorderPlaylists(oldIndex, newIndex);
+                  },
+                  itemBuilder: (context, index) {
+                    final playlist = normal[index];
+                    var seconds = 0;
+                    for (final id in playlist.trackIds) {
+                      seconds += byId[id]?.durationSeconds ?? 0;
+                    }
+                    return Card(
+                      key: ValueKey<String>(playlist.id),
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
+                      child: ListTile(
+                        leading: const Icon(Icons.queue_music),
+                        title: Text(playlist.name),
+                        subtitle: Text(
+                          '${playlist.length} ${strings.tracksCount}'
+                          '${seconds > 0 ? ' · ${fmt(Duration(seconds: seconds))}' : ''}',
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit_outlined),
+                              tooltip: strings.renamePlaylist,
+                              onPressed: () =>
+                                  _nameDialog(context, playlist: playlist),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline),
+                              tooltip: strings.delete,
+                              onPressed: () => _delete(context, playlist),
+                            ),
+                          ],
+                        ),
+                        onTap: () => _openPlaylist(context, playlist),
+                      ),
+                    );
+                  },
+                ),
         ),
       ],
     );
   }
 
-  Future<void> _createDialog(BuildContext context) async {
-    final controller = TextEditingController();
+  Future<void> _nameDialog(
+    BuildContext context, {
+    Playlist? playlist,
+    bool create = false,
+  }) async {
+    final controller = TextEditingController(text: playlist?.name ?? '');
     final name = await showDialog<String>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(strings.newPlaylist),
+          title: Text(create ? strings.newPlaylist : strings.renamePlaylist),
           content: TextField(
             controller: controller,
             decoration: InputDecoration(hintText: strings.playlistName),
@@ -1063,39 +1096,103 @@ class PlaylistsScreen extends StatelessWidget {
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, controller.text),
-              child: Text(strings.create),
+              child: Text(create ? strings.create : strings.save),
             ),
           ],
         );
       },
     );
-    if (name != null) {
+    if (name == null || name.trim().isEmpty) {
+      return;
+    }
+    if (create) {
       await state.createPlaylist(name);
+    } else if (playlist != null) {
+      await state.renamePlaylist(playlist, name);
+    }
+  }
+
+  Future<void> _delete(BuildContext context, Playlist playlist) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(strings.deletePlaylist),
+          content: Text(strings.deletePlaylistConfirm),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(strings.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(strings.delete),
+            ),
+          ],
+        );
+      },
+    );
+    if (ok == true) {
+      await state.deletePlaylist(playlist);
     }
   }
 
   void _openPlaylist(BuildContext context, Playlist playlist, {String? title}) {
     final byId = <String, Track>{for (final t in state.library) t.id: t};
+    final tracks = playlist.trackIds
+        .map((id) => byId[id])
+        .whereType<Track>()
+        .toList();
     Navigator.push(
       context,
       MaterialPageRoute<void>(
         builder: (context) {
           return Scaffold(
-            appBar: AppBar(title: Text(title ?? playlist.name)),
-            body: playlist.trackIds.isEmpty
+            appBar: AppBar(
+              title: Text(title ?? playlist.name),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.play_arrow),
+                  tooltip: strings.playAll,
+                  onPressed: tracks.isEmpty
+                      ? null
+                      : () => state.playAllFromPlaylist(playlist),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.shuffle),
+                  tooltip: strings.shuffleAll,
+                  onPressed: tracks.isEmpty
+                      ? null
+                      : () => state.playAllFromPlaylist(
+                          playlist,
+                          shuffleAll: true,
+                        ),
+                ),
+              ],
+            ),
+            body: tracks.isEmpty
                 ? Center(child: Text(strings.emptyPlaylist))
-                : ListView.builder(
-                    itemCount: playlist.trackIds.length,
+                : ListView.separated(
+                    itemCount: tracks.length,
+                    separatorBuilder: (context, index) =>
+                        const Divider(height: 1),
                     itemBuilder: (context, index) {
-                      final track = byId[playlist.trackIds[index]];
-                      if (track == null) {
-                        return SizedBox.shrink();
-                      }
+                      final track = tracks[index];
                       return ListTile(
-                        title: Text(track.title),
-                        subtitle: Text(track.subtitle ?? ''),
+                        leading: CircleAvatar(child: Text('${index + 1}')),
+                        title: Text(
+                          track.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          track.subtitle ?? '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                         trailing: IconButton(
-                          icon: Icon(Icons.remove_circle_outline),
+                          icon: const Icon(Icons.remove_circle_outline),
+                          tooltip: strings.removeFromPlaylist,
                           onPressed: () async {
                             await state.removeFromPlaylist(playlist, track.id);
                             if (context.mounted) {
@@ -1131,8 +1228,8 @@ class SettingsScreen extends StatefulWidget {
   final AppStrings strings;
   final VoidCallback onChanged;
 
-  static const String version = '6.0.0';
-  static const String buildNumber = '35';
+  static const String version = '7.0.0';
+  static const String buildNumber = '36';
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -1438,6 +1535,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onSelectionChanged: (value) =>
                       state.setAudioQuality(value.first),
                 ),
+              ),
+              _divider(),
+              SwitchListTile(
+                secondary: Icon(
+                  Icons.bedtime_outlined,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                title: Text(strings.fadeOutSleep),
+                subtitle: Text(strings.fadeOutSleepDesc),
+                value: state.sleepFade,
+                onChanged: (value) => state.setSleepFade(value),
               ),
             ],
           ),

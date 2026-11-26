@@ -1,5 +1,19 @@
 # Changelog
 
+## v7.0.0
+
+Pengelolaan playlist dan pemolesan timer tidur.
+
+### Fitur baru
+
+- **Aksi playlist.** Ganti nama dan hapus playlist lewat dialog, seret untuk mengurutkan, dan lihat jumlah lagu plus total durasi pada tiap baris.
+- **Putar semua / Acak semua.** Buka playlist mana pun dan langsung putar dari app bar, dengan opsi acak.
+- **Pelanan saat tidur.** Saat timer tidur aktif, volume turun perlahan 10 detik sebelum pemutaran berhenti. Bisa dimatikan di Pengaturan.
+
+### Perbaikan bug
+
+- **load() idempoten.** Memanggil `load()` dua kali tidak lagi menggandakan perpustakaan, playlist, atau riwayat di memori.
+
 ## v6.0.0
 
 Pengelolaan perpustakaan dan antrian.

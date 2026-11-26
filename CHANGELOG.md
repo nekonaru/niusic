@@ -1,5 +1,19 @@
 # Changelog
 
+## v7.0.0
+
+Playlist management and sleep timer polish.
+
+### New features
+
+- **Playlist actions.** Rename and delete playlists with dialogs, drag to reorder them, and see track count plus total duration on each row.
+- **Play all / Shuffle all.** Open any playlist and start it directly from the app bar, with shuffle as an option.
+- **Sleep fade out.** When the sleep timer is enabled, the volume drops gently over the last 10 seconds before playback pauses. Toggle it in Settings.
+
+### Bug fixes
+
+- **Idempotent load.** Calling `load()` twice no longer duplicates the library, playlists, or history in memory.
+
 ## v6.0.0
 
 Library and queue management.

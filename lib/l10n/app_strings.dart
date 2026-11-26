@@ -224,4 +224,16 @@ class AppStrings {
   String get playNext => isId ? 'Putar berikutnya' : 'Play next';
   String get emptyHistory =>
       isId ? 'Belum ada riwayat putar.' : 'No playback history yet.';
+  String get renamePlaylist => isId ? 'Ganti nama playlist' : 'Rename playlist';
+  String get deletePlaylist => isId ? 'Hapus playlist' : 'Delete playlist';
+  String get deletePlaylistConfirm => isId
+      ? 'Hapus playlist ini? Lagu tetap ada di perpustakaan.'
+      : 'Delete this playlist? Tracks stay in the library.';
+  String get playAll => isId ? 'Putar semua' : 'Play all';
+  String get shuffleAll => isId ? 'Acak semua' : 'Shuffle all';
+  String get fadeOutSleep =>
+      isId ? 'Pelankan sebelum tidur' : 'Fade out before sleep';
+  String get fadeOutSleepDesc => isId
+      ? 'Volume turun perlahan 10 detik sebelum timer berhenti.'
+      : 'Volume drops slowly in the last 10 seconds of the timer.';
 }
