@@ -44,6 +44,8 @@ const String _keyHistoryV2 = 'history_v2';
 const String _keyScanAsked = 'scan_permission_asked';
 const String _keyPlayCounts = 'play_counts_v1';
 const String _keySleepFade = 'sleep_fade_enabled';
+const String _keyMetaOverrides = 'meta_overrides_v1';
+const String _keyStats = 'stats_v1';
 const String _keyLibrarySort = 'library_sort';
 const String _keyEqEnabled = 'equalizer_enabled';
 const String _keyEqGains = 'equalizer_gains';
@@ -81,6 +83,7 @@ class AppState extends ChangeNotifier {
       final nextSecond = d.inSeconds;
       if (nextSecond != position.inSeconds || duration == Duration.zero) {
         position = d;
+        _recordListenSecond();
         notifyListeners();
       } else {
         position = d;
@@ -149,6 +152,10 @@ class AppState extends ChangeNotifier {
   DateTime? sleepDeadline;
   bool sleepFade = true;
   LibrarySort librarySort = LibrarySort.name;
+  final Map<String, String> metaTitle = <String, String>{};
+  final Map<String, String> metaArtist = <String, String>{};
+  final Map<String, String> metaAlbum = <String, String>{};
+  final Map<String, int> listenSecondsByDay = <String, int>{};
   final Map<String, int> playCounts = <String, int>{};
   bool equalizerEnabled = false;
   List<double> equalizerGains = <double>[];
@@ -355,6 +362,42 @@ class AppState extends ChangeNotifier {
           );
       } catch (_) {
         playCounts.clear();
+      }
+    }
+    final metaRaw = prefs.getString(_keyMetaOverrides);
+    if (metaRaw != null) {
+      try {
+        final decoded = jsonDecode(metaRaw) as Map<String, dynamic>;
+        metaTitle.clear();
+        metaArtist.clear();
+        metaAlbum.clear();
+        for (final entry in decoded.entries) {
+          final value = entry.value;
+          if (value is! Map<String, dynamic>) continue;
+          final t = value['title'] as String?;
+          final a = value['artist'] as String?;
+          final al = value['album'] as String?;
+          if (t != null && t.isNotEmpty) metaTitle[entry.key] = t;
+          if (a != null && a.isNotEmpty) metaArtist[entry.key] = a;
+          if (al != null && al.isNotEmpty) metaAlbum[entry.key] = al;
+        }
+      } catch (_) {
+        metaTitle.clear();
+        metaArtist.clear();
+        metaAlbum.clear();
+      }
+    }
+    final statsRaw = prefs.getString(_keyStats);
+    if (statsRaw != null) {
+      try {
+        final decoded = jsonDecode(statsRaw) as Map<String, dynamic>;
+        listenSecondsByDay
+          ..clear()
+          ..addAll(
+            decoded.map((key, value) => MapEntry(key, (value as num).toInt())),
+          );
+      } catch (_) {
+        listenSecondsByDay.clear();
       }
     }
     // just_audio's platform is created on first playback. Volume, speed,
@@ -575,6 +618,86 @@ class AppState extends ChangeNotifier {
   void _recordPlay(Track track) {
     playCounts[track.id] = (playCounts[track.id] ?? 0) + 1;
     _savePlayCountsSoon();
+  }
+
+  /// Applies a user edit to a track in library and queue.
+  Future<void> setTrackMeta(
+    Track track, {
+    String? title,
+    String? artist,
+    String? album,
+  }) async {
+    if (title != null && title.trim().isNotEmpty) {
+      metaTitle[track.id] = title.trim();
+    } else {
+      metaTitle.remove(track.id);
+    }
+    if (artist != null && artist.trim().isNotEmpty) {
+      metaArtist[track.id] = artist.trim();
+    } else {
+      metaArtist.remove(track.id);
+    }
+    if (album != null && album.trim().isNotEmpty) {
+      metaAlbum[track.id] = album.trim();
+    } else {
+      metaAlbum.remove(track.id);
+    }
+    final updated = track.copyWith(
+      titleOverride: metaTitle[track.id],
+      authorOverride: metaArtist[track.id],
+      albumOverride: metaAlbum[track.id],
+    );
+    final li = library.indexWhere((t) => t.id == track.id);
+    if (li >= 0) library[li] = updated;
+    queue = queue.map((t) => t.id == track.id ? updated : t).toList();
+    queueVersion++;
+    _rebuildIndexes();
+    final prefs = await _getPrefs();
+    final allMetaIds = <String>{
+      ...metaTitle.keys,
+      ...metaArtist.keys,
+      ...metaAlbum.keys,
+    };
+    await prefs.setString(
+      _keyMetaOverrides,
+      jsonEncode(<String, Map<String, String>>{
+        for (final id in allMetaIds)
+          id: <String, String>{
+            'title': metaTitle[id] ?? '',
+            'artist': metaArtist[id] ?? '',
+            'album': metaAlbum[id] ?? '',
+          },
+      }),
+    );
+    await _saveLibrary();
+    notifyListeners();
+  }
+
+  /// Records one second of listening for the statistics screen.
+  void _recordListenSecond() {
+    if (!isPlaying) return;
+    final key = DateTime.now().toString().substring(0, 10);
+    listenSecondsByDay[key] = (listenSecondsByDay[key] ?? 0) + 1;
+    _statsTimer ??= Timer(const Duration(seconds: 5), () async {
+      final prefs = await _getPrefs();
+      await prefs.setString(_keyStats, jsonEncode(listenSecondsByDay));
+      _statsTimer = null;
+    });
+  }
+
+  Timer? _statsTimer;
+
+  int get totalListenSeconds =>
+      listenSecondsByDay.values.fold(0, (sum, value) => sum + value);
+
+  List<MapEntry<String, int>> get weeklyStats {
+    final now = DateTime.now();
+    final out = <MapEntry<String, int>>[];
+    for (var i = 6; i >= 0; i--) {
+      final day = now.subtract(Duration(days: i)).toString().substring(0, 10);
+      out.add(MapEntry(day, listenSecondsByDay[day] ?? 0));
+    }
+    return out;
   }
 
   Future<void>? _playCountsSaveFuture;
@@ -1058,6 +1181,124 @@ class AppState extends ChangeNotifier {
     queueVersion++;
     unawaited(_saveLibrary());
     await _saveQueue();
+    notifyListeners();
+  }
+
+  /// Groups local tracks by artist name for the Artists screen.
+  Map<String, List<Track>> artists() {
+    final out = <String, List<Track>>{};
+    for (final track in library) {
+      final key = (track.author ?? 'Unknown').trim().isEmpty
+          ? 'Unknown'
+          : track.author!.trim();
+      out.putIfAbsent(key, () => <Track>[]).add(track);
+    }
+    final keys = out.keys.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return <String, List<Track>>{for (final key in keys) key: out[key]!};
+  }
+
+  /// Groups local tracks by album name for the Albums screen.
+  Map<String, List<Track>> albums() {
+    final out = <String, List<Track>>{};
+    for (final track in library) {
+      final key = (track.album ?? 'Unknown album').trim().isEmpty
+          ? 'Unknown album'
+          : track.album!.trim();
+      out.putIfAbsent(key, () => <Track>[]).add(track);
+    }
+    final keys = out.keys.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return <String, List<Track>>{for (final key in keys) key: out[key]!};
+  }
+
+  /// Finds groups of tracks with the same title, artist, and duration.
+  List<List<Track>> duplicates() {
+    final groups = <String, List<Track>>{};
+    for (final track in library) {
+      final key =
+          '${track.title.toLowerCase()}|'
+          '${(track.author ?? '').toLowerCase()}|${track.durationSeconds ?? 0}';
+      groups.putIfAbsent(key, () => <Track>[]).add(track);
+    }
+    return groups.values.where((group) => group.length > 1).toList();
+  }
+
+  /// Removes a track from library, queue, and playlists.
+  Future<void> removeTrack(Track track) async {
+    library.removeWhere((t) => t.id == track.id);
+    queue = queue.where((t) => t.id != track.id).toList();
+    queueIndex = queue.isEmpty
+        ? -1
+        : (queueIndex >= queue.length ? queue.length - 1 : queueIndex);
+    queueVersion++;
+    for (final playlist in playlists) {
+      playlist.removeId(track.id);
+    }
+    _rebuildIndexes();
+    unawaited(_saveLibrary());
+    unawaited(_savePlaylists());
+    await _saveQueue();
+    notifyListeners();
+  }
+
+  /// Merges a backup into the current library without duplicates.
+  Future<int> importBackup(List<Track> tracks, List<Playlist> imported) async {
+    var added = 0;
+    final ids = library.map((t) => t.id).toSet();
+    for (final track in tracks) {
+      if (ids.contains(track.id)) continue;
+      library.add(track);
+      ids.add(track.id);
+      added++;
+    }
+    final playlistIds = playlists.map((p) => p.id).toSet();
+    for (final playlist in imported) {
+      if (playlistIds.contains(playlist.id)) continue;
+      playlists.add(playlist);
+      playlistIds.add(playlist.id);
+    }
+    _rebuildIndexes();
+    await _saveLibrary();
+    await _savePlaylists();
+    notifyListeners();
+    return added;
+  }
+
+  /// Total bytes used by downloaded audio and cached waveforms.
+  Future<int> storageBytes() async {
+    var total = 0;
+    for (final track in library) {
+      if (track.isDownloaded) {
+        total += await downloadService.sizeOf(track.downloadPath);
+      }
+    }
+    try {
+      final temp = await getTemporaryDirectory();
+      final dir = Directory(temp.path);
+      await for (final entity in dir.list()) {
+        if (entity is File && entity.path.endsWith('.wave')) {
+          total += await entity.length();
+        }
+      }
+    } catch (_) {
+      // Temporary directory not readable.
+    }
+    return total;
+  }
+
+  Future<void> clearWaveformCache() async {
+    try {
+      final temp = await getTemporaryDirectory();
+      final dir = Directory(temp.path);
+      await for (final entity in dir.list()) {
+        if (entity is File && entity.path.endsWith('.wave')) {
+          await entity.delete();
+        }
+      }
+    } catch (_) {
+      // Nothing to clear.
+    }
     notifyListeners();
   }
 
@@ -1640,6 +1881,7 @@ class AppState extends ChangeNotifier {
     radioService.dispose();
     _sleepTimer?.cancel();
     _fadeTimer?.cancel();
+    _statsTimer?.cancel();
     super.dispose();
   }
 

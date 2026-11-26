@@ -1,6 +1,6 @@
 # Feature Gap Analysis
 
-Date: 2026-11-26. Comparison: Niusic v7.0.0 against Auralys (Android Kotlin/Metrolist fork and Windows JavaFX).
+Date: 2026-11-26. Comparison: Niusic v8.0.0 against Auralys (Android Kotlin/Metrolist fork and Windows JavaFX).
 
 ## Implemented
 
@@ -30,6 +30,7 @@ Date: 2026-11-26. Comparison: Niusic v7.0.0 against Auralys (Android Kotlin/Metr
 - **Full history and track details.** See all recently played tracks and inspect details (source, duration, play count, path) with play-next, favorite, and share actions.
 - **Playlist management.** Rename, delete with confirmation, drag to reorder, play all or shuffle, with total duration shown.
 - **Sleep timer fade out.** Volume drops gently in the last 10 seconds of the timer.
+- **Smart library.** Artists/Albums views, filters, recently added sort, duplicates cleanup, local metadata overlay, backup/restore JSON, storage manager, listening stats with CSV export.
 
 ## Not implemented
 

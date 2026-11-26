@@ -52,6 +52,12 @@ MergeResult mergeScannedTracksInto(
       path: item.path,
       author: artist,
       durationSeconds: item.durationSeconds,
+      album: item.album == null || item.album!.isEmpty ? null : item.album,
+      year: item.year != null && item.year! > 0 ? item.year : null,
+      trackNumber: item.trackNumber != null && item.trackNumber! > 0
+          ? item.trackNumber
+          : null,
+      dateAdded: item.dateAdded,
     );
     library.add(track);
     byId[id] = track;

@@ -1,7 +1,7 @@
 import '../models/track.dart';
 
 /// Sort orders supported by the library screen.
-enum LibrarySort { name, artist, duration, recent }
+enum LibrarySort { name, artist, duration, recent, recentAdded }
 
 /// Lowercases the title and strips a leading article so "The Beatles"
 /// sorts under B.
@@ -30,6 +30,8 @@ List<Track> sortLibrary(
       list.sort(
         (a, b) => (b.durationSeconds ?? 0).compareTo(a.durationSeconds ?? 0),
       );
+    case LibrarySort.recentAdded:
+      list.sort((a, b) => (b.dateAdded ?? 0).compareTo(a.dateAdded ?? 0));
     case LibrarySort.recent:
       final index = <String, int>{
         for (var i = 0; i < historyIds.length; i++) historyIds[i]: i,

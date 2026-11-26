@@ -1,5 +1,21 @@
 # Changelog
 
+## v8.0.0
+
+Perpustakaan pintar dan portabilitas data.
+
+### Fitur baru
+
+- **Artis dan Album.** Perpustakaan punya tampilan Lagu, Artis, dan Album dari metadata MediaStore.
+- **Filter perpustakaan.** Chip Semua, Lokal, Terunduh, Online, dan Radio.
+- **Playlist pintar.** Baru ditambahkan dan Belum pernah diputar di tab Playlist.
+- **Urutan baru ditambahkan.** Opsi sortir baru di menu Perpustakaan.
+- **Bersihkan duplikat.** Deteksi lagu dengan judul, artis, dan durasi sama, hapus salinan sekaligus.
+- **Ubah info lagu.** Judul, artis, dan album bisa diubah sebagai overlay lokal tanpa menyentuh file audio.
+- **Cadangan dan pemulihan.** Ekspor perpustakaan, playlist, dan suntingan ke JSON, lalu pulihkan tanpa duplikat.
+- **Manajer penyimpanan.** Ukuran cache dan tombol hapus cache waveform di Pengaturan.
+- **Statistik dengar.** Detik mendengar harian, grafik mingguan, dan ekspor CSV.
+
 ## v7.0.0
 
 Pengelolaan playlist dan pemolesan timer tidur.

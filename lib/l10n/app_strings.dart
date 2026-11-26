@@ -236,4 +236,36 @@ class AppStrings {
   String get fadeOutSleepDesc => isId
       ? 'Volume turun perlahan 10 detik sebelum timer berhenti.'
       : 'Volume drops slowly in the last 10 seconds of the timer.';
+
+  String get artists => isId ? 'Artis' : 'Artists';
+  String get albums => isId ? 'Album' : 'Albums';
+  String get songs => isId ? 'Lagu' : 'Songs';
+  String get sortByRecentAdded => isId ? 'Baru ditambahkan' : 'Recently added';
+  String get smartPlaylists => isId ? 'Playlist pintar' : 'Smart playlists';
+  String get recentlyAdded => isId ? 'Baru ditambahkan' : 'Recently added';
+  String get neverPlayed => isId ? 'Belum diputar' : 'Never played';
+  String get duplicates => isId ? 'Lagu duplikat' : 'Duplicate tracks';
+  String get noDuplicates =>
+      isId ? 'Tidak ada duplikat.' : 'No duplicate tracks found.';
+  String get mergeDuplicates => isId ? 'Hapus duplikat' : 'Remove duplicates';
+  String get editMetadata => isId ? 'Ubah info lagu' : 'Edit track info';
+  String get backupRestore =>
+      isId ? 'Cadangkan / Pulihkan' : 'Backup / Restore';
+  String get exportBackup => isId ? 'Ekspor cadangan' : 'Export backup';
+  String get importBackup => isId ? 'Pulihkan cadangan' : 'Restore backup';
+  String get backupDone => isId ? 'Cadangan dibagikan.' : 'Backup shared.';
+  String restoreDone(int added) =>
+      isId ? '$added lagu dipulihkan.' : '$added tracks restored.';
+  String get cacheSize => isId ? 'Ukuran cache' : 'Cache size';
+  String get clearCache => isId ? 'Hapus cache' : 'Clear cache';
+  String get statsTitle => isId ? 'Statistik dengar' : 'Listening stats';
+  String get totalListening => isId ? 'Total mendengar' : 'Total listening';
+  String get thisWeek => isId ? 'Minggu ini' : 'This week';
+  String get exportCsv => isId ? 'Ekspor CSV' : 'Export CSV';
+  String get offlineMode => isId ? 'Mode offline' : 'Offline mode';
+  String get offlineModeDesc => isId
+      ? 'Matikan semua permintaan jaringan.'
+      : 'Disable all network requests.';
+  String get all => isId ? 'Semua' : 'All';
+  String get editInfoSaved => isId ? 'Info disimpan.' : 'Info saved.';
 }

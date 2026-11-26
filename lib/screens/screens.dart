@@ -13,6 +13,7 @@ import '../models/playlist.dart';
 import '../models/radio_station.dart';
 import '../models/track.dart';
 import '../models/video_result.dart';
+import '../services/backup_service.dart';
 import '../services/lyrics_service.dart';
 import '../services/library_sort.dart';
 import '../services/player_service.dart';
@@ -36,6 +37,8 @@ class LibraryScreen extends StatefulWidget {
 
 class _LibraryScreenState extends State<LibraryScreen> {
   String query = '';
+  String filter = 'all';
+  String view = 'songs';
   final Set<String> _selected = <String>{};
 
   bool get _selecting => _selected.isNotEmpty;
@@ -105,7 +108,21 @@ class _LibraryScreenState extends State<LibraryScreen> {
     final state = widget.state;
     final strings = widget.strings;
     final filtered = sortLibrary(
-      state.searchLibrary(query),
+      state.searchLibrary(query).where((track) {
+        switch (filter) {
+          case 'local':
+            return track.isLocal && !track.isDownloaded;
+          case 'downloaded':
+            return track.isDownloaded;
+          case 'online':
+            return track.isRemote &&
+                !(track.videoId?.startsWith('radio:') ?? false);
+          case 'radio':
+            return track.videoId?.startsWith('radio:') ?? false;
+          default:
+            return true;
+        }
+      }).toList(),
       state.librarySort,
       state.historyIds,
     );
@@ -158,6 +175,55 @@ class _LibraryScreenState extends State<LibraryScreen> {
             ],
           ),
         ),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            children: [
+              for (final entry in <String, String>{
+                'all': strings.all,
+                'local': strings.sourceLocal,
+                'downloaded': strings.downloads,
+                'online': strings.sourceOnline,
+                'radio': strings.radio,
+              }.entries)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: FilterChip(
+                    label: Text(entry.value),
+                    selected: filter == entry.key,
+                    onSelected: (_) => setState(() => filter = entry.key),
+                  ),
+                ),
+              const SizedBox(width: 4),
+              FilterChip(
+                avatar: Icon(
+                  view == 'songs'
+                      ? Icons.music_note
+                      : view == 'artists'
+                      ? Icons.person
+                      : Icons.album,
+                  size: 18,
+                ),
+                label: Text(
+                  view == 'songs'
+                      ? strings.songs
+                      : view == 'artists'
+                      ? strings.artists
+                      : strings.albums,
+                ),
+                selected: view != 'songs',
+                onSelected: (_) => setState(() {
+                  view = view == 'songs'
+                      ? 'artists'
+                      : view == 'artists'
+                      ? 'albums'
+                      : 'songs';
+                }),
+              ),
+            ],
+          ),
+        ),
         if (_selecting)
           Container(
             margin: const EdgeInsets.fromLTRB(12, 4, 12, 0),
@@ -198,7 +264,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
             ),
           ),
         Expanded(
-          child: filtered.isEmpty
+          child: view != 'songs'
+              ? _groupedView(filtered, view, strings)
+              : filtered.isEmpty
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(32),
@@ -239,6 +307,51 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 ),
         ),
       ],
+    );
+  }
+
+  Widget _groupedView(List<Track> tracks, String view, AppStrings strings) {
+    final state = widget.state;
+    final grouped = <String, List<Track>>{};
+    for (final track in tracks) {
+      final key = view == 'artists'
+          ? (track.author ?? 'Unknown').trim().isEmpty
+                ? 'Unknown'
+                : track.author!.trim()
+          : (track.album ?? 'Unknown album').trim().isEmpty
+          ? 'Unknown album'
+          : track.album!.trim();
+      grouped.putIfAbsent(key, () => <Track>[]).add(track);
+    }
+    final keys = grouped.keys.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    if (keys.isEmpty) {
+      return Center(child: Text(strings.emptyLibrary));
+    }
+    return ListView.builder(
+      itemCount: keys.length,
+      itemBuilder: (context, index) {
+        final key = keys[index];
+        final children = grouped[key]!;
+        return ExpansionTile(
+          leading: CircleAvatar(
+            child: Icon(view == 'artists' ? Icons.person : Icons.album),
+          ),
+          title: Text(key, style: const TextStyle(fontWeight: FontWeight.w700)),
+          subtitle: Text('${children.length} ${strings.tracksCount}'),
+          children: children.map((track) {
+            final queueIndex = state.queueIndexOf(track);
+            return ListTile(
+              dense: true,
+              title: Text(track.title),
+              subtitle: Text(track.subtitle ?? ''),
+              onTap: () {
+                if (queueIndex >= 0) state.playAt(queueIndex);
+              },
+            );
+          }).toList(),
+        );
+      },
     );
   }
 
@@ -334,6 +447,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
         return strings.sortByDuration;
       case LibrarySort.recent:
         return strings.sortByRecent;
+      case LibrarySort.recentAdded:
+        return strings.sortByRecentAdded;
     }
   }
 
@@ -998,11 +1113,59 @@ class PlaylistsScreen extends StatelessWidget {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.all(16),
-          child: FilledButton.icon(
-            onPressed: () => _nameDialog(context, create: true),
-            icon: const Icon(Icons.playlist_add),
-            label: Text(strings.newPlaylist),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () => _nameDialog(context, create: true),
+                  icon: const Icon(Icons.playlist_add),
+                  label: Text(strings.newPlaylist),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.merge_type),
+                tooltip: strings.duplicates,
+                onPressed: () => _showDuplicates(context),
+              ),
+            ],
+          ),
+        ),
+        Card(
+          margin: const EdgeInsets.symmetric(horizontal: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.new_releases),
+                title: Text(strings.smartPlaylists),
+                subtitle: Text(strings.recentlyAdded),
+                onTap: () {
+                  final tracks = sortLibrary(
+                    state.library,
+                    LibrarySort.recentAdded,
+                    state.historyIds,
+                  ).take(50).toList();
+                  _openSmartList(context, strings.recentlyAdded, tracks);
+                },
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.play_disabled),
+                title: Text(strings.neverPlayed),
+                subtitle: Text(
+                  '${state.library.where((t) => !state.playCounts.containsKey(t.id)).length} '
+                  '${strings.tracksCount}',
+                ),
+                onTap: () {
+                  final tracks = state.library
+                      .where((t) => !state.playCounts.containsKey(t.id))
+                      .toList();
+                  _openSmartList(context, strings.neverPlayed, tracks);
+                },
+              ),
+            ],
           ),
         ),
         if (favorite != null)
@@ -1070,6 +1233,87 @@ class PlaylistsScreen extends StatelessWidget {
                 ),
         ),
       ],
+    );
+  }
+
+  Future<void> _showDuplicates(BuildContext context) async {
+    final groups = state.duplicates();
+    if (!context.mounted) return;
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(strings.duplicates),
+          content: groups.isEmpty
+              ? Text(strings.noDuplicates)
+              : SizedBox(
+                  width: double.maxFinite,
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: groups.length,
+                    itemBuilder: (context, index) {
+                      final group = groups[index];
+                      return ListTile(
+                        title: Text(group.first.title),
+                        subtitle: Text(
+                          '${group.length} ${strings.tracksCount}',
+                        ),
+                        trailing: TextButton(
+                          onPressed: () async {
+                            for (final duplicate in group.skip(1)) {
+                              await state.removeTrack(duplicate);
+                            }
+                            if (context.mounted) Navigator.pop(context);
+                          },
+                          child: Text(strings.mergeDuplicates),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(strings.cancel),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _openSmartList(BuildContext context, String title, List<Track> tracks) {
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) {
+          return Scaffold(
+            appBar: AppBar(title: Text(title)),
+            body: tracks.isEmpty
+                ? Center(child: Text(strings.emptyPlaylist))
+                : ListView.separated(
+                    itemCount: tracks.length,
+                    separatorBuilder: (context, index) =>
+                        const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final track = tracks[index];
+                      final queueIndex = state.queueIndexOf(track);
+                      return ListTile(
+                        leading: const CircleAvatar(
+                          child: Icon(Icons.music_note),
+                        ),
+                        title: Text(track.title),
+                        subtitle: Text(track.subtitle ?? ''),
+                        onTap: () {
+                          if (queueIndex >= 0) state.playAt(queueIndex);
+                          Navigator.pop(context);
+                        },
+                      );
+                    },
+                  ),
+          );
+        },
+      ),
     );
   }
 
@@ -1228,8 +1472,8 @@ class SettingsScreen extends StatefulWidget {
   final AppStrings strings;
   final VoidCallback onChanged;
 
-  static const String version = '7.0.0';
-  static const String buildNumber = '36';
+  static const String version = '8.0.0';
+  static const String buildNumber = '37';
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -1745,7 +1989,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Column(
             children: [
               FutureBuilder<int>(
-                future: state.totalDownloadBytes(),
+                future: state.storageBytes(),
                 builder: (context, snap) {
                   final mb = (snap.data ?? 0) / (1024 * 1024);
                   return ListTile(
@@ -1754,8 +1998,70 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       color: theme.colorScheme.primary,
                     ),
                     title: Text(
-                      '${strings.downloadsSize}: '
-                      '${mb.toStringAsFixed(1)} MB',
+                      '${strings.cacheSize}: ${mb.toStringAsFixed(1)} MB',
+                    ),
+                  );
+                },
+              ),
+              _divider(),
+              ListTile(
+                leading: Icon(
+                  Icons.delete_sweep_outlined,
+                  color: theme.colorScheme.primary,
+                ),
+                title: Text(strings.clearCache),
+                onTap: () => state.clearWaveformCache(),
+              ),
+              _divider(),
+              ListTile(
+                leading: Icon(
+                  Icons.backup_outlined,
+                  color: theme.colorScheme.primary,
+                ),
+                title: Text(strings.exportBackup),
+                onTap: () async {
+                  await BackupService().exportJson(
+                    library: state.library,
+                    playlists: state.playlists,
+                    metaTitle: state.metaTitle,
+                    metaArtist: state.metaArtist,
+                  );
+                },
+              ),
+              _divider(),
+              ListTile(
+                leading: Icon(
+                  Icons.restore_outlined,
+                  color: theme.colorScheme.primary,
+                ),
+                title: Text(strings.importBackup),
+                onTap: () async {
+                  final backup = await BackupService().importJson();
+                  if (backup == null) return;
+                  final added = await state.importBackup(
+                    backup.tracks,
+                    backup.playlists,
+                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(strings.restoreDone(added))),
+                    );
+                  }
+                },
+              ),
+              _divider(),
+              ListTile(
+                leading: Icon(
+                  Icons.bar_chart,
+                  color: theme.colorScheme.primary,
+                ),
+                title: Text(strings.statsTitle),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (context) =>
+                          StatsScreen(state: state, strings: strings),
                     ),
                   );
                 },
@@ -3563,11 +3869,73 @@ void showTrackDetails(
                     tooltip: strings.share,
                     onPressed: () => state.shareTrack(track),
                   ),
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined),
+                    tooltip: strings.editMetadata,
+                    onPressed: () =>
+                        _editMetaDialog(context, state, strings, track),
+                  ),
                 ],
               ),
             ],
           ),
         ),
+      );
+    },
+  );
+}
+
+void _editMetaDialog(
+  BuildContext context,
+  AppState state,
+  AppStrings strings,
+  Track track,
+) {
+  final titleController = TextEditingController(text: track.title);
+  final artistController = TextEditingController(text: track.author ?? '');
+  final albumController = TextEditingController(text: track.album ?? '');
+  showDialog<void>(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: Text(strings.editMetadata),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: InputDecoration(labelText: strings.trackDetails),
+              ),
+              TextField(
+                controller: artistController,
+                decoration: InputDecoration(labelText: strings.sortByArtist),
+              ),
+              TextField(
+                controller: albumController,
+                decoration: InputDecoration(labelText: strings.albums),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(strings.cancel),
+          ),
+          FilledButton(
+            onPressed: () async {
+              await state.setTrackMeta(
+                track,
+                title: titleController.text,
+                artist: artistController.text,
+                album: albumController.text,
+              );
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: Text(strings.save),
+          ),
+        ],
       );
     },
   );
@@ -3619,6 +3987,101 @@ class HistoryScreen extends StatelessWidget {
                 );
               },
             ),
+    );
+  }
+}
+
+class StatsScreen extends StatelessWidget {
+  const StatsScreen({required this.state, required this.strings, super.key});
+
+  final AppState state;
+  final AppStrings strings;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final total = state.totalListenSeconds;
+    final weekly = state.weeklyStats;
+    final maxSeconds = weekly.fold<int>(
+      1,
+      (max, entry) => entry.value > max ? entry.value : max,
+    );
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(strings.statsTitle),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.file_download_outlined),
+            tooltip: strings.exportCsv,
+            onPressed: () => BackupService().exportCsv(weekly),
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.headphones,
+                    size: 40,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    fmt(Duration(seconds: total)),
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Text(strings.totalListening),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            strings.thisWeek,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  for (final entry in weekly)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 84,
+                            child: Text(entry.key.substring(5)),
+                          ),
+                          Expanded(
+                            child: LinearProgressIndicator(
+                              value: entry.value / maxSeconds,
+                              minHeight: 8,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text('${entry.value}s'),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

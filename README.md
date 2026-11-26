@@ -110,6 +110,7 @@ Niusic is a local-first music player for Android and Windows. One Flutter codeba
 |---------|-------------|
 | **Playlists** | Create, rename, delete, drag to reorder, and play all or shuffle. |
 | **Sleep timer** | Pause after a set time, with optional gentle volume fade out. |
+| **Library insights** | Artists and Albums views, filters, smart playlists, duplicate cleanup, backup and restore. |
 | **Queue updates** | Save the queue as a playlist and clear it entirely. |
 | **Settings** | Switch language, theme, accent, volume, playback speed, equalizer, and clear local data. |
 

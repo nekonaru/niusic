@@ -149,6 +149,10 @@ class MainActivity : AudioServiceActivity() {
             MediaStore.Audio.Media.DISPLAY_NAME,
             MediaStore.Audio.Media.TITLE,
             MediaStore.Audio.Media.ARTIST,
+            MediaStore.Audio.Media.ALBUM,
+            MediaStore.Audio.Media.YEAR,
+            MediaStore.Audio.Media.TRACK,
+            MediaStore.Audio.Media.DATE_ADDED,
             MediaStore.Audio.Media.DURATION
         )
         val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
@@ -165,6 +169,10 @@ class MainActivity : AudioServiceActivity() {
             val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME)
             val titleCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
             val artistCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
+            val albumCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
+            val yearCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.YEAR)
+            val trackCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TRACK)
+            val dateCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
             val durationCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
             while (cursor.moveToNext()) {
                 val path = cursor.getString(pathCol) ?: continue
@@ -180,6 +188,10 @@ class MainActivity : AudioServiceActivity() {
                         "name" to (cursor.getString(nameCol)?.trim() ?: ""),
                         "title" to title,
                         "artist" to artist,
+                        "album" to (cursor.getString(albumCol)?.trim() ?: ""),
+                        "year" to cursor.getInt(yearCol),
+                        "track" to cursor.getInt(trackCol),
+                        "dateAdded" to cursor.getLong(dateCol),
                         "duration" to cursor.getLong(durationCol)
                     )
                 )

@@ -12,6 +12,10 @@ class Track {
     this.videoId,
     this.durationSeconds,
     this.downloadPath,
+    this.album,
+    this.year,
+    this.trackNumber,
+    this.dateAdded,
   });
 
   final String id;
@@ -24,6 +28,10 @@ class Track {
   final String? videoId;
   final int? durationSeconds;
   final String? downloadPath;
+  final String? album;
+  final int? year;
+  final int? trackNumber;
+  final int? dateAdded;
 
   bool get isLocal => kind == TrackKind.local;
   bool get isRemote => kind == TrackKind.remote;
@@ -82,34 +90,37 @@ class Track {
     );
   }
 
-  Track copyWithUrl(String? newUrl) {
+  Track copyWith({
+    String? titleOverride,
+    String? authorOverride,
+    String? albumOverride,
+    String? url,
+    String? downloadPath,
+  }) {
     return Track(
       id: id,
-      title: title,
+      title: titleOverride ?? title,
       kind: kind,
       path: path,
-      url: newUrl,
-      author: author,
+      url: url ?? this.url,
+      author: authorOverride ?? author,
       thumbnailUrl: thumbnailUrl,
       videoId: videoId,
       durationSeconds: durationSeconds,
-      downloadPath: downloadPath,
+      downloadPath: downloadPath ?? this.downloadPath,
+      album: albumOverride ?? album,
+      year: year,
+      trackNumber: trackNumber,
+      dateAdded: dateAdded,
     );
   }
 
+  Track copyWithUrl(String? newUrl) {
+    return copyWith(url: newUrl);
+  }
+
   Track copyWithDownload(String? newPath) {
-    return Track(
-      id: id,
-      title: title,
-      kind: kind,
-      path: path,
-      url: url,
-      author: author,
-      thumbnailUrl: thumbnailUrl,
-      videoId: videoId,
-      durationSeconds: durationSeconds,
-      downloadPath: newPath,
-    );
+    return copyWith(downloadPath: newPath);
   }
 
   Map<String, String> toJson() {
@@ -129,6 +140,14 @@ class Track {
     if (d != null) map['dur'] = d.toString();
     final dp = downloadPath;
     if (dp != null && dp.isNotEmpty) map['dpath'] = dp;
+    final al = album;
+    if (al != null && al.isNotEmpty) map['album'] = al;
+    final yr = year;
+    if (yr != null && yr > 0) map['year'] = yr.toString();
+    final tn = trackNumber;
+    if (tn != null && tn > 0) map['track'] = tn.toString();
+    final da = dateAdded;
+    if (da != null && da > 0) map['added'] = da.toString();
     return map;
   }
 
@@ -174,6 +193,10 @@ class Track {
       videoId: json['vid'] as String?,
       durationSeconds: dur,
       downloadPath: json['dpath'] as String?,
+      album: json['album'] as String?,
+      year: int.tryParse('${json['year']}'),
+      trackNumber: int.tryParse('${json['track']}'),
+      dateAdded: int.tryParse('${json['added']}'),
     );
   }
 

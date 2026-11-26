@@ -10,6 +10,10 @@ class ScannedTrack {
     this.artist,
     this.displayName,
     this.durationSeconds,
+    this.album,
+    this.year,
+    this.trackNumber,
+    this.dateAdded,
   });
 
   final String path;
@@ -17,6 +21,10 @@ class ScannedTrack {
   final String? artist;
   final String? displayName;
   final int? durationSeconds;
+  final String? album;
+  final int? year;
+  final int? trackNumber;
+  final int? dateAdded;
 }
 
 /// Reads the device music library through the native MediaStore scanner.
@@ -77,6 +85,12 @@ class ScannerService {
             displayName: (entry['name'] as String? ?? '').trim(),
             durationSeconds: durationMs is int
                 ? (durationMs / 1000).round()
+                : null,
+            album: (entry['album'] as String?)?.trim(),
+            year: entry['year'] is int ? entry['year'] as int : null,
+            trackNumber: entry['track'] is int ? entry['track'] as int : null,
+            dateAdded: entry['dateAdded'] is int
+                ? entry['dateAdded'] as int
                 : null,
           ),
         );

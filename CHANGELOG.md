@@ -1,5 +1,21 @@
 # Changelog
 
+## v8.0.0
+
+Smart library and data portability.
+
+### New features
+
+- **Artists and Albums.** The Library has Songs, Artists and Albums views, grouped from MediaStore metadata.
+- **Library filters.** Chips for All, Local, Downloaded, Online and Radio.
+- **Smart playlists.** Recently added and Never played appear in the Playlists tab.
+- **Recently added sort.** New sort order in the Library menu.
+- **Duplicate cleanup.** Detect tracks with the same title, artist and duration and remove copies in one action.
+- **Edit track info.** Change title, artist and album as a local overlay without touching the audio file.
+- **Backup and restore.** Export the library, playlists and edits as JSON, and import them back without duplicates.
+- **Storage manager.** Cache size and clear waveform cache in Settings.
+- **Listening stats.** Daily seconds listened with a weekly bar chart and CSV export.
+
 ## v7.0.0
 
 Playlist management and sleep timer polish.
