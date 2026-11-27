@@ -1,12 +1,17 @@
 import 'track.dart';
 
 class Playlist {
-  Playlist({required this.id, required this.name, List<String>? trackIds})
-    : trackIds = trackIds ?? <String>[];
+  Playlist({
+    required this.id,
+    required this.name,
+    List<String>? trackIds,
+    this.coverTrackId,
+  }) : trackIds = trackIds ?? <String>[];
 
   final String id;
   String name;
   List<String> trackIds;
+  String? coverTrackId;
 
   int get length => trackIds.length;
 
@@ -23,7 +28,12 @@ class Playlist {
   }
 
   Map<String, dynamic> toJson() {
-    return <String, dynamic>{'id': id, 'name': name, 'trackIds': trackIds};
+    return <String, dynamic>{
+      'id': id,
+      'name': name,
+      'trackIds': trackIds,
+      'cover': coverTrackId,
+    };
   }
 
   factory Playlist.fromJson(Map<String, dynamic> json) {
@@ -41,6 +51,7 @@ class Playlist {
       id: json['id'] as String? ?? '',
       name: json['name'] as String? ?? 'Untitled',
       trackIds: ids,
+      coverTrackId: json['cover'] as String?,
     );
   }
 }

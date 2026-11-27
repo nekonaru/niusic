@@ -329,6 +329,13 @@ class _NiusicAppState extends State<NiusicApp> {
         dynamicScheme: state.accent == 'system' ? darkDynamic : null,
       ),
       themeMode: _themeMode,
+      builder: (context, child) {
+        final media = MediaQuery.of(context);
+        return MediaQuery(
+          data: media.copyWith(textScaler: TextScaler.linear(state.textScale)),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       home: Builder(
         builder: (context) {
           final desktop = isDesktop(context) || isTabletOrMore(context);

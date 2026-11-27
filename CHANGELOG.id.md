@@ -1,5 +1,18 @@
 # Changelog
 
+## v11.0.0
+
+Pemolesan cerdas.
+
+### Fitur baru
+
+- **Warna dari sampul.** Now Playing bisa mengambil warna dari sampul lagu online.
+- **Mode karaoke.** Layar lirik menampilkan baris aktif dan berikutnya secara besar.
+- **Preset antrian.** Simpan antrian sekarang, muat lagi, dan hapus preset.
+- **Sampul playlist.** Pilih sampul playlist dari salah satu lagunya.
+- **Jeda di akhir lagu.** Opsi timer tidur yang berhenti setelah lagu selesai.
+- **Ukuran teks.** Slider skala teks global.
+
 ## v10.1.0
 
 Integrasi sistem.

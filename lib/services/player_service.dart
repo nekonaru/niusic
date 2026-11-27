@@ -28,6 +28,24 @@ import 'suggestions_service.dart';
 
 enum NiRepeatMode { off, all, one }
 
+class QueuePreset {
+  const QueuePreset({required this.name, required this.ids});
+
+  final String name;
+  final List<String> ids;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{'name': name, 'ids': ids};
+
+  factory QueuePreset.fromJson(Map<String, dynamic> json) {
+    return QueuePreset(
+      name: json['name'] as String? ?? 'Preset',
+      ids:
+          (json['ids'] as List<dynamic>?)?.whereType<String>().toList() ??
+          <String>[],
+    );
+  }
+}
+
 enum ThemeChoice { system, light, dark }
 
 const String _keyLibrary = 'library_v1';
@@ -62,6 +80,10 @@ const String _keyFocusMode = 'focus_mode';
 const String _keyEndAction = 'end_action';
 const String _keyAbLoop = 'ab_loop_v1';
 const String _keyEqPreset = 'eq_preset';
+const String _keyThemeFromArt = 'theme_from_art';
+const String _keySleepUntilEnd = 'sleep_until_end';
+const String _keyQueuePresets = 'queue_presets_v1';
+const String _keyTextScale = 'text_scale';
 const String _keyLibrarySort = 'library_sort';
 const String _keyEqEnabled = 'equalizer_enabled';
 const String _keyEqGains = 'equalizer_gains';
@@ -79,6 +101,17 @@ class AppState extends ChangeNotifier {
     _playerStateSub = player.playerStateStream.listen((s) {
       final completed = s.processingState == ProcessingState.completed;
       if (completed) {
+        if (sleepUntilEnd) {
+          sleepUntilEnd = false;
+          unawaited(player.pause());
+          unawaited(
+            _getPrefs().then(
+              (prefs) => prefs.setBool(_keySleepUntilEnd, false),
+            ),
+          );
+          notifyListeners();
+          return;
+        }
         unawaited(next(auto: true));
         return;
       }
@@ -227,6 +260,10 @@ class AppState extends ChangeNotifier {
   int? abLoopA;
   int? abLoopB;
   String eqPreset = 'flat';
+  bool themeFromArt = false;
+  bool sleepUntilEnd = false;
+  final List<QueuePreset> queuePresets = <QueuePreset>[];
+  double textScale = 1;
   String? icyTitle;
   final List<Track> favoriteStations = <Track>[];
   LibrarySort librarySort = LibrarySort.name;
@@ -471,6 +508,22 @@ class AppState extends ChangeNotifier {
     focusMode = prefs.getBool(_keyFocusMode) ?? false;
     endAction = prefs.getString(_keyEndAction) ?? 'next';
     eqPreset = prefs.getString(_keyEqPreset) ?? 'flat';
+    themeFromArt = prefs.getBool(_keyThemeFromArt) ?? false;
+    sleepUntilEnd = prefs.getBool(_keySleepUntilEnd) ?? false;
+    textScale = prefs.getDouble(_keyTextScale) ?? 1;
+    final presetsRaw = prefs.getString(_keyQueuePresets);
+    if (presetsRaw != null) {
+      try {
+        final decoded = jsonDecode(presetsRaw) as List<dynamic>;
+        queuePresets
+          ..clear()
+          ..addAll(
+            decoded.whereType<Map<String, dynamic>>().map(QueuePreset.fromJson),
+          );
+      } catch (_) {
+        queuePresets.clear();
+      }
+    }
     final resumeRaw = prefs.getString(_keyResumePositions);
     if (resumeRaw != null) {
       try {
@@ -1833,6 +1886,72 @@ class AppState extends ChangeNotifier {
     libraryGrid = value;
     final prefs = await _getPrefs();
     await prefs.setBool(_keyLibraryGrid, value);
+    notifyListeners();
+  }
+
+  Future<void> setPlaylistCover(Playlist playlist, String trackId) async {
+    playlist.coverTrackId = trackId;
+    await _savePlaylists();
+    notifyListeners();
+  }
+
+  Future<void> setThemeFromArt(bool value) async {
+    themeFromArt = value;
+    final prefs = await _getPrefs();
+    await prefs.setBool(_keyThemeFromArt, value);
+    notifyListeners();
+  }
+
+  Future<void> setSleepUntilEnd(bool value) async {
+    sleepUntilEnd = value;
+    final prefs = await _getPrefs();
+    await prefs.setBool(_keySleepUntilEnd, value);
+    notifyListeners();
+  }
+
+  Future<void> setTextScale(double value) async {
+    textScale = value.clamp(0.85, 1.5).toDouble();
+    final prefs = await _getPrefs();
+    await prefs.setDouble(_keyTextScale, textScale);
+    notifyListeners();
+  }
+
+  Future<void> saveQueuePreset(String name) async {
+    queuePresets.add(
+      QueuePreset(
+        name: name.trim().isEmpty ? 'Preset' : name.trim(),
+        ids: queue.map((track) => track.id).toList(),
+      ),
+    );
+    final prefs = await _getPrefs();
+    await prefs.setString(
+      _keyQueuePresets,
+      jsonEncode(queuePresets.map((preset) => preset.toJson()).toList()),
+    );
+    notifyListeners();
+  }
+
+  Future<void> loadQueuePreset(int index) async {
+    if (index < 0 || index >= queuePresets.length) return;
+    final byId = <String, Track>{for (final track in library) track.id: track};
+    final ids = queuePresets[index].ids;
+    final restored = ids.map((id) => byId[id]).whereType<Track>().toList();
+    if (restored.isEmpty) return;
+    queue = restored;
+    queueIndex = 0;
+    queueVersion++;
+    await _saveQueue();
+    await playAt(0);
+  }
+
+  Future<void> deleteQueuePreset(int index) async {
+    if (index < 0 || index >= queuePresets.length) return;
+    queuePresets.removeAt(index);
+    final prefs = await _getPrefs();
+    await prefs.setString(
+      _keyQueuePresets,
+      jsonEncode(queuePresets.map((preset) => preset.toJson()).toList()),
+    );
     notifyListeners();
   }
 

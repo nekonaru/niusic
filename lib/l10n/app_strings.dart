@@ -316,4 +316,17 @@ class AppStrings {
   String get eqVocal => isId ? 'Vokal' : 'Vocal';
   String get eqRock => isId ? 'Rock' : 'Rock';
   String get eqJazz => isId ? 'Jazz' : 'Jazz';
+
+  String get themeFromArt => isId ? 'Warna dari sampul' : 'Theme from artwork';
+  String get themeFromArtDesc => isId
+      ? 'Warna pemutar mengikuti sampul lagu online.'
+      : 'Player colors follow online track artwork.';
+  String get textSize => isId ? 'Ukuran teks' : 'Text size';
+  String get sleepUntilEnd =>
+      isId ? 'Jeda di akhir lagu' : 'Pause at track end';
+  String get queuePresets => isId ? 'Preset antrian' : 'Queue presets';
+  String get savePreset => isId ? 'Simpan preset' : 'Save preset';
+  String get loadPreset => isId ? 'Muat preset' : 'Load preset';
+  String get playlistCover => isId ? 'Atur sampul' : 'Set cover';
+  String get karaokeMode => isId ? 'Mode karaoke' : 'Karaoke mode';
 }

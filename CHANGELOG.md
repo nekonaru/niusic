@@ -1,5 +1,18 @@
 # Changelog
 
+## v11.0.0
+
+Smart polish.
+
+### New features
+
+- **Theme from artwork.** Now Playing can adopt colors from online track artwork.
+- **Karaoke mode.** Lyrics screen shows the current and next line in a large overlay.
+- **Queue presets.** Save the current queue, load it later, and delete presets.
+- **Playlist covers.** Set a playlist cover from one of its tracks.
+- **Pause at track end.** Sleep option that pauses after the current track.
+- **Text size.** Global text scale slider.
+
 ## v10.1.0
 
 System integration.

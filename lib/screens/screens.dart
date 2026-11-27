@@ -993,6 +993,20 @@ class QueueScreen extends StatelessWidget {
                 : () => _saveAsPlaylist(context),
           ),
           IconButton(
+            icon: const Icon(Icons.bookmark_add),
+            tooltip: strings.savePreset,
+            onPressed: state.queue.isEmpty
+                ? null
+                : () => _presetNameDialog(context, save: true),
+          ),
+          IconButton(
+            icon: const Icon(Icons.bookmark),
+            tooltip: strings.loadPreset,
+            onPressed: state.queuePresets.isEmpty
+                ? null
+                : () => _presetNameDialog(context, save: false),
+          ),
+          IconButton(
             icon: const Icon(Icons.delete_sweep),
             tooltip: strings.clearQueue,
             onPressed: state.queue.isEmpty ? null : () => _clearQueue(context),
@@ -1040,6 +1054,67 @@ class QueueScreen extends StatelessWidget {
               },
             ),
     );
+  }
+
+  Future<void> _presetNameDialog(
+    BuildContext context, {
+    required bool save,
+  }) async {
+    if (!save) {
+      final picked = await showModalBottomSheet<int>(
+        context: context,
+        builder: (context) {
+          return ListView.builder(
+            shrinkWrap: true,
+            itemCount: state.queuePresets.length,
+            itemBuilder: (context, index) {
+              final preset = state.queuePresets[index];
+              return ListTile(
+                title: Text(preset.name),
+                subtitle: Text('${preset.ids.length} ${strings.tracksCount}'),
+                onTap: () => Navigator.pop(context, index),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () {
+                    state.deleteQueuePreset(index);
+                    Navigator.pop(context);
+                  },
+                ),
+              );
+            },
+          );
+        },
+      );
+      if (picked != null) await state.loadQueuePreset(picked);
+      return;
+    }
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(strings.savePreset),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: InputDecoration(hintText: strings.playlistName),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(strings.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, controller.text),
+              child: Text(strings.save),
+            ),
+          ],
+        );
+      },
+    );
+    if (name != null && name.trim().isNotEmpty) {
+      await state.saveQueuePreset(name);
+    }
   }
 
   Future<void> _saveAsPlaylist(BuildContext context) async {
@@ -1227,7 +1302,19 @@ class PlaylistsScreen extends StatelessWidget {
                       key: ValueKey<String>(playlist.id),
                       margin: const EdgeInsets.symmetric(horizontal: 8),
                       child: ListTile(
-                        leading: const Icon(Icons.queue_music),
+                        leading: () {
+                          final coverId = playlist.coverTrackId;
+                          final cover = coverId == null
+                              ? null
+                              : byId[coverId]?.thumbnailUrl;
+                          if (cover != null &&
+                              Uri.tryParse(cover)?.scheme == 'https') {
+                            return CircleAvatar(
+                              backgroundImage: NetworkImage(cover),
+                            );
+                          }
+                          return const Icon(Icons.queue_music);
+                        }(),
                         title: Text(playlist.name),
                         subtitle: Text(
                           '${playlist.length} ${strings.tracksCount}'
@@ -1435,6 +1522,13 @@ class PlaylistsScreen extends StatelessWidget {
                           shuffleAll: true,
                         ),
                 ),
+                IconButton(
+                  icon: const Icon(Icons.image_outlined),
+                  tooltip: strings.playlistCover,
+                  onPressed: tracks.isEmpty
+                      ? null
+                      : () => state.setPlaylistCover(playlist, tracks.first.id),
+                ),
               ],
             ),
             body: tracks.isEmpty
@@ -1495,8 +1589,8 @@ class SettingsScreen extends StatefulWidget {
   final AppStrings strings;
   final VoidCallback onChanged;
 
-  static const String version = '10.1.0';
-  static const String buildNumber = '41';
+  static const String version = '11.0.0';
+  static const String buildNumber = '42';
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -1744,6 +1838,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 value: state.libraryGrid,
                 onChanged: state.setLibraryGrid,
               ),
+              _divider(),
+              SwitchListTile(
+                secondary: const Icon(Icons.palette),
+                title: Text(strings.themeFromArt),
+                subtitle: Text(strings.themeFromArtDesc),
+                value: state.themeFromArt,
+                onChanged: state.setThemeFromArt,
+              ),
+              _divider(),
+              _settingRow(
+                icon: Icons.text_fields,
+                title: strings.textSize,
+                child: Slider(
+                  min: 0.85,
+                  max: 1.5,
+                  divisions: 13,
+                  value: state.textScale,
+                  onChanged: state.setTextScale,
+                ),
+              ),
             ],
           ),
         ),
@@ -1960,6 +2074,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   selected: {state.endAction},
                   onSelectionChanged: (v) => state.setEndAction(v.first),
                 ),
+              ),
+              _divider(),
+              SwitchListTile(
+                secondary: const Icon(Icons.bedtime),
+                title: Text(strings.sleepUntilEnd),
+                value: state.sleepUntilEnd,
+                onChanged: state.setSleepUntilEnd,
               ),
               _divider(),
               SwitchListTile(
@@ -3022,6 +3143,7 @@ class _LyricsScreenState extends State<LyricsScreen> {
   bool failed = false;
   List<SyncedLine> lines = <SyncedLine>[];
   int activeLine = -1;
+  bool karaoke = false;
   final ScrollController _scroll = ScrollController();
 
   @override
@@ -3105,7 +3227,16 @@ class _LyricsScreenState extends State<LyricsScreen> {
   Widget build(BuildContext context) {
     final strings = widget.strings;
     return Scaffold(
-      appBar: AppBar(title: Text(strings.lyricsTitle)),
+      appBar: AppBar(
+        title: Text(strings.lyricsTitle),
+        actions: [
+          IconButton(
+            icon: Icon(karaoke ? Icons.fullscreen : Icons.fullscreen_exit),
+            tooltip: strings.karaokeMode,
+            onPressed: () => setState(() => karaoke = !karaoke),
+          ),
+        ],
+      ),
       body: loading
           ? Center(child: CircularProgressIndicator())
           : failed || result == null || !result!.hasLyrics
@@ -3115,6 +3246,40 @@ class _LyricsScreenState extends State<LyricsScreen> {
                 child: Text(
                   failed ? strings.lyricsError : strings.noLyrics,
                   textAlign: TextAlign.center,
+                ),
+              ),
+            )
+          : karaoke && lines.isNotEmpty && activeLine >= 0
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      lines[activeLine].text,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                    ),
+                    if (activeLine + 1 < lines.length)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 24),
+                        child: Text(
+                          lines[activeLine + 1].text,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             )
@@ -3171,7 +3336,7 @@ class NowPlayingScreen extends StatelessWidget {
         ? state.duration.inSeconds.toDouble()
         : 1.0;
     final value = state.position.inSeconds.toDouble().clamp(0.0, max);
-    return Scaffold(
+    final scaffold = Scaffold(
       appBar: AppBar(
         title: Text(strings.nowPlaying),
         actions: [
@@ -3341,6 +3506,23 @@ class NowPlayingScreen extends StatelessWidget {
         ),
       ),
     );
+    final art = track?.thumbnailUrl;
+    if (state.themeFromArt &&
+        art != null &&
+        Uri.tryParse(art)?.scheme == 'https') {
+      return FutureBuilder<ColorScheme>(
+        future: ColorScheme.fromImageProvider(provider: NetworkImage(art)),
+        builder: (context, snap) {
+          final scheme = snap.data;
+          if (scheme == null) return scaffold;
+          return Theme(
+            data: Theme.of(context).copyWith(colorScheme: scheme),
+            child: scaffold,
+          );
+        },
+      );
+    }
+    return scaffold;
   }
 
   bool _isRadio(Track? track) => track?.videoId?.startsWith('radio:') ?? false;
