@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'l10n/app_strings.dart';
+import 'screens/onboarding.dart';
 import 'screens/screens.dart';
 import 'services/audio_handler.dart';
 import 'services/player_service.dart';
@@ -184,10 +185,13 @@ class _NiusicAppState extends State<NiusicApp> {
             leading: Semantics(
               label: state.isPlaying ? strings.pause : strings.play,
               button: true,
-              child: Icon(
-                state.isPlaying ? Icons.pause_circle : Icons.play_circle,
-                color: Theme.of(context).colorScheme.primary,
-                size: 30,
+              child: Hero(
+                tag: 'player-artwork',
+                child: Icon(
+                  state.isPlaying ? Icons.pause_circle : Icons.play_circle,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 30,
+                ),
               ),
             ),
             title: Text(
@@ -297,6 +301,16 @@ class _NiusicAppState extends State<NiusicApp> {
 
   Widget _buildApp(ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
     final strings = _strings;
+    if (loaded && !state.onboardingDone) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: niusicTheme(Brightness.dark),
+        home: OnboardingScreen(
+          strings: strings,
+          onDone: () => state.completeOnboarding(),
+        ),
+      );
+    }
     final seed = _seedColor(state);
     final pages = <Widget>[
       HomeScreen(

@@ -84,6 +84,10 @@ const String _keyThemeFromArt = 'theme_from_art';
 const String _keySleepUntilEnd = 'sleep_until_end';
 const String _keyQueuePresets = 'queue_presets_v1';
 const String _keyTextScale = 'text_scale';
+const String _keyReduceMotion = 'reduce_motion';
+const String _keyOnboardingDone = 'onboarding_done_v1';
+const String _keyMoods = 'track_moods_v1';
+const String _keyLyricsCache = 'lyrics_cache_v1';
 const String _keyLibrarySort = 'library_sort';
 const String _keyEqEnabled = 'equalizer_enabled';
 const String _keyEqGains = 'equalizer_gains';
@@ -264,6 +268,11 @@ class AppState extends ChangeNotifier {
   bool sleepUntilEnd = false;
   final List<QueuePreset> queuePresets = <QueuePreset>[];
   double textScale = 1;
+  bool reduceMotion = false;
+  bool onboardingDone = false;
+  final Map<String, String> trackMoods = <String, String>{};
+  final Map<String, Map<String, dynamic>> lyricsCache =
+      <String, Map<String, dynamic>>{};
   String? icyTitle;
   final List<Track> favoriteStations = <Track>[];
   LibrarySort librarySort = LibrarySort.name;
@@ -490,7 +499,7 @@ class AppState extends ChangeNotifier {
     language = prefs.getString(_keyLanguage) ?? 'en';
     theme =
         ThemeChoice.values.asNameMap()[prefs.getString(_keyTheme)] ??
-        ThemeChoice.system;
+        ThemeChoice.dark;
     volume = prefs.getDouble(_keyVolume) ?? 1;
     streamService.audioQuality = prefs.getString(_keyQuality) ?? 'high';
     playbackRate = prefs.getDouble(_keyRate) ?? 1;
@@ -511,6 +520,32 @@ class AppState extends ChangeNotifier {
     themeFromArt = prefs.getBool(_keyThemeFromArt) ?? false;
     sleepUntilEnd = prefs.getBool(_keySleepUntilEnd) ?? false;
     textScale = prefs.getDouble(_keyTextScale) ?? 1;
+    reduceMotion = prefs.getBool(_keyReduceMotion) ?? false;
+    onboardingDone = prefs.getBool(_keyOnboardingDone) ?? false;
+    final moodsRaw = prefs.getString(_keyMoods);
+    if (moodsRaw != null) {
+      try {
+        final decoded = jsonDecode(moodsRaw) as Map<String, dynamic>;
+        trackMoods
+          ..clear()
+          ..addAll(decoded.map((k, v) => MapEntry(k, v as String)));
+      } catch (_) {
+        trackMoods.clear();
+      }
+    }
+    final lyricsRaw = prefs.getString(_keyLyricsCache);
+    if (lyricsRaw != null) {
+      try {
+        final decoded = jsonDecode(lyricsRaw) as Map<String, dynamic>;
+        lyricsCache
+          ..clear()
+          ..addAll(
+            decoded.map((k, v) => MapEntry(k, v as Map<String, dynamic>)),
+          );
+      } catch (_) {
+        lyricsCache.clear();
+      }
+    }
     final presetsRaw = prefs.getString(_keyQueuePresets);
     if (presetsRaw != null) {
       try {
@@ -1914,6 +1949,41 @@ class AppState extends ChangeNotifier {
     final prefs = await _getPrefs();
     await prefs.setDouble(_keyTextScale, textScale);
     notifyListeners();
+  }
+
+  Future<void> setReduceMotion(bool value) async {
+    reduceMotion = value;
+    final prefs = await _getPrefs();
+    await prefs.setBool(_keyReduceMotion, value);
+    notifyListeners();
+  }
+
+  Future<void> completeOnboarding() async {
+    onboardingDone = true;
+    final prefs = await _getPrefs();
+    await prefs.setBool(_keyOnboardingDone, true);
+    notifyListeners();
+  }
+
+  Future<void> setTrackMood(String id, String mood) async {
+    trackMoods[id] = mood;
+    final prefs = await _getPrefs();
+    await prefs.setString(_keyMoods, jsonEncode(trackMoods));
+    notifyListeners();
+  }
+
+  Map<String, dynamic>? cachedLyrics(String title, String artist) {
+    return lyricsCache['$title|$artist'];
+  }
+
+  Future<void> cacheLyrics(
+    String title,
+    String artist,
+    Map<String, dynamic> data,
+  ) async {
+    lyricsCache['$title|$artist'] = data;
+    final prefs = await _getPrefs();
+    await prefs.setString(_keyLyricsCache, jsonEncode(lyricsCache));
   }
 
   Future<void> saveQueuePreset(String name) async {

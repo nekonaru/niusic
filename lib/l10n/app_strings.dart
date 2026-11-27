@@ -329,4 +329,25 @@ class AppStrings {
   String get loadPreset => isId ? 'Muat preset' : 'Load preset';
   String get playlistCover => isId ? 'Atur sampul' : 'Set cover';
   String get karaokeMode => isId ? 'Mode karaoke' : 'Karaoke mode';
+
+  String get onboardingTitle1 =>
+      isId ? 'Musikmu, otomatis' : 'Your music, automatically';
+  String get onboardingDesc1 => isId
+      ? 'Niusic memindai lagu di perangkat dan menambahkannya tanpa impor manual.'
+      : 'Niusic scans songs on your device and adds them without manual import.';
+  String get onboardingTitle2 =>
+      isId ? 'Putar dengan nyaman' : 'Play in comfort';
+  String get onboardingDesc2 => isId
+      ? 'Kontrol media, equalizer, dan lirik tersedia di satu pemutar.'
+      : 'Media controls, equalizer, and lyrics live in one player.';
+  String get onboardingTitle3 => isId ? 'Siap mendengar' : 'Ready to listen';
+  String get onboardingDesc3 => isId
+      ? 'Izinkan notifikasi media dari Pengaturan kapan saja.'
+      : 'Allow media notifications from Settings at any time.';
+  String get getStarted => isId ? 'Mulai' : 'Get started';
+  String get onboardingNext => isId ? 'Lanjut' : 'Next';
+  String get skip => isId ? 'Lewati' : 'Skip';
+  String get continueListening =>
+      isId ? 'Lanjutkan mendengar' : 'Continue listening';
+  String get reduceMotion => isId ? 'Kurangi animasi' : 'Reduce motion';
 }

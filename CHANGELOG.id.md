@@ -1,5 +1,18 @@
 # Changelog
 
+## v12.0.0
+
+Fondasi desain.
+
+### Fitur baru
+
+- **Token desain.** Warna brand, ruang, radius, dan konstanta gerak tersimpan dalam satu berkas.
+- **Tema gelap utama.** Gelap jadi visual default untuk instalasi baru, Material You tetap tersedia lewat aksen Sistem.
+- **Onboarding.** Alur tiga kartu saat pertama buka menjelaskan auto scan, pemutaran, dan notifikasi.
+- **Lanjutkan mendengar.** Beranda menampilkan lagu dengan posisi tersimpan dan progress bar kecil.
+- **Transisi Hero artwork.** Sampul mini player bertransisi ke sampul Now Playing.
+- **Kurangi animasi.** Pengaturan aksesibilitas mengganti animasi panjang dengan fade singkat.
+
 ## v11.0.0
 
 Pemolesan cerdas.

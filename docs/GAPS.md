@@ -1,6 +1,6 @@
 # Feature Gap Analysis
 
-Date: 2026-11-27. Comparison: Niusic v11.0.0 against Auralys (Android Kotlin/Metrolist fork and Windows JavaFX).
+Date: 2026-11-27. Comparison: Niusic v12.0.0 against Auralys (Android Kotlin/Metrolist fork and Windows JavaFX).
 
 ## Implemented
 
@@ -36,6 +36,7 @@ Date: 2026-11-27. Comparison: Niusic v11.0.0 against Auralys (Android Kotlin/Met
 
 - **Advanced playback.** Resume position, intro/outro skip, track gain, buffer presets, A-B loop, EQ presets, focus mode, end action.
 - **System integration.** 4x2 playlist widget, VIEW intent for audio files, MediaStore artwork in the media notification.
+- **Design foundation.** Brand tokens, dark-first theme, onboarding, continue listening, Hero artwork transition, reduce motion.
 - **Smart polish.** Artwork-based player theme, karaoke lyrics, queue presets, playlist covers, pause at track end, text scale.
 - **Gapless playback and crossfade.** Needs a larger rewrite of the queue into a native concatenating source and a second player for crossfade. Deferred to keep playback stable.
 - **Android Auto browse tree and second home widget.** Need separate platform work and device testing. Deferred.

@@ -18,6 +18,7 @@ import '../services/lyrics_service.dart';
 import '../services/library_sort.dart';
 import '../services/player_service.dart';
 import '../ui/responsive.dart';
+import '../ui/ni_tokens.dart';
 
 String fmt(Duration d) {
   final m = d.inMinutes;
@@ -552,6 +553,17 @@ class _HomeScreenState extends State<HomeScreen> {
     final downloads = state.downloadedTracks();
     final current = state.current;
     final topPlayed = state.topPlayed();
+    final continueTracks = state.resumePositions.entries
+        .where((entry) => entry.value > 0)
+        .map((entry) {
+          final matches = state.library
+              .where((track) => track.id == entry.key)
+              .toList();
+          return matches.isEmpty ? null : matches.first;
+        })
+        .whereType<Track>()
+        .take(8)
+        .toList();
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
       children: [
@@ -704,6 +716,75 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                 ],
               ),
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
+        if (continueTracks.isNotEmpty) ...[
+          _sectionTitle(strings.continueListening, Icons.play_arrow),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 132,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: continueTracks.length,
+              itemBuilder: (context, index) {
+                final track = continueTracks[index];
+                final total = track.durationSeconds ?? 1;
+                final saved = state.resumePositions[track.id] ?? 0;
+                final progress = saved <= 0
+                    ? 0.0
+                    : (saved / (total * 1000)).clamp(0.0, 1.0);
+                return SizedBox(
+                  width: 180,
+                  child: Card(
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: () {
+                        final queueIndex = state.queueIndexOf(track);
+                        if (queueIndex >= 0) state.playAt(queueIndex);
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(NiSpace.md),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                CircleAvatar(
+                                  backgroundColor:
+                                      theme.colorScheme.primaryContainer,
+                                  child: Icon(
+                                    Icons.music_note,
+                                    color: theme.colorScheme.onPrimaryContainer,
+                                  ),
+                                ),
+                                const SizedBox(width: NiSpace.sm),
+                                Expanded(
+                                  child: Text(
+                                    track.title,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Spacer(),
+                            LinearProgressIndicator(
+                              value: progress,
+                              minHeight: 4,
+                              borderRadius: BorderRadius.circular(NiRadius.sm),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
           const SizedBox(height: 20),
@@ -1589,8 +1670,8 @@ class SettingsScreen extends StatefulWidget {
   final AppStrings strings;
   final VoidCallback onChanged;
 
-  static const String version = '11.0.0';
-  static const String buildNumber = '42';
+  static const String version = '12.0.0';
+  static const String buildNumber = '43';
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -1857,6 +1938,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   value: state.textScale,
                   onChanged: state.setTextScale,
                 ),
+              ),
+              _divider(),
+              SwitchListTile(
+                secondary: const Icon(Icons.motion_photos_off),
+                title: Text(strings.reduceMotion),
+                value: state.reduceMotion,
+                onChanged: state.setReduceMotion,
               ),
             ],
           ),
@@ -3531,32 +3619,35 @@ class NowPlayingScreen extends StatelessWidget {
     final radius = 28.0;
     if (track?.thumbnailUrl != null &&
         Uri.tryParse(track!.thumbnailUrl!)?.scheme == 'https') {
-      return Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(radius),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.35),
-              blurRadius: 40,
-              offset: const Offset(0, 20),
+      return Hero(
+        tag: 'player-artwork',
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(radius),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.35),
+                blurRadius: 40,
+                offset: const Offset(0, 20),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(radius),
+            child: Image.network(
+              track.thumbnailUrl!,
+              fit: BoxFit.cover,
+              cacheWidth: 640,
+              errorBuilder: (context, error, stackTrace) =>
+                  _placeholderArt(size, radius),
             ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(radius),
-          child: Image.network(
-            track.thumbnailUrl!,
-            fit: BoxFit.cover,
-            cacheWidth: 640,
-            errorBuilder: (context, error, stackTrace) =>
-                _placeholderArt(size, radius),
           ),
         ),
       );
     }
-    return _placeholderArt(size, radius);
+    return Hero(tag: 'player-artwork', child: _placeholderArt(size, radius));
   }
 
   Widget _placeholderArt(double size, double radius) {

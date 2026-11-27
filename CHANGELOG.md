@@ -1,5 +1,18 @@
 # Changelog
 
+## v12.0.0
+
+Design foundation.
+
+### New features
+
+- **Design tokens.** Brand colors, spacing, radii, and motion constants live in one file.
+- **Dark-first theme.** Dark is the default visual for new installs, with Material You still available through the System accent.
+- **Onboarding.** A three-card first launch flow explains auto scan, playback, and notifications.
+- **Continue listening.** Home shows tracks with saved positions and a small progress bar.
+- **Hero artwork transition.** The mini player artwork transitions into the Now Playing artwork.
+- **Reduce motion.** An accessibility setting replaces longer animations with short fades.
+
 ## v11.0.0
 
 Smart polish.

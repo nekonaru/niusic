@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
+import 'ni_tokens.dart';
+
 /// Brand-seeded Material 3 theme for Niusic. The accent color picks the
 /// primary, surfaces stay neutral so the music artwork leads the eye.
 ThemeData niusicTheme(
   Brightness brightness, {
-  Color seed = const Color(0xFF4F46E5),
+  Color seed = NiColors.secondary,
   ColorScheme? dynamicScheme,
 }) {
   final scheme =
@@ -20,7 +22,7 @@ ThemeData niusicTheme(
   return base.copyWith(
     scaffoldBackgroundColor: brightness == Brightness.light
         ? const Color(0xFFF7F7F7)
-        : const Color(0xFF101010),
+        : NiColors.background,
     appBarTheme: AppBarTheme(
       backgroundColor: Colors.transparent,
       elevation: 0,
