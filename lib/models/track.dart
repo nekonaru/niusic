@@ -16,6 +16,7 @@ class Track {
     this.year,
     this.trackNumber,
     this.dateAdded,
+    this.albumArtUri,
   });
 
   final String id;
@@ -32,6 +33,7 @@ class Track {
   final int? year;
   final int? trackNumber;
   final int? dateAdded;
+  final String? albumArtUri;
 
   bool get isLocal => kind == TrackKind.local;
   bool get isRemote => kind == TrackKind.remote;
@@ -112,6 +114,7 @@ class Track {
       year: year,
       trackNumber: trackNumber,
       dateAdded: dateAdded,
+      albumArtUri: albumArtUri,
     );
   }
 
@@ -148,6 +151,8 @@ class Track {
     if (tn != null && tn > 0) map['track'] = tn.toString();
     final da = dateAdded;
     if (da != null && da > 0) map['added'] = da.toString();
+    final art = albumArtUri;
+    if (art != null && art.isNotEmpty) map['aart'] = art;
     return map;
   }
 
@@ -197,6 +202,7 @@ class Track {
       year: int.tryParse('${json['year']}'),
       trackNumber: int.tryParse('${json['track']}'),
       dateAdded: int.tryParse('${json['added']}'),
+      albumArtUri: json['aart'] as String?,
     );
   }
 

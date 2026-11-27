@@ -1,5 +1,15 @@
 # Changelog
 
+## v10.1.0
+
+System integration.
+
+### New features
+
+- **Second home widget.** A 4x2 widget shows the first four playlists and opens the app on tap.
+- **Open audio from another app.** Share an audio file to Niusic via Android VIEW intent; it is copied into the app and added to the library.
+- **Local artwork in the media notification.** Album art from MediaStore appears in the notification and lock screen.
+
 ## v10.0.0
 
 Advanced playback controls.

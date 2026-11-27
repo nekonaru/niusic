@@ -14,6 +14,7 @@ class ScannedTrack {
     this.year,
     this.trackNumber,
     this.dateAdded,
+    this.albumArtUri,
   });
 
   final String path;
@@ -25,6 +26,7 @@ class ScannedTrack {
   final int? year;
   final int? trackNumber;
   final int? dateAdded;
+  final String? albumArtUri;
 }
 
 /// Reads the device music library through the native MediaStore scanner.
@@ -91,6 +93,9 @@ class ScannerService {
             trackNumber: entry['track'] is int ? entry['track'] as int : null,
             dateAdded: entry['dateAdded'] is int
                 ? entry['dateAdded'] as int
+                : null,
+            albumArtUri: entry['albumId'] is int && entry['albumId'] > 0
+                ? 'content://media/external/audio/albumart/${entry['albumId']}'
                 : null,
           ),
         );

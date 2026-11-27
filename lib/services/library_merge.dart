@@ -58,6 +58,7 @@ MergeResult mergeScannedTracksInto(
           ? item.trackNumber
           : null,
       dateAdded: item.dateAdded,
+      albumArtUri: item.albumArtUri,
     );
     library.add(track);
     byId[id] = track;

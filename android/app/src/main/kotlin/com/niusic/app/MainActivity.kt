@@ -14,6 +14,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 import com.ryanheise.audioservice.AudioServiceActivity
+import java.io.File
 
 /**
  * Handles the widget update channel, the notification permission channel, and
@@ -26,6 +27,31 @@ class MainActivity : AudioServiceActivity() {
     private val permissionChannel = "niusic/permission"
     private val scannerChannel = "niusic/scanner"
     private val scannerEventsChannel = "niusic/scanner_events"
+    private val intentChannelName = "niusic/intent"
+
+    override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        super.onCreate(savedInstanceState)
+        handleIncomingAudio(intent)
+    }
+
+    private fun handleIncomingAudio(incoming: Intent?) {
+        if (incoming?.action != Intent.ACTION_VIEW) return
+        val uri = incoming.data ?: return
+        try {
+            val dir = File(filesDir, "incoming")
+            dir.mkdirs()
+            val dest = File(dir, "${System.currentTimeMillis()}.audio")
+            contentResolver.openInputStream(uri)?.use { input ->
+                dest.outputStream().use { output -> input.copyTo(output) }
+            } ?: return
+            getSharedPreferences("FlutterSharedPreferences", MODE_PRIVATE)
+                .edit()
+                .putString("flutter.pending_audio", dest.absolutePath)
+                .apply()
+        } catch (_: Exception) {
+            // Unreadable URI, ignore.
+        }
+    }
 
     private var audioObserver: ContentObserver? = null
 
@@ -44,7 +70,19 @@ class MainActivity : AudioServiceActivity() {
                             putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
                         }
                         sendBroadcast(intent)
-                        result.success(ids.size)
+                        val playlistIds = manager.getAppWidgetIds(
+                            ComponentName(this, NiusicPlaylistsWidgetProvider::class.java)
+                        )
+                        val playlistIntent =
+                            Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE).apply {
+                                component = ComponentName(
+                                    this@MainActivity,
+                                    NiusicPlaylistsWidgetProvider::class.java
+                                )
+                                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, playlistIds)
+                            }
+                        sendBroadcast(playlistIntent)
+                        result.success(ids.size + playlistIds.size)
                     }
                     else -> result.notImplemented()
                 }
@@ -68,6 +106,24 @@ class MainActivity : AudioServiceActivity() {
                             )
                         }
                         result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, intentChannelName)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "getPending" -> {
+                        val prefs = getSharedPreferences(
+                            "FlutterSharedPreferences",
+                            MODE_PRIVATE
+                        )
+                        val path = prefs.getString("flutter.pending_audio", null)
+                        if (path != null) {
+                            prefs.edit().remove("flutter.pending_audio").apply()
+                        }
+                        result.success(path)
                     }
                     else -> result.notImplemented()
                 }
@@ -152,6 +208,7 @@ class MainActivity : AudioServiceActivity() {
             MediaStore.Audio.Media.ALBUM,
             MediaStore.Audio.Media.YEAR,
             MediaStore.Audio.Media.TRACK,
+            MediaStore.Audio.Media.ALBUM_ID,
             MediaStore.Audio.Media.DATE_ADDED,
             MediaStore.Audio.Media.DURATION
         )
@@ -173,6 +230,7 @@ class MainActivity : AudioServiceActivity() {
             val yearCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.YEAR)
             val trackCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TRACK)
             val dateCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
+            val albumIdCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
             val durationCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
             while (cursor.moveToNext()) {
                 val path = cursor.getString(pathCol) ?: continue
@@ -192,6 +250,7 @@ class MainActivity : AudioServiceActivity() {
                         "year" to cursor.getInt(yearCol),
                         "track" to cursor.getInt(trackCol),
                         "dateAdded" to cursor.getLong(dateCol),
+                        "albumId" to cursor.getLong(albumIdCol),
                         "duration" to cursor.getLong(durationCol)
                     )
                 )

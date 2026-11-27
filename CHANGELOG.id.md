@@ -1,5 +1,15 @@
 # Changelog
 
+## v10.1.0
+
+Integrasi sistem.
+
+### Fitur baru
+
+- **Widget kedua.** Widget 4x2 menampilkan empat playlist pertama dan membuka aplikasi saat diketuk.
+- **Buka audio dari aplikasi lain.** Bagikan file audio ke Niusic lewat intent VIEW Android; file disalin ke aplikasi dan masuk perpustakaan.
+- **Sampul lokal di notifikasi.** Album art dari MediaStore tampil di notifikasi dan layar kunci.
+
 ## v10.0.0
 
 Kontrol pemutaran lanjutan.

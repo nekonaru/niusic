@@ -269,7 +269,33 @@ class AppState extends ChangeNotifier {
   void notifyListeners() {
     _syncNotification();
     unawaited(_persistWidget());
+    unawaited(_persistPlaylistWidget());
     super.notifyListeners();
+  }
+
+  String? _widgetPlaylistNames;
+
+  Future<void> _persistPlaylistWidget() async {
+    final names = playlists
+        .where((playlist) => playlist.id != 'favorites')
+        .take(4)
+        .map((playlist) => playlist.name)
+        .toList();
+    final key = names.join('|');
+    if (key == _widgetPlaylistNames) return;
+    _widgetPlaylistNames = key;
+    final prefs = await _getPrefs();
+    for (var i = 0; i < 4; i++) {
+      await prefs.setString(
+        'widget_playlist_${i + 1}',
+        i < names.length ? names[i] : 'Niusic',
+      );
+    }
+    try {
+      await _widgetChannel.invokeMethod<void>('update');
+    } catch (_) {
+      // Widget channel is Android only.
+    }
   }
 
   Future<void> _persistWidget() async {
@@ -341,11 +367,17 @@ class AppState extends ChangeNotifier {
       duration: track.durationSeconds != null && track.durationSeconds! > 0
           ? Duration(seconds: track.durationSeconds!)
           : null,
-      artUri:
-          track.thumbnailUrl != null &&
-              Uri.tryParse(track.thumbnailUrl!)?.scheme == 'https'
-          ? Uri.tryParse(track.thumbnailUrl!)
-          : null,
+      artUri: () {
+        final thumb = track.thumbnailUrl;
+        if (thumb != null && Uri.tryParse(thumb)?.scheme == 'https') {
+          return Uri.tryParse(thumb);
+        }
+        final art = track.albumArtUri;
+        if (art != null && Uri.tryParse(art)?.scheme == 'content') {
+          return Uri.tryParse(art);
+        }
+        return null;
+      }(),
     );
   }
 
@@ -571,6 +603,20 @@ class AppState extends ChangeNotifier {
     }
     notifyListeners();
     unawaited(initScanner());
+    unawaited(_consumeIncomingAudio());
+  }
+
+  static const MethodChannel _intentChannel = MethodChannel('niusic/intent');
+
+  Future<void> _consumeIncomingAudio() async {
+    try {
+      final path = await _intentChannel.invokeMethod<String>('getPending');
+      if (path != null && path.isNotEmpty) {
+        await addPaths([path]);
+      }
+    } catch (_) {
+      // Channel only exists on Android.
+    }
   }
 
   /// Restores equalizer preferences into memory and enables the effects.
