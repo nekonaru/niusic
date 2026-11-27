@@ -287,4 +287,33 @@ class AppStrings {
   String get offlineActive => isId
       ? 'Mode offline aktif. Fitur online dimatikan.'
       : 'Offline mode is on. Online features are disabled.';
+
+  String get advancedPlayback =>
+      isId ? 'Pemutaran lanjutan' : 'Advanced playback';
+  String get resumePosition =>
+      isId ? 'Lanjutkan posisi lagu' : 'Resume track position';
+  String get skipIntro => isId ? 'Lewati intro' : 'Skip intro';
+  String get skipOutro => isId ? 'Lewati akhir' : 'Skip outro';
+  String get seconds => isId ? 'detik' : 'seconds';
+  String get bufferPreset => isId ? 'Ukuran buffer' : 'Buffer size';
+  String get bufferLight => isId ? 'Hemat' : 'Light';
+  String get bufferNormal => isId ? 'Normal' : 'Normal';
+  String get bufferLarge => isId ? 'Besar' : 'Large';
+  String get endAction => isId ? 'Saat lagu usai' : 'When a track ends';
+  String get endNext => isId ? 'Lanjut' : 'Next';
+  String get endPause => isId ? 'Jeda' : 'Pause';
+  String get endRepeat => isId ? 'Ulang' : 'Repeat';
+  String get focusMode => isId ? 'Mode fokus' : 'Focus mode';
+  String get focusHint =>
+      isId ? 'Ketuk untuk menampilkan kontrol' : 'Tap to show controls';
+  String get abLoop => isId ? 'Ulang A-B' : 'A-B loop';
+  String get markA => 'A';
+  String get markB => 'B';
+  String get clearLoop => isId ? 'Hapus loop' : 'Clear loop';
+  String get replayGain => isId ? 'Gain lagu' : 'Track gain';
+  String get eqFlat => isId ? 'Rata' : 'Flat';
+  String get eqBass => isId ? 'Bass' : 'Bass';
+  String get eqVocal => isId ? 'Vokal' : 'Vocal';
+  String get eqRock => isId ? 'Rock' : 'Rock';
+  String get eqJazz => isId ? 'Jazz' : 'Jazz';
 }

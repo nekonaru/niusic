@@ -1495,8 +1495,8 @@ class SettingsScreen extends StatefulWidget {
   final AppStrings strings;
   final VoidCallback onChanged;
 
-  static const String version = '9.0.0';
-  static const String buildNumber = '39';
+  static const String version = '10.0.0';
+  static const String buildNumber = '40';
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -1877,6 +1877,100 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
         ),
+        _label(context, strings.advancedPlayback),
+        Card(
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              _settingRow(
+                icon: Icons.replay,
+                title: strings.resumePosition,
+                child: Text(
+                  '${state.resumePositions.length} ${strings.tracksCount}',
+                ),
+              ),
+              _divider(),
+              _settingRow(
+                icon: Icons.fast_forward,
+                title: strings.skipIntro,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Slider(
+                        max: 60,
+                        divisions: 12,
+                        value: state.skipIntroSeconds.toDouble(),
+                        onChanged: (v) => state.setSkipIntro(v.toInt()),
+                      ),
+                    ),
+                    Text('${state.skipIntroSeconds}s'),
+                  ],
+                ),
+              ),
+              _divider(),
+              _settingRow(
+                icon: Icons.skip_next,
+                title: strings.skipOutro,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Slider(
+                        max: 60,
+                        divisions: 12,
+                        value: state.skipOutroSeconds.toDouble(),
+                        onChanged: (v) => state.setSkipOutro(v.toInt()),
+                      ),
+                    ),
+                    Text('${state.skipOutroSeconds}s'),
+                  ],
+                ),
+              ),
+              _divider(),
+              _settingRow(
+                icon: Icons.storage,
+                title: strings.bufferPreset,
+                child: SegmentedButton<int>(
+                  showSelectedIcon: false,
+                  segments: [
+                    ButtonSegment(value: 0, label: Text(strings.bufferLight)),
+                    ButtonSegment(value: 1, label: Text(strings.bufferNormal)),
+                    ButtonSegment(value: 2, label: Text(strings.bufferLarge)),
+                  ],
+                  selected: {state.bufferPreset},
+                  onSelectionChanged: (v) => state.setBufferPreset(v.first),
+                ),
+              ),
+              _divider(),
+              _settingRow(
+                icon: Icons.done_outline,
+                title: strings.endAction,
+                child: SegmentedButton<String>(
+                  showSelectedIcon: false,
+                  segments: [
+                    ButtonSegment(value: 'next', label: Text(strings.endNext)),
+                    ButtonSegment(
+                      value: 'pause',
+                      label: Text(strings.endPause),
+                    ),
+                    ButtonSegment(
+                      value: 'repeat',
+                      label: Text(strings.endRepeat),
+                    ),
+                  ],
+                  selected: {state.endAction},
+                  onSelectionChanged: (v) => state.setEndAction(v.first),
+                ),
+              ),
+              _divider(),
+              SwitchListTile(
+                secondary: const Icon(Icons.visibility_off),
+                title: Text(strings.focusMode),
+                value: state.focusMode,
+                onChanged: state.setFocusMode,
+              ),
+            ],
+          ),
+        ),
         if (Platform.isAndroid) ...[
           _label(context, strings.equalizer),
           Card(
@@ -1899,6 +1993,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   if (state.equalizerEnabled) ...[
                     const SizedBox(height: 8),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          for (final preset in <String, String>{
+                            'flat': strings.eqFlat,
+                            'bass': strings.eqBass,
+                            'vocal': strings.eqVocal,
+                            'rock': strings.eqRock,
+                            'jazz': strings.eqJazz,
+                          }.entries)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: FilterChip(
+                                label: Text(preset.value),
+                                selected: state.eqPreset == preset.key,
+                                onSelected: (_) =>
+                                    state.setEqPreset(preset.key),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     FutureBuilder<AndroidEqualizerParameters>(
                       future: state.equalizer.parameters,
                       builder: (context, snap) {
@@ -3200,7 +3318,13 @@ class NowPlayingScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 32),
-                        Expanded(child: _controls(context, track, value, max)),
+                        Expanded(
+                          child: _FocusGate(
+                            enabled: state.focusMode,
+                            strings: strings,
+                            child: _controls(context, track, value, max),
+                          ),
+                        ),
                       ],
                     )
                   : Column(
@@ -3417,8 +3541,35 @@ class NowPlayingScreen extends StatelessWidget {
               tooltip: strings.repeat,
               onPressed: state.cycleRepeat,
             ),
+            IconButton(
+              icon: Icon(
+                Icons.loop,
+                color: state.abLoopActive
+                    ? Theme.of(context).colorScheme.primary
+                    : null,
+              ),
+              tooltip: strings.abLoop,
+              onPressed: () {
+                if (state.abLoopActive) {
+                  state.clearAbLoop();
+                } else if (state.abLoopA == null) {
+                  state.markAbLoopA();
+                } else {
+                  state.markAbLoopB();
+                }
+              },
+            ),
           ],
         ),
+        if (state.skipIntroSeconds > 0 &&
+            state.position.inSeconds < state.skipIntroSeconds &&
+            !(_isRadio(track)))
+          TextButton.icon(
+            onPressed: () =>
+                state.seek(Duration(seconds: state.skipIntroSeconds)),
+            icon: const Icon(Icons.fast_forward),
+            label: Text(strings.skipIntro),
+          ),
         if (state.repeat != NiRepeatMode.off)
           Text(
             state.repeat == NiRepeatMode.one
@@ -3436,7 +3587,9 @@ class NowPlayingScreen extends StatelessWidget {
     double max,
   ) {
     final controls = _controls(context, track, value, max);
-    return [controls];
+    return [
+      _FocusGate(enabled: state.focusMode, strings: strings, child: controls),
+    ];
   }
 }
 
@@ -4350,4 +4503,57 @@ class _ImmersiveControllerState extends State<_ImmersiveController> {
 
   @override
   Widget build(BuildContext context) => const SizedBox.shrink();
+}
+
+class _FocusGate extends StatefulWidget {
+  const _FocusGate({
+    required this.enabled,
+    required this.strings,
+    required this.child,
+  });
+
+  final bool enabled;
+  final AppStrings strings;
+  final Widget child;
+
+  @override
+  State<_FocusGate> createState() => _FocusGateState();
+}
+
+class _FocusGateState extends State<_FocusGate> {
+  bool _revealed = false;
+
+  @override
+  void didUpdateWidget(_FocusGate oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.enabled != widget.enabled && !widget.enabled) {
+      _revealed = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.enabled || _revealed) {
+      return GestureDetector(
+        onTap: () {
+          if (widget.enabled && _revealed) {
+            setState(() => _revealed = false);
+          }
+        },
+        child: widget.child,
+      );
+    }
+    return GestureDetector(
+      onTap: () => setState(() => _revealed = true),
+      child: Container(
+        alignment: Alignment.center,
+        padding: const EdgeInsets.all(24),
+        child: Text(
+          widget.strings.focusHint,
+          style: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        ),
+      ),
+    );
+  }
 }

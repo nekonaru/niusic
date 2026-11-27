@@ -5,6 +5,8 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'l10n/app_strings.dart';
 import 'screens/screens.dart';
 import 'services/audio_handler.dart';
@@ -15,6 +17,8 @@ import 'ui/responsive.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final bootPrefs = await SharedPreferences.getInstance();
+  AppState.initialBufferPreset = bootPrefs.getInt('buffer_preset') ?? 1;
   final state = AppState();
   try {
     final handler = await AudioService.init(

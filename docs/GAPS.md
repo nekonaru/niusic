@@ -1,6 +1,6 @@
 # Feature Gap Analysis
 
-Date: 2026-11-27. Comparison: Niusic v9.0.0 against Auralys (Android Kotlin/Metrolist fork and Windows JavaFX).
+Date: 2026-11-27. Comparison: Niusic v10.0.0 against Auralys (Android Kotlin/Metrolist fork and Windows JavaFX).
 
 ## Implemented
 
@@ -34,6 +34,7 @@ Date: 2026-11-27. Comparison: Niusic v9.0.0 against Auralys (Android Kotlin/Metr
 
 ## Not implemented
 
+- **Advanced playback.** Resume position, intro/outro skip, track gain, buffer presets, A-B loop, EQ presets, focus mode, end action.
 - **Gapless playback and crossfade.** Needs a larger rewrite of the queue into a native concatenating source and a second player for crossfade. Deferred to keep playback stable.
 - **Android Auto browse tree and second home widget.** Need separate platform work and device testing. Deferred.
 - **Custom media notification actions and artwork-derived themes.** Audio_service custom action API and dynamic image palettes need more verification. Deferred.

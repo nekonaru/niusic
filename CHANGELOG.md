@@ -1,5 +1,20 @@
 # Changelog
 
+## v10.0.0
+
+Advanced playback controls.
+
+### New features
+
+- **Resume position.** Each track remembers its last playback position.
+- **Skip intro and outro.** Configurable seconds, with a Skip intro button in Now Playing.
+- **Track gain.** Per-track dB gain for quiet recordings.
+- **Buffer presets.** Light, Normal and Large, applied at player creation.
+- **A-B loop.** Mark start and end points and loop the range.
+- **EQ presets.** Flat, Bass, Vocal, Rock and Jazz.
+- **Focus mode.** Hide controls until tapped.
+- **End action.** Choose Next, Pause or Repeat when a track ends.
+
 ## v9.0.0
 
 Native feel and system integration.

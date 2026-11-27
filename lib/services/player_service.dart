@@ -53,6 +53,15 @@ const String _keyFavoriteStations = 'favorite_stations_v1';
 const String _keyImmersive = 'immersive_player';
 const String _keyLibraryGrid = 'library_grid';
 const String _keyOfflineMode = 'offline_mode';
+const String _keyResumePositions = 'resume_positions_v1';
+const String _keySkipIntro = 'skip_intro_seconds';
+const String _keySkipOutro = 'skip_outro_seconds';
+const String _keyReplayGain = 'replay_gain_v1';
+const String _keyBufferPreset = 'buffer_preset';
+const String _keyFocusMode = 'focus_mode';
+const String _keyEndAction = 'end_action';
+const String _keyAbLoop = 'ab_loop_v1';
+const String _keyEqPreset = 'eq_preset';
 const String _keyLibrarySort = 'library_sort';
 const String _keyEqEnabled = 'equalizer_enabled';
 const String _keyEqGains = 'equalizer_gains';
@@ -88,6 +97,16 @@ class AppState extends ChangeNotifier {
     });
     _positionSub = player.positionStream.listen((d) {
       final nextSecond = d.inSeconds;
+      if (abLoopActive && abLoopB != null && d.inSeconds >= abLoopB!) {
+        unawaited(player.seek(Duration(seconds: abLoopA!)));
+      }
+      if (isPlaying &&
+          skipOutroSeconds > 0 &&
+          duration > Duration.zero &&
+          !(current?.videoId?.startsWith('radio:') ?? false) &&
+          duration - d <= Duration(seconds: skipOutroSeconds)) {
+        unawaited(next(auto: true));
+      }
       if (nextSecond != position.inSeconds || duration == Duration.zero) {
         position = d;
         _recordListenSecond();
@@ -123,7 +142,33 @@ class AppState extends ChangeNotifier {
     audioPipeline: AudioPipeline(
       androidAudioEffects: [loudnessEnhancer, equalizer],
     ),
+    audioLoadConfiguration: AudioLoadConfiguration(
+      androidLoadControl: _loadControlFor(initialBufferPreset),
+    ),
   );
+
+  /// Set by main() before construction so the buffering preset is applied.
+  static int initialBufferPreset = 1;
+
+  static AndroidLoadControl _loadControlFor(int preset) {
+    switch (preset) {
+      case 0:
+        return const AndroidLoadControl(
+          minBufferDuration: Duration(seconds: 15),
+          maxBufferDuration: Duration(seconds: 30),
+          bufferForPlaybackDuration: Duration(milliseconds: 1000),
+        );
+      case 2:
+        return const AndroidLoadControl(
+          minBufferDuration: Duration(seconds: 120),
+          maxBufferDuration: Duration(seconds: 300),
+          bufferForPlaybackDuration: Duration(milliseconds: 5000),
+        );
+      default:
+        return const AndroidLoadControl();
+    }
+  }
+
   final StreamService streamService;
   final DownloadService downloadService;
   final LyricsService lyricsService;
@@ -171,6 +216,17 @@ class AppState extends ChangeNotifier {
   bool immersivePlayer = false;
   bool libraryGrid = false;
   bool offlineMode = false;
+  final Map<String, int> resumePositions = <String, int>{};
+  final Map<String, double> replayGains = <String, double>{};
+  int skipIntroSeconds = 0;
+  int skipOutroSeconds = 0;
+  int bufferPreset = 1;
+  bool focusMode = false;
+  String endAction = 'next';
+  String? abLoopTrackId;
+  int? abLoopA;
+  int? abLoopB;
+  String eqPreset = 'flat';
   String? icyTitle;
   final List<Track> favoriteStations = <Track>[];
   LibrarySort librarySort = LibrarySort.name;
@@ -377,6 +433,47 @@ class AppState extends ChangeNotifier {
     immersivePlayer = prefs.getBool(_keyImmersive) ?? false;
     libraryGrid = prefs.getBool(_keyLibraryGrid) ?? false;
     offlineMode = prefs.getBool(_keyOfflineMode) ?? false;
+    skipIntroSeconds = prefs.getInt(_keySkipIntro) ?? 0;
+    skipOutroSeconds = prefs.getInt(_keySkipOutro) ?? 0;
+    bufferPreset = prefs.getInt(_keyBufferPreset) ?? 1;
+    focusMode = prefs.getBool(_keyFocusMode) ?? false;
+    endAction = prefs.getString(_keyEndAction) ?? 'next';
+    eqPreset = prefs.getString(_keyEqPreset) ?? 'flat';
+    final resumeRaw = prefs.getString(_keyResumePositions);
+    if (resumeRaw != null) {
+      try {
+        final decoded = jsonDecode(resumeRaw) as Map<String, dynamic>;
+        resumePositions
+          ..clear()
+          ..addAll(decoded.map((k, v) => MapEntry(k, (v as num).toInt())));
+      } catch (_) {
+        resumePositions.clear();
+      }
+    }
+    final gainRaw = prefs.getString(_keyReplayGain);
+    if (gainRaw != null) {
+      try {
+        final decoded = jsonDecode(gainRaw) as Map<String, dynamic>;
+        replayGains
+          ..clear()
+          ..addAll(decoded.map((k, v) => MapEntry(k, (v as num).toDouble())));
+      } catch (_) {
+        replayGains.clear();
+      }
+    }
+    final loopRaw = prefs.getString(_keyAbLoop);
+    if (loopRaw != null) {
+      try {
+        final decoded = jsonDecode(loopRaw) as Map<String, dynamic>;
+        abLoopTrackId = decoded['id'] as String?;
+        abLoopA = decoded['a'] as int?;
+        abLoopB = decoded['b'] as int?;
+      } catch (_) {
+        abLoopTrackId = null;
+        abLoopA = null;
+        abLoopB = null;
+      }
+    }
     final stationsRaw = prefs.getString(_keyFavoriteStations);
     if (stationsRaw != null) {
       try {
@@ -720,6 +817,13 @@ class AppState extends ChangeNotifier {
     if (!isPlaying) return;
     final key = DateTime.now().toString().substring(0, 10);
     listenSecondsByDay[key] = (listenSecondsByDay[key] ?? 0) + 1;
+    if (_resumeTick++ % 10 == 0) {
+      final cur = current;
+      if (cur != null && !(cur.videoId?.startsWith('radio:') ?? false)) {
+        resumePositions[cur.id] = position.inMilliseconds;
+        _saveResumeSoon();
+      }
+    }
     _statsTimer ??= Timer(const Duration(seconds: 5), () async {
       final prefs = await _getPrefs();
       await prefs.setString(_keyStats, jsonEncode(listenSecondsByDay));
@@ -728,6 +832,16 @@ class AppState extends ChangeNotifier {
   }
 
   Timer? _statsTimer;
+  Timer? _resumeTimer;
+  int _resumeTick = 0;
+
+  void _saveResumeSoon() {
+    _resumeTimer?.cancel();
+    _resumeTimer = Timer(const Duration(seconds: 2), () async {
+      final prefs = await _getPrefs();
+      await prefs.setString(_keyResumePositions, jsonEncode(resumePositions));
+    });
+  }
 
   int get totalListenSeconds =>
       listenSecondsByDay.values.fold(0, (sum, value) => sum + value);
@@ -1030,6 +1144,7 @@ class AppState extends ChangeNotifier {
       try {
         await player.setFilePath(path);
         await _applySessionPrefs();
+        await _applyStartOptions(track);
         await player.play();
         _sourceLoaded = true;
         unawaited(_ensureEqualizerApplied());
@@ -1051,6 +1166,7 @@ class AppState extends ChangeNotifier {
       try {
         await player.setFilePath(path);
         await _applySessionPrefs();
+        await _applyStartOptions(track);
         await player.play();
         _sourceLoaded = true;
         unawaited(_ensureEqualizerApplied());
@@ -1080,6 +1196,7 @@ class AppState extends ChangeNotifier {
       try {
         await player.setUrl(url);
         await _applySessionPrefs();
+        await _applyStartOptions(track);
         await player.play();
         _sourceLoaded = true;
         unawaited(_ensureEqualizerApplied());
@@ -1108,6 +1225,7 @@ class AppState extends ChangeNotifier {
         await player.setUrl(url);
       }
       await _applySessionPrefs();
+      await _applyStartOptions(track);
       await player.play();
       _sourceLoaded = true;
       unawaited(_ensureEqualizerApplied());
@@ -1122,9 +1240,23 @@ class AppState extends ChangeNotifier {
   /// Applies volume and speed to the player. Called after the source is set,
   /// when the platform exists. The calls are safe no-ops if the platform is
   /// not ready yet.
+  Future<void> _applyStartOptions(Track track) async {
+    if (track.videoId?.startsWith('radio:') ?? false) return;
+    var target = resumePositions[track.id] ?? 0;
+    if (skipIntroSeconds > 0 && target < skipIntroSeconds * 1000) {
+      target = skipIntroSeconds * 1000;
+    }
+    if (target <= 0) return;
+    try {
+      await player.seek(Duration(milliseconds: target));
+    } catch (_) {
+      // Source not seekable.
+    }
+  }
+
   Future<void> _applySessionPrefs() async {
     try {
-      await player.setVolume(volume);
+      await player.setVolume(effectiveGain);
       await player.setSpeed(playbackRate);
       await player.setPitch(pitch);
       await player.setSkipSilenceEnabled(skipSilence);
@@ -1658,6 +1790,138 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setSkipIntro(int seconds) async {
+    skipIntroSeconds = seconds.clamp(0, 120);
+    final prefs = await _getPrefs();
+    await prefs.setInt(_keySkipIntro, skipIntroSeconds);
+    notifyListeners();
+  }
+
+  Future<void> setSkipOutro(int seconds) async {
+    skipOutroSeconds = seconds.clamp(0, 120);
+    final prefs = await _getPrefs();
+    await prefs.setInt(_keySkipOutro, skipOutroSeconds);
+    notifyListeners();
+  }
+
+  Future<void> setBufferPreset(int value) async {
+    bufferPreset = value.clamp(0, 2);
+    final prefs = await _getPrefs();
+    await prefs.setInt(_keyBufferPreset, bufferPreset);
+    notifyListeners();
+  }
+
+  Future<void> setFocusMode(bool value) async {
+    focusMode = value;
+    final prefs = await _getPrefs();
+    await prefs.setBool(_keyFocusMode, value);
+    notifyListeners();
+  }
+
+  Future<void> setEndAction(String value) async {
+    endAction = value;
+    final prefs = await _getPrefs();
+    await prefs.setString(_keyEndAction, value);
+    notifyListeners();
+  }
+
+  Future<void> setTrackGain(Track track, double dB) async {
+    replayGains[track.id] = dB;
+    final prefs = await _getPrefs();
+    await prefs.setString(_keyReplayGain, jsonEncode(replayGains));
+    _applySessionPrefs();
+    notifyListeners();
+  }
+
+  double get effectiveGain {
+    final cur = current;
+    if (cur == null) return 1;
+    final db = replayGains[cur.id] ?? 0;
+    // Convert dB to linear gain, clamp to avoid clipping.
+    return (volume * pow(10, db / 20).toDouble()).clamp(0.0, 1.0);
+  }
+
+  void markAbLoopA() {
+    final cur = current;
+    if (cur == null) return;
+    if (abLoopTrackId != cur.id) {
+      abLoopA = null;
+      abLoopB = null;
+    }
+    abLoopTrackId = cur.id;
+    abLoopA = position.inSeconds;
+    if (abLoopB != null && abLoopB! <= abLoopA!) abLoopB = null;
+    _saveAbLoop();
+    notifyListeners();
+  }
+
+  void markAbLoopB() {
+    final cur = current;
+    if (cur == null || abLoopTrackId != cur.id || abLoopA == null) return;
+    abLoopB = position.inSeconds;
+    if (abLoopB! <= abLoopA!) abLoopB = null;
+    _saveAbLoop();
+    notifyListeners();
+  }
+
+  void clearAbLoop() {
+    abLoopTrackId = null;
+    abLoopA = null;
+    abLoopB = null;
+    _saveAbLoop();
+    notifyListeners();
+  }
+
+  Future<void> _saveAbLoop() async {
+    final prefs = await _getPrefs();
+    await prefs.setString(
+      _keyAbLoop,
+      jsonEncode(<String, dynamic>{
+        'id': abLoopTrackId,
+        'a': abLoopA,
+        'b': abLoopB,
+      }),
+    );
+  }
+
+  bool get abLoopActive =>
+      abLoopTrackId != null &&
+      abLoopA != null &&
+      abLoopB != null &&
+      abLoopTrackId == current?.id;
+
+  Future<void> setEqPreset(String preset) async {
+    eqPreset = preset;
+    final prefs = await _getPrefs();
+    await prefs.setString(_keyEqPreset, preset);
+    await _applyEqPreset(preset);
+    notifyListeners();
+  }
+
+  Future<void> _applyEqPreset(String preset) async {
+    if (!Platform.isAndroid) return;
+    try {
+      final params = await equalizer.parameters;
+      final flat = <double>[for (final band in params.bands) band.gain];
+      final presets = <String, List<double>>{
+        'flat': List<double>.filled(flat.length, 0),
+        'bass': [for (final v in flat) v + 6],
+        'vocal': [for (final v in flat) v + 3],
+        'rock': [for (final v in flat) v + 4],
+        'jazz': [for (final v in flat) v + 2],
+      };
+      final target = presets[preset] ?? presets['flat']!;
+      for (var i = 0; i < params.bands.length; i++) {
+        final gain = target[i].clamp(params.minDecibels, params.maxDecibels);
+        equalizerGains[i] = gain;
+        await params.bands[i].setGain(gain);
+      }
+      await _saveEqualizerGains();
+    } catch (_) {
+      // Effects not ready yet.
+    }
+  }
+
   Future<void> setOfflineMode(bool value) async {
     offlineMode = value;
     final prefs = await _getPrefs();
@@ -1766,6 +2030,15 @@ class AppState extends ChangeNotifier {
 
   Future<void> next({bool auto = false}) async {
     if (queue.isEmpty) {
+      return;
+    }
+    if (auto && endAction == 'pause') {
+      await player.pause();
+      return;
+    }
+    if (auto && endAction == 'repeat') {
+      await player.seek(Duration.zero);
+      await player.play();
       return;
     }
     if (repeat == NiRepeatMode.one && auto) {
@@ -2018,6 +2291,7 @@ class AppState extends ChangeNotifier {
     _sleepTimer?.cancel();
     _fadeTimer?.cancel();
     _statsTimer?.cancel();
+    _resumeTimer?.cancel();
     super.dispose();
   }
 

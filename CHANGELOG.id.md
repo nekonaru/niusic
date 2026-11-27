@@ -1,5 +1,20 @@
 # Changelog
 
+## v10.0.0
+
+Kontrol pemutaran lanjutan.
+
+### Fitur baru
+
+- **Lanjutkan posisi.** Tiap lagu mengingat posisi terakhir diputar.
+- **Lewati intro dan akhir.** Detik bisa diatur, ada tombol Lewati intro di Now Playing.
+- **Gain per lagu.** Penyesuaian dB untuk rekaman yang pelan.
+- **Preset buffer.** Hemat, Normal, Besar, diterapkan saat pemutar dibuat.
+- **Ulang A-B.** Tandai awal dan akhir, ulang rentang itu saja.
+- **Preset EQ.** Rata, Bass, Vokal, Rock, Jazz.
+- **Mode fokus.** Sembunyikan kontrol sampai diketuk.
+- **Aksi akhir lagu.** Pilih Lanjut, Jeda, atau Ulang.
+
 ## v9.0.0
 
 Rasa native dan integrasi sistem.
