@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:audio_service/audio_service.dart';
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
@@ -284,6 +285,13 @@ class _NiusicAppState extends State<NiusicApp> {
 
   @override
   Widget build(BuildContext context) {
+    return DynamicColorBuilder(
+      builder: (lightDynamic, darkDynamic) =>
+          _buildApp(lightDynamic, darkDynamic),
+    );
+  }
+
+  Widget _buildApp(ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
     final strings = _strings;
     final seed = _seedColor(state);
     final pages = <Widget>[
@@ -306,8 +314,16 @@ class _NiusicAppState extends State<NiusicApp> {
       scaffoldMessengerKey: messengerKey,
       debugShowCheckedModeBanner: false,
       title: 'Niusic',
-      theme: niusicTheme(Brightness.light, seed: seed),
-      darkTheme: niusicTheme(Brightness.dark, seed: seed),
+      theme: niusicTheme(
+        Brightness.light,
+        seed: seed,
+        dynamicScheme: state.accent == 'system' ? lightDynamic : null,
+      ),
+      darkTheme: niusicTheme(
+        Brightness.dark,
+        seed: seed,
+        dynamicScheme: state.accent == 'system' ? darkDynamic : null,
+      ),
       themeMode: _themeMode,
       home: Builder(
         builder: (context) {

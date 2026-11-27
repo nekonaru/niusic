@@ -1,6 +1,6 @@
 # Feature Gap Analysis
 
-Date: 2026-11-26. Comparison: Niusic v8.1.0 against Auralys (Android Kotlin/Metrolist fork and Windows JavaFX).
+Date: 2026-11-27. Comparison: Niusic v9.0.0 against Auralys (Android Kotlin/Metrolist fork and Windows JavaFX).
 
 ## Implemented
 
@@ -34,6 +34,9 @@ Date: 2026-11-26. Comparison: Niusic v8.1.0 against Auralys (Android Kotlin/Metr
 
 ## Not implemented
 
+- **Gapless playback and crossfade.** Needs a larger rewrite of the queue into a native concatenating source and a second player for crossfade. Deferred to keep playback stable.
+- **Android Auto browse tree and second home widget.** Need separate platform work and device testing. Deferred.
+- **Custom media notification actions and artwork-derived themes.** Audio_service custom action API and dynamic image palettes need more verification. Deferred.
 - **Discord presence and Listen Together.** Needs a Discord app registration and OAuth. Owner gives ideas only, no account walkthrough is allowed. Recorded as Open: needs account access. Code is safe without it: no tokens stored.
 - **Song recognition.** Needs a recognition API key or microphone plus model. No public key-free endpoint was verified. Not implemented.
 - **YouTube Music library sync, subscriptions, likes, and comments.** Needs Google account OAuth and YouTube Data API key. Not implemented.

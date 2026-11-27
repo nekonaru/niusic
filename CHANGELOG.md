@@ -1,5 +1,17 @@
 # Changelog
 
+## v9.0.0
+
+Native feel and system integration.
+
+### New features
+
+- **Material You.** New System accent option uses the device wallpaper palette on Android 12 and newer.
+- **Immersive player.** Optional full-screen Now Playing mode with gesture skip left and right on the artwork.
+- **Grid view.** Library grid/list toggle on phones.
+- **Haptic feedback.** Light feedback on playback and share actions.
+- **Offline mode.** Single toggle disables chart, search, radio and lyrics network requests.
+
 ## v8.1.0
 
 Audio controls and radio extras.

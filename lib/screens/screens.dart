@@ -278,23 +278,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     ),
                   ),
                 )
-              : searchColumns(context) == 1
-              ? ListView.separated(
-                  addRepaintBoundaries: true,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: filtered.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: 4),
-                  itemBuilder: (context, index) =>
-                      _libraryTile(filtered[index], context, queueIndexById),
-                )
-              : GridView.builder(
+              : (state.libraryGrid || searchColumns(context) > 1)
+              ? GridView.builder(
                   addRepaintBoundaries: true,
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: searchColumns(context),
+                    crossAxisCount: state.libraryGrid
+                        ? (searchColumns(context) > 1
+                              ? searchColumns(context)
+                              : 2)
+                        : searchColumns(context),
                     crossAxisSpacing: 8,
                     mainAxisSpacing: 8,
-                    childAspectRatio: searchColumns(context) == 1 ? 6.5 : 1.2,
+                    childAspectRatio: 1.2,
                   ),
                   itemCount: filtered.length,
                   itemBuilder: (context, index) {
@@ -304,6 +299,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       queueIndexById,
                     );
                   },
+                )
+              : ListView.separated(
+                  addRepaintBoundaries: true,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: filtered.length,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 4),
+                  itemBuilder: (context, index) =>
+                      _libraryTile(filtered[index], context, queueIndexById),
                 ),
         ),
       ],
@@ -520,6 +524,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadChart() async {
+    if (widget.state.offlineMode) {
+      setState(() => chartLoaded = true);
+      return;
+    }
     try {
       final items = await widget.state.chartService.topTracks(limit: 10);
       if (!mounted) return;
@@ -1487,8 +1495,8 @@ class SettingsScreen extends StatefulWidget {
   final AppStrings strings;
   final VoidCallback onChanged;
 
-  static const String version = '8.1.0';
-  static const String buildNumber = '38';
+  static const String version = '9.0.0';
+  static const String buildNumber = '39';
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -1606,22 +1614,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _accentRow(BuildContext context) {
     const colors = <String, Color>{
+      'system': Color(0xFF607D8B),
       'indigo': Color(0xFF4F46E5),
       'teal': Color(0xFF0F766E),
       'purple': Color(0xFF7E22CE),
       'orange': Color(0xFFEA580C),
     };
-    return Row(
-      children: [
-        for (final entry in colors.entries) ...[
-          _AccentSwatch(
-            color: entry.value,
-            selected: state.accent == entry.key,
-            onTap: () => state.setAccent(entry.key),
-          ),
-          const SizedBox(width: 14),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (final entry in colors.entries) ...[
+            _AccentSwatch(
+              color: entry.value,
+              selected: state.accent == entry.key,
+              onTap: () => state.setAccent(entry.key),
+            ),
+            const SizedBox(width: 14),
+          ],
         ],
-      ],
+      ),
     );
   }
 
@@ -1717,6 +1729,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 icon: Icons.palette_outlined,
                 title: strings.accent,
                 child: _accentRow(context),
+              ),
+              _divider(),
+              SwitchListTile(
+                secondary: const Icon(Icons.fullscreen),
+                title: Text(strings.immersivePlayer),
+                value: state.immersivePlayer,
+                onChanged: state.setImmersivePlayer,
+              ),
+              _divider(),
+              SwitchListTile(
+                secondary: const Icon(Icons.grid_view),
+                title: Text(strings.gridView),
+                value: state.libraryGrid,
+                onChanged: state.setLibraryGrid,
               ),
             ],
           ),
@@ -1821,6 +1847,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: Text(strings.cacheOnlineDesc),
                 value: state.cacheOnlineAudio,
                 onChanged: (value) => state.setCacheOnlineAudio(value),
+              ),
+              _divider(),
+              SwitchListTile(
+                secondary: const Icon(Icons.wifi_off),
+                title: Text(strings.offlineMode),
+                subtitle: Text(strings.offlineModeDesc),
+                value: state.offlineMode,
+                onChanged: state.setOfflineMode,
               ),
               _settingRow(
                 icon: Icons.tune,
@@ -2281,6 +2315,13 @@ class _SearchScreenState extends State<SearchScreen> {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 400), () async {
       final query = value.trim();
+      if (widget.state.offlineMode) {
+        setState(() {
+          failed = true;
+          searched = false;
+        });
+        return;
+      }
       if (query.isEmpty) {
         setState(() {
           results = <VideoResult>[];
@@ -2911,6 +2952,13 @@ class _LyricsScreenState extends State<LyricsScreen> {
       });
       return;
     }
+    if (widget.state.offlineMode) {
+      setState(() {
+        loading = false;
+        failed = true;
+      });
+      return;
+    }
     try {
       final r = await widget.state.lyricsService.fetch(
         track.title,
@@ -3009,6 +3057,7 @@ class NowPlayingScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(strings.nowPlaying),
         actions: [
+          if (state.immersivePlayer) const _ImmersiveController(enabled: true),
           Builder(
             builder: (context) {
               final current = state.current;
@@ -3133,7 +3182,23 @@ class NowPlayingScreen extends StatelessWidget {
               child: isDesktop(context)
                   ? Row(
                       children: [
-                        Expanded(child: Center(child: _artwork(track))),
+                        Expanded(
+                          child: Center(
+                            child: GestureDetector(
+                              onHorizontalDragEnd: (details) {
+                                final velocity = details.primaryVelocity ?? 0;
+                                if (velocity < -300) {
+                                  HapticFeedback.lightImpact();
+                                  state.next();
+                                } else if (velocity > 300) {
+                                  HapticFeedback.lightImpact();
+                                  state.previous();
+                                }
+                              },
+                              child: _artwork(track),
+                            ),
+                          ),
+                        ),
                         const SizedBox(width: 32),
                         Expanded(child: _controls(context, track, value, max)),
                       ],
@@ -3332,7 +3397,10 @@ class NowPlayingScreen extends StatelessWidget {
                 ),
                 iconSize: 56,
                 tooltip: state.isPlaying ? strings.pause : strings.play,
-                onPressed: state.toggle,
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  state.toggle();
+                },
               ),
             IconButton(
               icon: Icon(Icons.skip_next),
@@ -3554,6 +3622,13 @@ class _RadioOnlineViewState extends State<RadioOnlineView> {
   }
 
   Future<void> _loadTop() async {
+    if (widget.state.offlineMode) {
+      setState(() {
+        loading = false;
+        failed = true;
+      });
+      return;
+    }
     setState(() {
       loading = true;
       failed = false;
@@ -3576,6 +3651,13 @@ class _RadioOnlineViewState extends State<RadioOnlineView> {
   }
 
   Future<void> _loadCountry(String country) async {
+    if (widget.state.offlineMode) {
+      setState(() {
+        loading = false;
+        failed = true;
+      });
+      return;
+    }
     setState(() {
       loading = true;
       failed = false;
@@ -4012,7 +4094,10 @@ void showTrackDetails(
                   IconButton(
                     icon: const Icon(Icons.share),
                     tooltip: strings.share,
-                    onPressed: () => state.shareTrack(track),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      state.shareTrack(track);
+                    },
                   ),
                   IconButton(
                     icon: const Icon(Icons.edit_outlined),
@@ -4229,4 +4314,40 @@ class StatsScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ImmersiveController extends StatefulWidget {
+  const _ImmersiveController({required this.enabled});
+
+  final bool enabled;
+
+  @override
+  State<_ImmersiveController> createState() => _ImmersiveControllerState();
+}
+
+class _ImmersiveControllerState extends State<_ImmersiveController> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.enabled) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    }
+  }
+
+  @override
+  void didUpdateWidget(_ImmersiveController oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.enabled != widget.enabled && !widget.enabled) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
+  }
+
+  @override
+  void dispose() {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
 }

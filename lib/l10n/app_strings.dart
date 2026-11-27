@@ -281,4 +281,10 @@ class AppStrings {
   String get topStations => isId ? 'Terpopuler' : 'Top stations';
   String get stationFavorites => isId ? 'Stasiun favorit' : 'Favorite stations';
   String get nowOnRadio => isId ? 'Sedang diputar' : 'Now playing';
+  String get immersivePlayer =>
+      isId ? 'Pemutar layar penuh' : 'Immersive player';
+  String get gridView => isId ? 'Tampilan grid' : 'Grid view';
+  String get offlineActive => isId
+      ? 'Mode offline aktif. Fitur online dimatikan.'
+      : 'Offline mode is on. Online features are disabled.';
 }

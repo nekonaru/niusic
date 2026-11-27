@@ -5,8 +5,11 @@ import 'package:flutter/material.dart';
 ThemeData niusicTheme(
   Brightness brightness, {
   Color seed = const Color(0xFF4F46E5),
+  ColorScheme? dynamicScheme,
 }) {
-  final scheme = ColorScheme.fromSeed(seedColor: seed, brightness: brightness);
+  final scheme =
+      dynamicScheme ??
+      ColorScheme.fromSeed(seedColor: seed, brightness: brightness);
 
   final base = ThemeData(
     useMaterial3: true,

@@ -1,5 +1,17 @@
 # Changelog
 
+## v9.0.0
+
+Rasa native dan integrasi sistem.
+
+### Fitur baru
+
+- **Material You.** Opsi aksen Sistem memakai palet wallpaper perangkat di Android 12 ke atas.
+- **Pemutar imersif.** Mode layar penuh Now Playing opsional dengan gestur geser lagu pada sampul.
+- **Tampilan grid.** Toggle grid/list perpustakaan di ponsel.
+- **Haptic.** Getaran halus pada aksi pemutaran dan bagikan.
+- **Mode offline.** Satu toggle mematikan permintaan jaringan chart, pencarian, radio, dan lirik.
+
 ## v8.1.0
 
 Kontrol audio dan tambahan radio.

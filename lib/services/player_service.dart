@@ -50,6 +50,9 @@ const String _keySkipSilence = 'skip_silence_enabled';
 const String _keyPitch = 'pitch';
 const String _keyCacheOnline = 'cache_online_audio';
 const String _keyFavoriteStations = 'favorite_stations_v1';
+const String _keyImmersive = 'immersive_player';
+const String _keyLibraryGrid = 'library_grid';
+const String _keyOfflineMode = 'offline_mode';
 const String _keyLibrarySort = 'library_sort';
 const String _keyEqEnabled = 'equalizer_enabled';
 const String _keyEqGains = 'equalizer_gains';
@@ -165,6 +168,9 @@ class AppState extends ChangeNotifier {
   bool skipSilence = false;
   double pitch = 1.0;
   bool cacheOnlineAudio = false;
+  bool immersivePlayer = false;
+  bool libraryGrid = false;
+  bool offlineMode = false;
   String? icyTitle;
   final List<Track> favoriteStations = <Track>[];
   LibrarySort librarySort = LibrarySort.name;
@@ -368,6 +374,9 @@ class AppState extends ChangeNotifier {
     skipSilence = prefs.getBool(_keySkipSilence) ?? false;
     pitch = prefs.getDouble(_keyPitch) ?? 1;
     cacheOnlineAudio = prefs.getBool(_keyCacheOnline) ?? false;
+    immersivePlayer = prefs.getBool(_keyImmersive) ?? false;
+    libraryGrid = prefs.getBool(_keyLibraryGrid) ?? false;
+    offlineMode = prefs.getBool(_keyOfflineMode) ?? false;
     final stationsRaw = prefs.getString(_keyFavoriteStations);
     if (stationsRaw != null) {
       try {
@@ -1632,6 +1641,27 @@ class AppState extends ChangeNotifier {
     cacheOnlineAudio = value;
     final prefs = await _getPrefs();
     await prefs.setBool(_keyCacheOnline, value);
+    notifyListeners();
+  }
+
+  Future<void> setImmersivePlayer(bool value) async {
+    immersivePlayer = value;
+    final prefs = await _getPrefs();
+    await prefs.setBool(_keyImmersive, value);
+    notifyListeners();
+  }
+
+  Future<void> setLibraryGrid(bool value) async {
+    libraryGrid = value;
+    final prefs = await _getPrefs();
+    await prefs.setBool(_keyLibraryGrid, value);
+    notifyListeners();
+  }
+
+  Future<void> setOfflineMode(bool value) async {
+    offlineMode = value;
+    final prefs = await _getPrefs();
+    await prefs.setBool(_keyOfflineMode, value);
     notifyListeners();
   }
 
