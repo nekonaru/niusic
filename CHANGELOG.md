@@ -1,5 +1,18 @@
 # Changelog
 
+## v13.0.0
+
+Platform polish.
+
+### New features
+
+- **Car mode.** A global text scale increase for glanceable controls while driving.
+- **Listening heatmap.** The stats screen shows a 28-day activity grid.
+
+### Notes
+
+- Windows drag and drop and golden image tests are deferred because both need extra platform and fixture work.
+
 ## v12.1.0
 
 Feature expansion.

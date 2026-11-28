@@ -1710,8 +1710,8 @@ class SettingsScreen extends StatefulWidget {
   final AppStrings strings;
   final VoidCallback onChanged;
 
-  static const String version = '12.1.0';
-  static const String buildNumber = '44';
+  static const String version = '13.0.0';
+  static const String buildNumber = '45';
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -1985,6 +1985,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: Text(strings.reduceMotion),
                 value: state.reduceMotion,
                 onChanged: state.setReduceMotion,
+              ),
+              _divider(),
+              SwitchListTile(
+                secondary: const Icon(Icons.directions_car),
+                title: Text(strings.carMode),
+                value: state.carMode,
+                onChanged: state.setCarMode,
               ),
             ],
           ),
@@ -4894,6 +4901,55 @@ class StatsScreen extends StatelessWidget {
                       ),
                     ),
                 ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            strings.heatmap,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(NiSpace.md),
+              child: Wrap(
+                spacing: NiSpace.xs,
+                runSpacing: NiSpace.xs,
+                children: () {
+                  final now = DateTime.now();
+                  final values = <int>[];
+                  final days = <DateTime>[];
+                  for (var i = 27; i >= 0; i--) {
+                    final day = now.subtract(Duration(days: i));
+                    days.add(day);
+                    final key = day.toString().substring(0, 10);
+                    values.add(state.listenSecondsByDay[key] ?? 0);
+                  }
+                  final maxAll = values.fold<int>(
+                    1,
+                    (max, value) => value > max ? value : max,
+                  );
+                  return [
+                    for (var i = 0; i < days.length; i++)
+                      Tooltip(
+                        message:
+                            '${days[i].toString().substring(0, 10)}: ${values[i]}s',
+                        child: Container(
+                          width: 18,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.1 + 0.9 * values[i] / maxAll,
+                            ),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ),
+                  ];
+                }(),
               ),
             ),
           ),

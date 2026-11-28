@@ -359,4 +359,7 @@ class AppStrings {
   String get quickActions => isId ? 'Aksi cepat' : 'Quick actions';
   String get shareSelected => isId ? 'Bagikan pilihan' : 'Share selected';
   String get minutes45 => '45 min';
+
+  String get carMode => isId ? 'Mode mobil' : 'Car mode';
+  String get heatmap => isId ? 'Peta dengar' : 'Listening heatmap';
 }

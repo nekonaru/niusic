@@ -346,7 +346,11 @@ class _NiusicAppState extends State<NiusicApp> {
       builder: (context, child) {
         final media = MediaQuery.of(context);
         return MediaQuery(
-          data: media.copyWith(textScaler: TextScaler.linear(state.textScale)),
+          data: media.copyWith(
+            textScaler: TextScaler.linear(
+              state.carMode ? 1.25 : state.textScale,
+            ),
+          ),
           child: child ?? const SizedBox.shrink(),
         );
       },

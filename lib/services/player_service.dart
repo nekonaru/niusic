@@ -88,6 +88,7 @@ const String _keyReduceMotion = 'reduce_motion';
 const String _keyOnboardingDone = 'onboarding_done_v1';
 const String _keyMoods = 'track_moods_v1';
 const String _keyLyricsCache = 'lyrics_cache_v1';
+const String _keyCarMode = 'car_mode';
 const String _keyLibrarySort = 'library_sort';
 const String _keyEqEnabled = 'equalizer_enabled';
 const String _keyEqGains = 'equalizer_gains';
@@ -270,6 +271,7 @@ class AppState extends ChangeNotifier {
   double textScale = 1;
   bool reduceMotion = false;
   bool onboardingDone = false;
+  bool carMode = false;
   final Map<String, String> trackMoods = <String, String>{};
   final Map<String, Map<String, dynamic>> lyricsCache =
       <String, Map<String, dynamic>>{};
@@ -522,6 +524,7 @@ class AppState extends ChangeNotifier {
     textScale = prefs.getDouble(_keyTextScale) ?? 1;
     reduceMotion = prefs.getBool(_keyReduceMotion) ?? false;
     onboardingDone = prefs.getBool(_keyOnboardingDone) ?? false;
+    carMode = prefs.getBool(_keyCarMode) ?? false;
     final moodsRaw = prefs.getString(_keyMoods);
     if (moodsRaw != null) {
       try {
@@ -1990,6 +1993,13 @@ class AppState extends ChangeNotifier {
     queueVersion++;
     await _saveQueue();
     await playAt(0);
+  }
+
+  Future<void> setCarMode(bool value) async {
+    carMode = value;
+    final prefs = await _getPrefs();
+    await prefs.setBool(_keyCarMode, value);
+    notifyListeners();
   }
 
   Future<void> setTrackMood(String id, String mood) async {

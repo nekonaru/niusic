@@ -1,5 +1,18 @@
 # Changelog
 
+## v13.0.0
+
+Penyempurnaan platform.
+
+### Fitur baru
+
+- **Mode mobil.** Skala teks global naik agar kontrol mudah dilihat saat menyetir.
+- **Peta dengar.** Layar statistik menampilkan grid aktivitas 28 hari.
+
+### Catatan
+
+- Drag and drop Windows dan golden image tests ditunda karena memerlukan kerja platform dan fixture tambahan.
+
 ## v12.1.0
 
 Perluasan fitur.
