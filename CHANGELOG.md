@@ -1,5 +1,18 @@
 # Changelog
 
+## v12.1.0
+
+Feature expansion.
+
+### New features
+
+- **Daily mix.** A local mix from most played, recent, and library tracks.
+- **Mood tags.** Mark tracks as Calm, Focus, or Energy from track details.
+- **Quick actions.** A Now Playing panel for sleep presets, speed, and loop clear.
+- **Sleep presets.** Adds 45 minutes to the sleep timer dialog.
+- **Lyrics cache.** Fetched lyrics are stored on device and work offline.
+- **Share selected.** Share multiple selected tracks from the Library selection bar.
+
 ## v12.0.0
 
 Design foundation.

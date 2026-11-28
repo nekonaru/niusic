@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_waveform/just_waveform.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../l10n/app_strings.dart';
 import '../models/lyrics.dart';
@@ -255,6 +256,22 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   icon: const Icon(Icons.playlist_add),
                   tooltip: strings.addToPlaylist,
                   onPressed: _addSelectedToPlaylist,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.share),
+                  tooltip: strings.shareSelected,
+                  onPressed: () async {
+                    final text = _selectedTracks()
+                        .map((t) => t.title)
+                        .join('\n');
+                    try {
+                      await SharePlus.instance.share(
+                        ShareParams(text: text, subject: strings.library),
+                      );
+                    } catch (_) {
+                      // Share sheet not available.
+                    }
+                  },
                 ),
                 IconButton(
                   icon: const Icon(Icons.close),
@@ -715,6 +732,29 @@ class _HomeScreenState extends State<HomeScreen> {
                       label: Text(strings.addMusic),
                     ),
                 ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
+        if (state.dailyMix().isNotEmpty) ...[
+          Card(
+            clipBehavior: Clip.antiAlias,
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: theme.colorScheme.primaryContainer,
+                child: Icon(
+                  Icons.auto_awesome,
+                  color: theme.colorScheme.onPrimaryContainer,
+                ),
+              ),
+              title: Text(strings.dailyMix),
+              subtitle: Text(
+                '${state.dailyMix().length} ${strings.tracksCount}',
+              ),
+              trailing: FilledButton(
+                onPressed: () => state.playTracksNow(state.dailyMix()),
+                child: Text(strings.playAll),
               ),
             ),
           ),
@@ -1670,8 +1710,8 @@ class SettingsScreen extends StatefulWidget {
   final AppStrings strings;
   final VoidCallback onChanged;
 
-  static const String version = '12.0.0';
-  static const String buildNumber = '43';
+  static const String version = '12.1.0';
+  static const String buildNumber = '44';
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -3280,6 +3320,26 @@ class _LyricsScreenState extends State<LyricsScreen> {
       });
       return;
     }
+    final cached = widget.state.cachedLyrics(track.title, track.subtitle ?? '');
+    if (cached != null) {
+      final r = LyricsResult(
+        title: cached['title'] as String? ?? track.title,
+        artist: cached['artist'] as String? ?? track.subtitle ?? '',
+        plainLyrics: cached['plain'] as String?,
+        syncedLyrics: cached['synced'] as String?,
+      );
+      if (!mounted) return;
+      lines = r.syncedLyrics != null
+          ? widget.state.lyricsService.parseSynced(r.syncedLyrics!)
+          : <SyncedLine>[];
+      setState(() {
+        result = r;
+        loading = false;
+        failed = false;
+      });
+      _onTick();
+      return;
+    }
     if (widget.state.offlineMode) {
       setState(() {
         loading = false;
@@ -3293,6 +3353,18 @@ class _LyricsScreenState extends State<LyricsScreen> {
         track.subtitle ?? '',
       );
       if (!mounted) return;
+      if (r != null) {
+        await widget.state.cacheLyrics(
+          track.title,
+          track.subtitle ?? '',
+          <String, dynamic>{
+            'title': r.title,
+            'artist': r.artist,
+            'plain': r.plainLyrics,
+            'synced': r.syncedLyrics,
+          },
+        );
+      }
       lines = r?.syncedLyrics != null
           ? widget.state.lyricsService.parseSynced(r!.syncedLyrics!)
           : <SyncedLine>[];
@@ -3496,6 +3568,10 @@ class NowPlayingScreen extends StatelessWidget {
                         child: Text(strings.minutes30),
                       ),
                       SimpleDialogOption(
+                        onPressed: () => Navigator.pop(context, 45),
+                        child: Text(strings.minutes45),
+                      ),
+                      SimpleDialogOption(
                         onPressed: () => Navigator.pop(context, 60),
                         child: Text(strings.minutes60),
                       ),
@@ -3530,6 +3606,67 @@ class NowPlayingScreen extends StatelessWidget {
             onPressed: track == null
                 ? null
                 : () => showTrackDetails(context, state, strings, track),
+          ),
+          IconButton(
+            icon: const Icon(Icons.bolt),
+            tooltip: strings.quickActions,
+            onPressed: () => showModalBottomSheet<void>(
+              context: context,
+              builder: (context) {
+                return SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(NiSpace.lg),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          strings.quickActions,
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: NiSpace.md),
+                        Wrap(
+                          spacing: NiSpace.sm,
+                          children: [
+                            for (final minutes in <int>[15, 30, 45, 60])
+                              ActionChip(
+                                label: Text('$minutes min'),
+                                onPressed: () {
+                                  state.setSleepTimer(minutes);
+                                  Navigator.pop(context);
+                                },
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: NiSpace.md),
+                        Wrap(
+                          spacing: NiSpace.sm,
+                          children: [
+                            for (final rate in <double>[1, 1.25, 1.5, 2])
+                              ActionChip(
+                                label: Text('${rate}x'),
+                                onPressed: () {
+                                  state.setPlaybackRate(rate);
+                                  Navigator.pop(context);
+                                },
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: NiSpace.md),
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            state.clearAbLoop();
+                            Navigator.pop(context);
+                          },
+                          icon: const Icon(Icons.loop),
+                          label: Text(strings.clearLoop),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -4494,6 +4631,30 @@ void showTrackDetails(
                 ),
               if (track.isLocal && track.path != null)
                 info(Icons.folder_outlined, track.path!),
+              const SizedBox(height: 12),
+              Text(strings.mood, style: theme.textTheme.labelLarge),
+              const SizedBox(height: 6),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final mood in <String, String>{
+                      'calm': strings.moodCalm,
+                      'focus': strings.moodFocus,
+                      'energy': strings.moodEnergy,
+                    }.entries)
+                      Padding(
+                        padding: const EdgeInsets.only(right: NiSpace.sm),
+                        child: FilterChip(
+                          label: Text(mood.value),
+                          selected: state.trackMoods[track.id] == mood.key,
+                          onSelected: (_) =>
+                              state.setTrackMood(track.id, mood.key),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 16),
               Row(
                 children: [

@@ -1965,6 +1965,33 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// A locally generated mix from play counts and listening history.
+  List<Track> dailyMix({int limit = 20}) {
+    final seen = <String>{};
+    final out = <Track>[];
+    for (final track in [
+      ...topPlayed(limit: limit),
+      ...recentTracks(),
+      ...library,
+    ]) {
+      if (seen.add(track.id)) {
+        out.add(track);
+      }
+      if (out.length >= limit) break;
+    }
+    return out;
+  }
+
+  /// Replaces the queue and starts the first track.
+  Future<void> playTracksNow(List<Track> tracks) async {
+    if (tracks.isEmpty) return;
+    queue = List<Track>.of(tracks);
+    queueIndex = 0;
+    queueVersion++;
+    await _saveQueue();
+    await playAt(0);
+  }
+
   Future<void> setTrackMood(String id, String mood) async {
     trackMoods[id] = mood;
     final prefs = await _getPrefs();

@@ -1,5 +1,18 @@
 # Changelog
 
+## v12.1.0
+
+Perluasan fitur.
+
+### Fitur baru
+
+- **Campuran harian.** Racikan lokal dari lagu paling sering, terakhir diputar, dan perpustakaan.
+- **Tag suasana.** Tandai lagu sebagai Tenang, Fokus, atau Berenergi dari detail lagu.
+- **Aksi cepat.** Panel Now Playing untuk preset tidur, kecepatan, dan hapus loop.
+- **Preset tidur.** Menambah 45 menit ke dialog timer tidur.
+- **Cache lirik.** Lirik yang diambil disimpan di perangkat dan bisa dibuka offline.
+- **Bagikan pilihan.** Bagikan banyak lagu terpilih dari bilah seleksi Perpustakaan.
+
 ## v12.0.0
 
 Fondasi desain.

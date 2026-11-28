@@ -350,4 +350,13 @@ class AppStrings {
   String get continueListening =>
       isId ? 'Lanjutkan mendengar' : 'Continue listening';
   String get reduceMotion => isId ? 'Kurangi animasi' : 'Reduce motion';
+
+  String get dailyMix => isId ? 'Campuran harian' : 'Daily mix';
+  String get mood => isId ? 'Suasana' : 'Mood';
+  String get moodCalm => isId ? 'Tenang' : 'Calm';
+  String get moodFocus => isId ? 'Fokus' : 'Focus';
+  String get moodEnergy => isId ? 'Berenergi' : 'Energy';
+  String get quickActions => isId ? 'Aksi cepat' : 'Quick actions';
+  String get shareSelected => isId ? 'Bagikan pilihan' : 'Share selected';
+  String get minutes45 => '45 min';
 }
